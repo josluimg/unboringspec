@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from jinja2 import Environment, PackageLoader, select_autoescape
+from jinja2 import Environment, PackageLoader
 
 from . import __version__
+from .diagrams import spec_diagrams
 from .ir import Attention, SpecIR
 
 
@@ -31,7 +32,7 @@ def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
 
 
 def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
-    env = Environment(loader=PackageLoader("unboringspec", "templates"), autoescape=select_autoescape(["html"]))
+    env = Environment(loader=PackageLoader("unboringspec", "templates"), autoescape=True)
     tpl = env.get_template("review.html.j2")
 
     stories = {s.id: s for s in ir.stories}
@@ -61,6 +62,9 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
         tasks_by_story=tasks_by_story,
         payload=payload,
         podcast=podcast,
+        # From understanding to planning: the agent's map and flows first, then the data model
+        # and the task graph built from the spec.
+        diagrams=ir.diagrams + spec_diagrams(ir),
     )
 
 

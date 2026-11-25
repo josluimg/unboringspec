@@ -10,7 +10,16 @@ import re
 from pathlib import Path
 
 from ..ir import Attention, Decision, OpenQuestion, Requirement, SpecIR, Task, UserStory
-from .base import CLARIFICATION_RE, Adapter, find_clarifications, read_documents, ref
+from .base import (
+    CLARIFICATION_RE,
+    Adapter,
+    data_model_entities,
+    find_clarifications,
+    key_entities,
+    merge_entities,
+    read_documents,
+    ref,
+)
 
 STORY_RE = re.compile(
     r"^#{2,4}\s+User Story\s+(\d+)\s*[-–—:]\s*(.+?)(?:\s*\(Priority:\s*(P\d+)\))?\s*$", re.IGNORECASE
@@ -55,6 +64,10 @@ class SpecKitAdapter(Adapter):
         ir.stories = self._stories(spec)
         ir.requirements = self._requirements(spec)
         ir.tasks = self._tasks(docs.get("tasks.md", ""))
+        ir.entities = merge_entities(
+            key_entities(docs.get("spec.md", ""), "spec.md"),
+            data_model_entities(docs.get("data-model.md", ""), "data-model.md"),
+        )
         ir.decisions = self._research_decisions(docs.get("research.md", "")) + self._tech_context(
             docs.get("plan.md", "")
         )
@@ -113,7 +126,11 @@ class SpecKitAdapter(Adapter):
 
     def _tasks(self, text: str) -> list[Task]:
         out = []
+        phase = ""
         for i, line in enumerate(text.splitlines(), start=1):
+            if line.startswith("## "):
+                phase = line[3:].strip()
+                continue
             m = TASK_RE.match(line)
             if not m:
                 continue
@@ -127,6 +144,7 @@ class SpecKitAdapter(Adapter):
                     text=clean,
                     story=story.group(1) if story else None,
                     parallel=parallel,
+                    phase=phase,
                     done=m.group(1).lower() == "x",
                     sources=[ref("tasks.md", i, line)],
                 )

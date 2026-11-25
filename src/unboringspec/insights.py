@@ -19,7 +19,8 @@ from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 
-from .ir import Attention, Decision, OpenQuestion, Risk, SourceRef, SpecIR, Summary
+from .diagrams import check_mermaid
+from .ir import Attention, Decision, Diagram, OpenQuestion, Risk, SourceRef, SpecIR, Summary
 
 DEFAULT_MODEL = "anthropic/claude-sonnet-5-5"
 
@@ -120,6 +121,26 @@ class QuestionInsight(BaseModel):
     sources: list[Citation] = Field(json_schema_extra=_AT_LEAST_ONE)
 
 
+MAX_AGENT_DIAGRAMS = 3
+
+
+class DiagramInsight(BaseModel):
+    """A Mermaid diagram that helps a reviewer understand the spec without reading all of it."""
+
+    kind: Literal["system", "journey", "sequence", "flow", "state"] = Field(
+        description="'system': the map of the parts involved (people, apps, services, data stores, external "
+        "systems) and how they connect; 'journey': the main user journey; 'sequence': a key interaction "
+        "between actors and systems; 'flow': another important process; 'state': the lifecycle of a central object."
+    )
+    title: str = Field(description="Short title, max 8 words.")
+    mermaid: str = Field(
+        description="Plain Mermaid source starting with its type (flowchart for system, journey and flow; "
+        "sequenceDiagram; stateDiagram-v2). "
+        "Names from the spec. No init directives, click handlers, links or HTML. Max 40 lines."
+    )
+    sources: list[Citation] = Field(description="Lines the diagram is based on.", json_schema_extra=_AT_LEAST_ONE)
+
+
 class LLMInsights(BaseModel):
     """unboringspec insights: what a human reviewer needs from a spec, with every claim cited."""
 
@@ -131,6 +152,12 @@ class LLMInsights(BaseModel):
     decisions: list[DecisionInsight]
     risks: list[RiskInsight]
     questions: list[QuestionInsight]
+    diagrams: list[DiagramInsight] = Field(
+        default_factory=list,
+        description=f"Optional, at most {MAX_AGENT_DIAGRAMS}, most useful first. The task graph and the data model "
+        "are drawn from the spec automatically.",
+        json_schema_extra={"maxItems": MAX_AGENT_DIAGRAMS},
+    )
 
 
 def json_schema() -> dict:
@@ -157,6 +184,15 @@ Rules:
   "routine" if conventional.
 - risks: real delivery or product risks, including ones the spec does not mention but implies.
 - questions: gaps, contradictions or missing edge cases a careful reviewer would raise.
+- diagrams: pictures that make the spec understandable at a glance, most useful first, at most 3, and only
+  those that apply. In order of value:
+  1. system: the map of what is involved (people, apps, services, data stores, external systems) and how
+     they connect, as a flowchart with subgraphs for boundaries. Draw it whenever the spec involves more than
+     one part.
+  2. the main flow: the user journey (flowchart) or, when the order of calls matters, a sequenceDiagram.
+  3. state: only when the lifecycle of one object is central (an order, a link, a document).
+  Only draw what the documents support, with the spec's own names; keep each under 40 lines. Skip diagrams
+  that would be trivial. Never draw the task graph or the data model: those are drawn automatically.
 - Every decision, risk and question MUST cite at least one source as file + line number from the
   numbered documents below. Never invent citations. If you cannot cite it, leave it out.
 """
@@ -292,6 +328,17 @@ def apply_insights(ir: SpecIR, data: LLMInsights, generated_by: str) -> tuple[Sp
         ir.questions.append(OpenQuestion(id="", question=q.question, why_it_matters=q.why_it_matters, sources=sources))
     for i, q in enumerate(ir.questions, start=1):
         q.id = f"Q{i}"
+
+    ir.diagrams = []
+    for d in data.diagrams[:MAX_AGENT_DIAGRAMS]:
+        sources = _resolve(d.sources, docs)
+        if not sources or check_mermaid(d.mermaid):
+            dropped += 1
+            continue
+        ir.diagrams.append(
+            Diagram(id=f"G{len(ir.diagrams) + 1}", kind=d.kind, title=d.title, mermaid=d.mermaid.strip(),
+                    origin="agent", sources=sources)
+        )
 
     ir.generated_by = generated_by
     return ir, dropped

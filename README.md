@@ -17,6 +17,7 @@ with the SDD framework you use and the coding agent you already have, with no ex
 | ⏱️ **30-second summary** | What is being built, in five bullets. |
 | 🧭 **Needs your judgment** | Only what is blocked on a human: `[NEEDS CLARIFICATION]` markers, unresolved trade-offs, gaps a careful reviewer would raise. |
 | 🃏 **Decision cards** | Each decision with its rationale, the alternatives it beat and its risk. Approve it or question it. |
+| 🗺️ **Visual overview** | A map of the system, the main flow and key sequences drawn by your agent when they apply, plus the data model and the task graph built from the spec. The map opens first; click any diagram to see it full size. |
 | 📂 **Progressive disclosure** | Routine decisions, stories, tasks and requirements stay collapsed until you want them. |
 | 🔗 **Traceability** | Every claim links to its `file:line`; the source opens beside the summary. Invented citations are dropped. |
 | 🔁 **Feedback loop** | Export your verdicts as `review.md` and hand it back to your agent to update the spec. |

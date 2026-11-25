@@ -77,8 +77,28 @@ class Task(BaseModel):
     id: str
     text: str
     story: str | None = None
+    phase: str = ""  # the tasks.md heading the task sits under, e.g. "Phase 1: Setup"
     parallel: bool = False
     done: bool = False
+    sources: list[SourceRef] = Field(default_factory=list)
+
+
+class Entity(BaseModel):
+    """A domain entity, e.g. from spec-kit's Key Entities or data-model.md."""
+
+    name: str
+    attributes: list[str] = Field(default_factory=list)
+    sources: list[SourceRef] = Field(default_factory=list)
+
+
+class Diagram(BaseModel):
+    """A Mermaid diagram shown on the review page."""
+
+    id: str
+    kind: str  # tasks, data-model, journey, sequence, flow, state
+    title: str
+    mermaid: str
+    origin: str = "spec"  # "spec" (built from the documents, no LLM) or "agent"
     sources: list[SourceRef] = Field(default_factory=list)
 
 
@@ -100,6 +120,8 @@ class SpecIR(BaseModel):
     risks: list[Risk] = Field(default_factory=list)
     questions: list[OpenQuestion] = Field(default_factory=list)
     tasks: list[Task] = Field(default_factory=list)
+    entities: list[Entity] = Field(default_factory=list)
+    diagrams: list[Diagram] = Field(default_factory=list)  # from the agent; spec diagrams are built at render time
     generated_by: str = "heuristic"
     warnings: list[str] = Field(default_factory=list)
 

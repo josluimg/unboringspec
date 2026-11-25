@@ -11,7 +11,7 @@ import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from ..ir import OpenQuestion, SourceRef, SpecIR
+from ..ir import Entity, OpenQuestion, SourceRef, SpecIR
 
 CLARIFICATION_RE = re.compile(r"\[NEEDS CLARIFICATION:?\s*([^\]]+)\]", re.IGNORECASE)
 
@@ -60,3 +60,92 @@ def find_clarifications(docs: dict[str, str]) -> list[OpenQuestion]:
                     )
                 )
     return out
+
+
+# --- entities ----------------------------------------------------------------------
+
+ENTITY_BULLET_RE = re.compile(r"^\s*[-*+]\s+\*\*(.+?)\*\*:?\s*(.*)$")
+FIELD_BULLET_RE = re.compile(r"^\s*[-*+]\s+`?\*{0,2}([A-Za-z_][\w ]{0,40}?)\*{0,2}`?\s*(?::|—|–|\s-\s)")
+TABLE_ROW_RE = re.compile(r"^\s*\|\s*`?([^|`]+?)`?\s*\|")
+NOT_ENTITIES = {
+    "entities", "key entities", "overview", "relationships", "relationship", "validation rules", "validation",
+    "state transitions", "states", "data model", "notes", "constraints", "indexes", "fields", "attributes",
+}
+
+
+NOT_FIELDS = {"description", "purpose", "validation", "validation rules", "relationships", "state", "states", "notes", "rules"}
+
+
+def _attributes(text: str) -> list[str]:
+    """'name, owner, invite token, created at.' -> ['name', 'owner', 'invite token', 'created at']"""
+    text = re.sub(r"\(.*?\)", "", text).strip().rstrip(".")
+    parts = re.split(r",|;|\band\b", text)
+    return [p.strip(" .`*") for p in parts if p.strip(" .`*") and len(p.strip()) <= 40]
+
+
+def key_entities(text: str, file: str) -> list[Entity]:
+    """spec-kit's '### Key Entities' list: '- **Album**: name, owner, created at.'"""
+    out, inside = [], False
+    for i, line in enumerate(text.splitlines(), start=1):
+        if line.startswith("#"):
+            inside = "key entities" in line.lower()
+            continue
+        if inside and (m := ENTITY_BULLET_RE.match(line)):
+            out.append(Entity(name=m.group(1).strip(), attributes=_attributes(m.group(2)), sources=[ref(file, i, line)]))
+    return out
+
+
+def data_model_entities(text: str, file: str) -> list[Entity]:
+    """data-model.md: each '##'/'###' heading that names an entity, with fields from a table
+    (first row is the header), field bullets ('- `name`: string') or '- **Fields**: a, b, c'."""
+    out: list[Entity] = []
+    current: Entity | None = None
+    table_row = 0  # position inside the current Markdown table; 0 = not in a table
+    for i, line in enumerate(text.splitlines(), start=1):
+        m = re.match(r"^#{2,3}\s+(?:Entity:\s*)?`?([A-Z][\w ]{0,40}?)`?\s*$", line)
+        if m:
+            name = m.group(1).strip()
+            current = None if name.lower() in NOT_ENTITIES else Entity(name=name, sources=[ref(file, i, line)])
+            if current:
+                out.append(current)
+            table_row = 0
+            continue
+        if line.startswith("#"):
+            current, table_row = None, 0
+            continue
+        row = TABLE_ROW_RE.match(line)
+        table_row = table_row + 1 if row else 0
+        if current is None:
+            continue
+        if row:
+            cell = row.group(1).strip()
+            if table_row > 1 and not set(cell) <= set("-: "):  # skip header row and separator
+                current.attributes.append(cell)
+            continue
+        label = ENTITY_BULLET_RE.match(line)
+        if label:
+            key = label.group(1).strip()
+            if key.lower() in {"fields", "attributes"}:
+                current.attributes += _attributes(label.group(2))
+            elif key.lower() not in NOT_FIELDS:
+                current.attributes.append(key)  # '- **album**: Album reference'
+            continue
+        field = FIELD_BULLET_RE.match(line)
+        if field:
+            current.attributes.append(field.group(1).strip())
+    return out
+
+
+def merge_entities(*groups: list[Entity]) -> list[Entity]:
+    """Same entity named in several documents: keep the first, add attributes it lacks."""
+    merged: dict[str, Entity] = {}
+    for group in groups:
+        for e in group:
+            key = e.name.lower()
+            if key not in merged:
+                merged[key] = e.model_copy(deep=True)
+                continue
+            known = {a.lower() for a in merged[key].attributes}
+            merged[key].attributes += [a for a in e.attributes if a.lower() not in known]
+            merged[key].sources += e.sources
+    return list(merged.values())

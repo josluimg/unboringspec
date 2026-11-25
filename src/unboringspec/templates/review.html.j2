@@ -69,6 +69,14 @@ h3 { font-size: 1rem; margin: 0; }
 .turn strong { display: inline-block; min-width: 4.5em; }
 .turn-guide strong { color: var(--accent); }
 .turn-skeptic strong { color: var(--review); }
+.diagram-canvas { overflow-x: auto; margin-top: 10px; }
+.diagram-canvas svg { max-width: 100%; height: auto; }
+.diagram-canvas.drawn { cursor: zoom-in; }
+.diagram-hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
+.diagram-canvas.zoomed { position: fixed; inset: 0; z-index: 30; margin: 0; padding: 24px; overflow: auto;
+  background: var(--surface); cursor: zoom-out; }
+.diagram-canvas.zoomed svg { max-width: none !important; width: auto; height: auto; }
+.diagram-fallback { font: .78rem/1.5 var(--mono); white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 10px; }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
 .card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -185,8 +193,10 @@ details[open] > summary { margin-bottom: 8px; }
   </details>
   {% endif %}
 
+  {% set ns = namespace(n=2) %}
   {% if ir.risks %}
-  <h2>3 · Risks</h2>
+  {% set ns.n = ns.n + 1 %}
+  <h2>{{ ns.n }} · Risks</h2>
   {% for r in ir.risks %}
   <article class="card">
     <header><span class="tag tag-{{ r.severity }}">{{ r.severity }}</span><h3>{{ r.title }}</h3></header>
@@ -197,7 +207,22 @@ details[open] > summary { margin-bottom: 8px; }
   {% endfor %}
   {% endif %}
 
-  <h2>{{ "4" if ir.risks else "3" }} · Scope and plan</h2>
+  {% if diagrams %}
+  {% set ns.n = ns.n + 1 %}
+  <h2>{{ ns.n }} · Visual overview</h2>
+  {% for d in diagrams %}
+  {# The first diagram is the starting point (usually the system map), so it comes open. #}
+  <details class="diagram" data-kind="{{ d.kind }}"{% if loop.first %} open{% endif %}>
+    <summary>{{ d.title }} <span class="tag tag-{{ 'routine' if d.origin == 'spec' else 'review' }}">{{ 'from the spec' if d.origin == 'spec' else 'by the agent' }}</span></summary>
+    <div class="sources">{{ chips(d.sources) }}</div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>{{ d.mermaid }}</pre>
+  </details>
+  {% endfor %}
+  {% endif %}
+
+  {% set ns.n = ns.n + 1 %}
+  <h2>{{ ns.n }} · Scope and plan</h2>
   {% for sid, tasks in tasks_by_story.items() %}
   {% set s = stories.get(sid) %}
   <details>
@@ -298,6 +323,69 @@ details[open] > summary { margin-bottom: 8px; }
   const close = () => { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); };
   document.getElementById("drawer-close").addEventListener("click", close);
   document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+
+  // Diagrams: Mermaid loads on the first open, so closed diagrams cost nothing. Spec-built
+  // diagrams need no LLM; drawing them needs Mermaid from the CDN, and without it the source shows.
+  const MERMAID = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  let mermaidReady;
+  const loadMermaid = () => mermaidReady || (mermaidReady = import(MERMAID).then(m => {
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    m.default.initialize({
+      startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default",
+      flowchart: { subGraphTitleMargin: { top: 6, bottom: 10 } },
+    });
+    return m.default;
+  }));
+  const draw = async (d, i) => {
+    if (!d.open || d.dataset.drawn) return;
+    d.dataset.drawn = "1";
+    const canvas = d.querySelector(".diagram-canvas");
+    const src = d.querySelector(".diagram-src").textContent;
+    const fallback = msg => {
+      canvas.textContent = msg;
+      const pre = document.createElement("pre");
+      pre.className = "diagram-fallback";
+      pre.textContent = src;
+      canvas.appendChild(pre);
+    };
+    canvas.textContent = "Drawing…";
+    let mermaid;
+    try { mermaid = await loadMermaid(); } catch (e) { mermaidReady = null; return fallback("Mermaid could not be loaded (offline?). Diagram source:"); }
+    try {
+      await mermaid.parse(src);
+      const { svg } = await mermaid.render("diagram-" + i, src);
+      canvas.innerHTML = svg;
+      canvas.classList.add("drawn");
+      canvas.title = "Click to enlarge";
+      const hint = document.createElement("p");
+      hint.className = "diagram-hint";
+      hint.textContent = "Click the diagram to see it full size.";
+      canvas.after(hint);
+      d.dataset.rendered = "1";
+    } catch (e) {
+      fallback("This diagram could not be drawn. Source:");
+      d.dataset.failed = "1";
+    }
+  };
+  document.querySelectorAll("details.diagram").forEach((d, i) => {
+    d.addEventListener("toggle", () => draw(d, i));
+    draw(d, i);  // diagrams that start open
+    const canvas = d.querySelector(".diagram-canvas");
+    canvas.addEventListener("click", () => {
+      if (!canvas.classList.contains("drawn")) return;
+      const zoomed = canvas.classList.toggle("zoomed");
+      // Mermaid sizes the SVG to its container; full size means its own viewBox width.
+      const svg = canvas.querySelector("svg");
+      svg.style.width = zoomed && svg.viewBox.baseVal ? svg.viewBox.baseVal.width + "px" : "";
+    });
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    document.querySelectorAll(".diagram-canvas.zoomed").forEach(c => {
+      c.classList.remove("zoomed");
+      c.querySelector("svg").style.width = "";
+    });
+  });
 
   // Export: structured feedback the agent can consume (e.g. in /speckit.clarify)
   document.getElementById("export").addEventListener("click", () => {

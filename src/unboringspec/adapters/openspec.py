@@ -227,6 +227,7 @@ class OpenSpecAdapter(Adapter):
                     id=m.group(2) or f"T{len(out) + 1}",
                     text=m.group(3).strip(),
                     story=group,
+                    phase=group or "",
                     done=m.group(1).lower() == "x",
                     sources=[ref("tasks.md", i, line)],
                 )
