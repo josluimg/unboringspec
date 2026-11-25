@@ -1,0 +1,302 @@
+{%- macro chips(sources) -%}
+{%- for s in sources -%}
+<button class="src" data-file="{{ s.file }}" data-line="{{ s.line }}" title="{{ s.excerpt }}">{{ s.file }}:{{ s.line }}</button>
+{%- endfor -%}
+{%- endmacro -%}
+{%- macro decision_card(d) -%}
+<article class="card decision" data-id="{{ d.id }}" data-attention="{{ d.attention.value }}">
+  <header>
+    <span class="tag tag-{{ d.attention.value }}">{{ d.attention.value }}</span>
+    <h3>{{ d.title }}</h3>
+  </header>
+  <p class="choice">{{ d.choice }}</p>
+  {% if d.rationale %}<p class="muted"><strong>Why:</strong> {{ d.rationale }}</p>{% endif %}
+  {% if d.alternatives %}<p class="muted"><strong>Instead of:</strong> {{ d.alternatives | join(" · ") }}</p>{% endif %}
+  {% if d.risk %}<p class="risk-line"><strong>Risk:</strong> {{ d.risk }}</p>{% endif %}
+  <footer>
+    <div class="sources">{{ chips(d.sources) }}</div>
+    <div class="verdict" role="group" aria-label="Verdict for {{ d.title }}">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+{%- endmacro -%}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ ir.feature }} · unboringspec</title>
+<style>
+:root {
+  --bg: #f7f6f3; --surface: #ffffff; --ink: #1d1d1f; --muted: #5f6368; --line: #e4e2dc;
+  --accent: #4f46e5; --accent-soft: #eef0ff;
+  --decide: #b42318; --decide-soft: #fdecea; --review: #9a6700; --review-soft: #fff6db;
+  --routine: #3f6b4e; --routine-soft: #e8f3ec; --hl: #fff3b0;
+  --radius: 12px; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131315; --surface: #1c1c1f; --ink: #ececef; --muted: #a0a0a8; --line: #2e2e33;
+    --accent: #8b87ff; --accent-soft: #24234a;
+    --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14;
+    --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #4a4220;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 120px; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 1.15rem; margin: 48px 0 12px; letter-spacing: -0.01em; }
+h3 { font-size: 1rem; margin: 0; }
+.meta { color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pill { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; font-size: .85rem; }
+.pill b { color: var(--accent); }
+.tldr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; margin-top: 24px; }
+.tldr .one { font-size: 1.2rem; font-weight: 600; margin: 0 0 12px; }
+.tldr ul { margin: 0; padding-left: 20px; }
+.callout { background: var(--decide-soft); border-radius: var(--radius); padding: 16px 20px; }
+.callout ol { margin: 8px 0 0; padding-left: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
+.card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.card p { margin: 4px 0; }
+.card.is-approve { border-color: var(--routine); }
+.card.is-question { border-color: var(--review); }
+.choice { font-size: 1.02rem; }
+.muted { color: var(--muted); font-size: .92rem; }
+.risk-line { color: var(--decide); font-size: .92rem; }
+.tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; border-radius: 6px; padding: 2px 8px; }
+.tag-decide, .tag-high { background: var(--decide-soft); color: var(--decide); }
+.tag-review, .tag-medium { background: var(--review-soft); color: var(--review); }
+.tag-routine, .tag-low { background: var(--routine-soft); color: var(--routine); }
+.src { font: .75rem var(--mono); background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 6px; padding: 2px 8px; margin: 2px 4px 2px 0; cursor: pointer; }
+.src:hover { text-decoration: underline; }
+.verdict { display: flex; gap: 6px; }
+.v { font: inherit; font-size: .85rem; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; cursor: pointer; }
+.v[aria-pressed="true"][data-v="approve"] { background: var(--routine-soft); border-color: var(--routine); color: var(--routine); }
+.v[aria-pressed="true"][data-v="question"] { background: var(--review-soft); border-color: var(--review); color: var(--review); }
+textarea { width: 100%; margin-top: 10px; min-height: 64px; font: inherit; font-size: .92rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 20px; margin: 10px 0; }
+details > summary { cursor: pointer; font-weight: 600; }
+details[open] > summary { margin-bottom: 8px; }
+.tasks { list-style: none; padding: 0; margin: 0; }
+.tasks li { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: .92rem; }
+.tasks li:first-child { border-top: 0; }
+.tid { font: .78rem var(--mono); color: var(--muted); min-width: 44px; }
+.par { font-size: .7rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; }
+.done { text-decoration: line-through; color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
+.bar .in { max-width: 860px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.progress { font-size: .9rem; color: var(--muted); }
+.primary { font: inherit; font-weight: 600; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100%); background: var(--surface); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column; z-index: 10; }
+.drawer.open { transform: none; }
+.drawer header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font: .9rem var(--mono); }
+.drawer pre { margin: 0; overflow: auto; flex: 1; font: .8rem/1.55 var(--mono); padding: 8px 0; }
+.drawer .ln { display: block; padding: 0 16px; white-space: pre-wrap; }
+.drawer .ln span { color: var(--muted); display: inline-block; width: 3.5em; user-select: none; }
+.drawer .ln.hl { background: var(--hl); }
+.x { font-size: 1.2rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div class="meta">
+    <span>{{ ir.framework }}</span>
+    <span>generated by {{ ir.generated_by }}</span>
+    <span>unboringspec {{ version }}</span>
+  </div>
+  <h1>{{ ir.feature }}</h1>
+  <div class="pills">
+    <span class="pill"><b>{{ ir.stories | length }}</b> stories</span>
+    <span class="pill"><b>{{ ir.requirements | length }}</b> requirements</span>
+    <span class="pill"><b>{{ ir.decisions | length }}</b> decisions</span>
+    <span class="pill"><b>{{ ir.tasks | length }}</b> tasks</span>
+    <span class="pill"><b>{{ ir.questions | length }}</b> open questions</span>
+  </div>
+
+  {% if ir.summary %}
+  <section class="tldr" aria-label="Summary">
+    <p class="one">{{ ir.summary.one_liner }}</p>
+    <ul>{% for b in ir.summary.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  <h2>1 · Needs your judgment</h2>
+  {% if ir.questions or decide %}
+  <div class="callout">
+    Only these need a human call. Everything below is optional depth.
+  </div>
+  {% for q in ir.questions %}
+  <article class="card question" data-qid="{{ q.id }}">
+    <header><span class="tag tag-decide">{{ q.id }}</span><h3>{{ q.question }}</h3></header>
+    {% if q.why_it_matters %}<p class="muted">{{ q.why_it_matters }}</p>{% endif %}
+    <div class="sources">{{ chips(q.sources) }}</div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  {% endfor %}
+  {% for d in decide %}{{ decision_card(d) }}{% endfor %}
+  {% else %}
+  <p class="empty">Nothing is blocked on you. Skim the decisions and you are done.</p>
+  {% endif %}
+
+  <h2>2 · Decisions worth a look</h2>
+  {% for d in review %}{{ decision_card(d) }}{% else %}<p class="empty">No debatable decisions found.</p>{% endfor %}
+  {% if routine %}
+  <details>
+    <summary>{{ routine | length }} routine decisions</summary>
+    {% for d in routine %}{{ decision_card(d) }}{% endfor %}
+  </details>
+  {% endif %}
+
+  {% if ir.risks %}
+  <h2>3 · Risks</h2>
+  {% for r in ir.risks %}
+  <article class="card">
+    <header><span class="tag tag-{{ r.severity }}">{{ r.severity }}</span><h3>{{ r.title }}</h3></header>
+    {% if r.impact %}<p class="muted"><strong>Impact:</strong> {{ r.impact }}</p>{% endif %}
+    {% if r.mitigation %}<p class="muted"><strong>Mitigation:</strong> {{ r.mitigation }}</p>{% endif %}
+    <div class="sources">{{ chips(r.sources) }}</div>
+  </article>
+  {% endfor %}
+  {% endif %}
+
+  <h2>{{ "4" if ir.risks else "3" }} · Scope and plan</h2>
+  {% for sid, tasks in tasks_by_story.items() %}
+  {% set s = stories.get(sid) %}
+  <details>
+    <summary>{% if s %}{{ s.priority }} {{ s.title }}{% else %}{{ sid }}{% endif %} · {{ tasks | length }} tasks</summary>
+    {% if s and s.summary %}<p class="muted">{{ s.summary }}</p>{% endif %}
+    <ul class="tasks">
+    {% for t in tasks %}
+      <li><span class="tid">{{ t.id }}</span><span class="{{ 'done' if t.done }}">{{ t.text }}</span>{% if t.parallel %}<span class="par">P</span>{% endif %}</li>
+    {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+  {% for s in ir.stories if s.id not in tasks_by_story %}
+  <details><summary>{{ s.priority }} {{ s.title }} · no tasks yet</summary><p class="muted">{{ s.summary }}</p></details>
+  {% endfor %}
+  {% if ir.requirements %}
+  <details>
+    <summary>{{ ir.requirements | length }} requirements</summary>
+    <ul class="tasks">
+    {% for r in ir.requirements %}<li><span class="tid">{{ r.id }}</span><span>{{ r.text }}</span></li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</main>
+
+<div class="bar"><div class="in">
+  <span class="progress" id="progress"></span>
+  <button class="primary" id="export">Export review.md</button>
+</div></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><span id="drawer-title"></span><button class="x" id="drawer-close" aria-label="Close">×</button></header>
+  <pre id="drawer-body"></pre>
+</aside>
+
+<script id="data" type="application/json">{{ payload | safe }}</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("data").textContent);
+  const key = "unboringspec:" + data.feature;
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+  const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} updateProgress(); };
+
+  // Verdicts on decision cards
+  document.querySelectorAll(".decision").forEach(card => {
+    const id = card.dataset.id, note = card.querySelector(".note");
+    const apply = () => {
+      const s = state[id] || {};
+      card.classList.toggle("is-approve", s.v === "approve");
+      card.classList.toggle("is-question", s.v === "question");
+      card.querySelectorAll(".v").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === s.v)));
+      note.hidden = s.v !== "question";
+      note.value = s.note || "";
+    };
+    card.querySelectorAll(".v").forEach(b => b.addEventListener("click", () => {
+      const s = state[id] || {};
+      s.v = s.v === b.dataset.v ? undefined : b.dataset.v;
+      state[id] = s; save(); apply();
+      if (s.v === "question") note.focus();
+    }));
+    note.addEventListener("input", () => { (state[id] = state[id] || {}).note = note.value; save(); });
+    apply();
+  });
+
+  // Answers to open questions
+  document.querySelectorAll(".question").forEach(card => {
+    const id = card.dataset.qid, ta = card.querySelector(".answer");
+    ta.value = (state[id] || {}).answer || "";
+    ta.addEventListener("input", () => { (state[id] = state[id] || {}).answer = ta.value; save(); });
+  });
+
+  function updateProgress() {
+    const ids = data.decisions.map(d => d.id).concat(data.questions.map(q => q.id));
+    const done = ids.filter(id => state[id] && (state[id].v || (state[id].answer || "").trim())).length;
+    document.getElementById("progress").textContent = `${done} of ${ids.length} items reviewed`;
+  }
+  updateProgress();
+
+  // Source drawer: every claim links back to the exact line
+  const drawer = document.getElementById("drawer");
+  document.querySelectorAll(".src").forEach(b => b.addEventListener("click", () => {
+    const file = b.dataset.file, line = +b.dataset.line;
+    const lines = (data.documents[file] || "").split("\n");
+    const pre = document.getElementById("drawer-body");
+    pre.replaceChildren(...lines.map((t, i) => {
+      const el = document.createElement("span");
+      el.className = "ln" + (i + 1 === line ? " hl" : "");
+      const n = document.createElement("span"); n.textContent = i + 1;
+      el.append(n, t);
+      return el;
+    }));
+    document.getElementById("drawer-title").textContent = `${file}:${line}`;
+    drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false");
+    const target = pre.children[line - 1];
+    if (target) target.scrollIntoView({ block: "center" });
+  }));
+  const close = () => { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); };
+  document.getElementById("drawer-close").addEventListener("click", close);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+
+  // Export: structured feedback the agent can consume (e.g. in /speckit.clarify)
+  document.getElementById("export").addEventListener("click", () => {
+    const out = [`# Review: ${data.feature}`, "", `_Generated with unboringspec on ${new Date().toISOString().slice(0, 10)}_`, ""];
+    const answered = data.questions.filter(q => (state[q.id] || {}).answer);
+    if (answered.length) {
+      out.push("## Answers to open questions", "");
+      answered.forEach(q => out.push(`- **${q.id}** ${q.question}`, `  - Answer: ${state[q.id].answer.trim()}`));
+      out.push("");
+    }
+    const qd = data.decisions.filter(d => (state[d.id] || {}).v === "question");
+    if (qd.length) {
+      out.push("## Decisions to revisit", "");
+      qd.forEach(d => out.push(`- **${d.id} ${d.title}**: ${d.choice}`, `  - Reviewer: ${(state[d.id].note || "(no comment)").trim()}`));
+      out.push("");
+    }
+    const ok = data.decisions.filter(d => (state[d.id] || {}).v === "approve");
+    if (ok.length) {
+      out.push("## Approved", "");
+      ok.forEach(d => out.push(`- ${d.id} ${d.title}: ${d.choice}`));
+      out.push("");
+    }
+    const blob = new Blob([out.join("\n")], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "review.md"; a.click();
+    URL.revokeObjectURL(a.href);
+  });
+})();
+</script>
+</body>
+</html>
