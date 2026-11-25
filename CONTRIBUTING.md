@@ -73,6 +73,8 @@ src/unboringspec/
   adapters/        one module per SDD framework → produces a SpecIR
   ir.py            SpecIR: the framework-agnostic model (every item carries file:line sources)
   insights.py      the review contract: build_prompt → LLMInsights JSON → apply_insights
+  diff.py          semantic diff between two versions of an analysed spec
+  history.py       snapshots of previous versions, and the --since git baseline
   diagrams.py      Mermaid diagrams: task graph and data model from the spec, checks for agent diagrams
   podcast.py       the podcast contract: build_podcast_prompt → PodcastScript JSON → validate_script
   tts.py           voice engines (kokoro; system: say, sapi, espeak) and audio assembly

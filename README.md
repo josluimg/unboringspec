@@ -14,6 +14,7 @@ with the SDD framework you use and the coding agent you already have, with no ex
 
 | | |
 |---|---|
+| 🔁 **What changed** | On the next iteration, the page opens with what changed since the last review: questions resolved, decisions and requirements changed, tasks added or done. Compares with your previous render, or with any git commit. |
 | ⏱️ **30-second summary** | What is being built, in five bullets. |
 | 🧭 **Needs your judgment** | Only what is blocked on a human: `[NEEDS CLARIFICATION]` markers, unresolved trade-offs, gaps a careful reviewer would raise. |
 | 🃏 **Decision cards** | Each decision with its rationale, the alternatives it beat and its risk. Approve it or question it. |

@@ -77,6 +77,19 @@ h3 { font-size: 1rem; margin: 0; }
   background: var(--surface); cursor: zoom-out; }
 .diagram-canvas.zoomed svg { max-width: none !important; width: auto; height: auto; }
 .diagram-fallback { font: .78rem/1.5 var(--mono); white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 10px; }
+.changes { border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin-top: 20px; background: var(--surface); }
+.changes-title { font-weight: 700; font-size: 1.05rem; margin: 0 0 4px; }
+.change-area { font-weight: 600; margin: 14px 0 4px; }
+.change-list { list-style: none; padding: 0; margin: 0; }
+.change-list li { padding: 6px 0; border-top: 1px solid var(--line); font-size: .93rem; }
+.change-list li:first-child { border-top: 0; }
+.delta { margin: 4px 0 2px; font-size: .88rem; }
+.delta del { display: block; color: var(--decide); }
+.delta ins { display: block; color: var(--routine); text-decoration: none; }
+.was { font: .75rem var(--mono); color: var(--muted); }
+.tag-chg-added, .tag-chg-resolved, .tag-chg-completed { background: var(--routine-soft); color: var(--routine); }
+.tag-chg-changed { background: var(--review-soft); color: var(--review); }
+.tag-chg-removed, .tag-chg-reopened { background: var(--decide-soft); color: var(--decide); }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
 .card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -141,6 +154,32 @@ details[open] > summary { margin-bottom: 8px; }
     <span class="pill"><b>{{ count }}</b> {{ label }}</span>
     {% endfor %}
   </div>
+
+  {% if ir.changes %}
+  {% set area_labels = {"question": "Open questions", "decision": "Decisions", "requirement": "Requirements",
+     "story": "User stories", "entity": "Data model", "task": "Tasks", "risk": "Risks"} %}
+  <section class="changes" aria-label="What changed">
+    <p class="changes-title">What changed since {{ ir.changes.baseline }}</p>
+    {% if ir.changes.items %}
+    <p class="muted">{{ change_summary }}{% if ir.changes.files %} · {% for f in ir.changes.files %}{{ f.file }} {% if f.status == "added" %}(new){% elif f.status == "removed" %}(deleted){% else %}+{{ f.added }} −{{ f.removed }}{% endif %}{{ ", " if not loop.last }}{% endfor %}{% endif %}</p>
+    {% for area, items in change_areas %}
+    <p class="change-area">{{ area_labels.get(area, area) }}</p>
+    <ul class="change-list">
+      {% for c in items %}
+      <li>
+        <span class="tag tag-chg-{{ c.change }}">{{ c.change }}</span> <strong>{{ c.label }}</strong>
+        {% if c.before or c.after %}<div class="delta">{% if c.before %}<del>{{ c.before }}</del>{% endif %}{% if c.after %}<ins>{{ c.after }}</ins>{% endif %}</div>{% endif %}
+        <div class="sources">{{ chips(c.sources) }}{% if c.was_at %}<span class="was">was at {{ c.was_at }}</span>{% endif %}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+    {% else %}
+    <p class="muted">Nothing changed in substance{% if ir.changes.files %}: only wording or formatting in {{ ir.changes.files | map(attribute="file") | join(", ") }}{% endif %}.</p>
+    {% endif %}
+    {% for n in ir.changes.notes %}<p class="muted"><em>{{ n }}</em></p>{% endfor %}
+  </section>
+  {% endif %}
 
   {% for w in ir.warnings %}
   <p class="callout warn">⚠ {{ w }}</p>

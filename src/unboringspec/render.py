@@ -9,6 +9,7 @@ from jinja2 import Environment, PackageLoader
 
 from . import __version__
 from .diagrams import spec_diagrams
+from .diff import areas, summarize
 from .ir import Attention, SpecIR
 
 
@@ -65,6 +66,8 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
         # From understanding to planning: the agent's map and flows first, then the data model
         # and the task graph built from the spec.
         diagrams=ir.diagrams + spec_diagrams(ir),
+        change_areas=list(areas(ir.changes)) if ir.changes else [],
+        change_summary=summarize(ir.changes) if ir.changes else "",
     )
 
 

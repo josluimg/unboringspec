@@ -102,6 +102,32 @@ class Diagram(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
 
 
+class ChangeItem(BaseModel):
+    """One semantic difference between two versions of a spec."""
+
+    area: str  # requirement, story, task, decision, question, risk, entity
+    change: str  # added, removed, changed, resolved, completed, reopened
+    label: str
+    before: str = ""
+    after: str = ""
+    sources: list[SourceRef] = Field(default_factory=list)  # in the current version
+    was_at: str = ""  # file:line in the previous version, for removed items
+
+
+class FileDelta(BaseModel):
+    file: str
+    added: int = 0
+    removed: int = 0
+    status: str = "modified"  # added, removed, modified
+
+
+class ChangeSet(BaseModel):
+    baseline: str  # human description of what we compare with
+    items: list[ChangeItem] = Field(default_factory=list)
+    files: list[FileDelta] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
 class Summary(BaseModel):
     one_liner: str
     bullets: list[str] = Field(default_factory=list)
@@ -124,6 +150,7 @@ class SpecIR(BaseModel):
     diagrams: list[Diagram] = Field(default_factory=list)  # from the agent; spec diagrams are built at render time
     generated_by: str = "heuristic"
     warnings: list[str] = Field(default_factory=list)
+    changes: ChangeSet | None = None  # what changed since the previous version, set at render time
 
     def decisions_by_attention(self, level: Attention) -> list[Decision]:
         return [d for d in self.decisions if d.attention == level]

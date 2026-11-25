@@ -58,6 +58,30 @@ def _load(spec: Path, adapter: str | None) -> SpecIR:
     return ir
 
 
+SINCE_OPT = typer.Option(
+    None, "--since", help="Compare with the spec at this git ref (commit, tag, branch) instead of the previous render."
+)
+
+
+def _with_changes(ir: SpecIR, spec: Path, since: str | None = None, adapter: str | None = None) -> SpecIR:
+    """Record this version in the history and attach what changed since the previous one (or `since`)."""
+    from .diff import compare, summarize
+    from .history import BaselineError, History, git_baseline
+
+    history = History(_workdir(spec))
+    try:
+        baseline = git_baseline(spec, since, history, adapter) if since else None
+    except BaselineError as e:
+        console.print(f"[red]--since {escape(since)}: {escape(str(e))}[/]")
+        raise typer.Exit(2)
+    previous = history.record(ir)
+    baseline = baseline or previous
+    if baseline is not None:
+        ir.changes = compare(baseline[0], ir, baseline[1])
+        console.print(f"Changes since {escape(ir.changes.baseline)}: {summarize(ir.changes)}")
+    return ir
+
+
 def _done(ir: SpecIR, target: Path, open_browser: bool) -> None:
     console.print(
         f"[green]✓[/] {target}  "
@@ -120,6 +144,7 @@ def render(
     out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output HTML. Default: .unboring/<feature>/review.html"),
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the result in your browser."),
+    since: Optional[str] = SINCE_OPT,
 ) -> None:
     """Agent mode, step 2: validate the agent's insights and build the review page."""
     ir = _load(spec, adapter)
@@ -136,6 +161,7 @@ def render(
     ir, dropped = apply_insights(ir, data, "agent")
     if dropped:
         console.print(f"[yellow]⚠ Dropped {dropped} item(s) whose citations point to lines that do not exist.[/]")
+    ir = _with_changes(ir, spec, since, adapter)
     _done(ir, write_html(ir, out or wd / "review.html"), open_browser)
 
 
@@ -153,6 +179,7 @@ def review(
     lang: Optional[str] = typer.Option(None, "--lang", help="Output language (default: same as the spec)."),
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the result in your browser."),
+    since: Optional[str] = SINCE_OPT,
 ) -> None:
     """One-shot review: calls an LLM API directly (for CI), or --offline."""
     ir = _load(spec, adapter)
@@ -172,6 +199,7 @@ def review(
             raise typer.Exit(1)
         if dropped:
             console.print(f"[yellow]⚠ Dropped {dropped} item(s) with invented citations.[/]")
+    ir = _with_changes(ir, spec, since, adapter)
     _done(ir, write_html(ir, out or _workdir(spec) / "review.html"), open_browser)
 
 
@@ -306,6 +334,7 @@ def podcast_render(
             ir = heuristic_insights(ir)
     else:
         ir = heuristic_insights(ir)
+    ir = _with_changes(ir, spec, adapter=adapter)
     page = write_html(ir, wd / "review.html")
     console.print(f"[green]✓[/] {page}  (review page with player)")
     if open_browser:
