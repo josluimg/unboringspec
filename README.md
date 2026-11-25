@@ -55,7 +55,7 @@ unboring review specs/001-my-feature --offline --open
 ## Try it on the example
 
 ```bash
-git clone https://github.com/<you>/unboringspec && cd unboringspec
+git clone https://github.com/josluimg/unboringspec && cd unboringspec
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,llm]"
 unboring review examples/speckit/specs/001-photo-albums --offline --open
