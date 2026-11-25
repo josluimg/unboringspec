@@ -73,7 +73,7 @@ Everything runs on your machine; nothing is sent to a TTS service. There are two
 | Sound | Robotic but clear | Natural ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)) |
 | Install | Already on macOS and Windows; one package on Linux | Python package + one-time model download (~336 MB) |
 | Languages | Whatever voices your OS has | en, es, fr, it, pt, hi, ja, zh |
-| Speed | Instant | About 1.5 min of CPU per 5 min of audio (measured on an Intel MacBook Pro) |
+| Speed | Instant | About three times faster than real time on a laptop CPU (measured on an Intel MacBook Pro) |
 
 ### Start here
 
