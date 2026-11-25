@@ -24,11 +24,17 @@ spec, validating citations, rendering the page). You do the analysis. No API key
 A review comes from the page's **Copy for your agent** button (pasted into the chat) or its **Export review.md**
 (a file). It ends with a hidden `<!-- unboring:review ... -->` block: keep it intact.
 
-1. **Save it first**, so the next render can show what was addressed: write the review text exactly as received to
-   `.unboring/<feature>/incoming-review.md` (or use the file the user gave) and run
-   `unboring feedback <folder> <that file>`.
-2. **Apply it**: answers go into the spec where the question was asked; for decisions the reader questioned, change
-   the spec as the note asks, or explain why not. Use the framework's own clarify step when it has one
-   (e.g. `/speckit.clarify`). Leave approved decisions alone.
-3. **Render again** (`unboring prompt` and `unboring render`): the page opens with *What changed* and
+**unboringspec reviews; the SDD framework changes the spec.** Never edit spec files yourself when the framework
+has commands for it: they know how to record decisions and keep their documents coherent.
+
+1. **Save it**: write the review text exactly as received to `.unboring/<feature>/incoming-review.md` (or use the
+   file the user gave) and run `unboring feedback <folder> <that file>`.
+2. **Follow the steps it prints, in order.** Each step names the framework command to run (for example
+   `/speckit-clarify` or `/speckit.clarify`, then the plan and tasks commands; `/opsx:update <change>` for
+   OpenSpec) and an input file: run that command and pass it the input file's content. Only when it prints
+   "edit the documents directly" (no framework commands) do you edit the files yourself.
+3. **If it warns that a command is not installed**, tell the user and stop. Do not improvise the framework's work.
+4. **Render again** (`unboring prompt` and `unboring render`): the page opens with *What changed* and
    *Your last review*, so the reader sees which points were addressed. Tell the user which ones you did not address.
+
+`unboring feedback <folder>` without a file prints the steps again for the last saved review.

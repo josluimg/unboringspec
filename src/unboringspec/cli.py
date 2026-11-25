@@ -52,6 +52,7 @@ def _workdir(spec: Path) -> Path:
 def _load(spec: Path, adapter: str | None) -> SpecIR:
     ad = get_adapter(spec, adapter)
     ir = ad.load(spec)
+    ir.folder = spec.resolve().name
     console.print(f"[bold]{ir.feature}[/] · adapter [cyan]{ad.name}[/] ({ad.tested_with}) · {len(ir.documents)} documents")
     for w in ir.warnings:
         console.print(f"[yellow]⚠ {escape(w)}[/]")
@@ -188,27 +189,68 @@ def render(
 @app.command()
 def feedback(
     spec: Path = SPEC_ARG,
-    review_file: str = typer.Argument(..., help="The exported review.md, or - to read it from standard input."),
+    review_file: Optional[str] = typer.Argument(
+        None, help="The exported review.md, or - for standard input. Omit it to show the steps for the last saved review."
+    ),
 ) -> None:
-    """Save a review (exported or copied from the page) so the next render follows it up."""
+    """Save a review and print how to apply it with the framework's own commands."""
     import sys
 
-    from .feedback import ReviewError, save_review
+    from .apply import plan_apply
+    from .feedback import ReviewError, latest_review, save_review
     from .history import documents_hash
 
-    text = sys.stdin.read() if review_file == "-" else Path(review_file).expanduser().read_text(encoding="utf-8")
-    try:
-        path, review = save_review(_workdir(spec), text)
-    except ReviewError as e:
-        console.print(f"[red]{escape(str(e))}[/]")
-        raise typer.Exit(1)
+    wd = _workdir(spec)
+    if review_file is None:
+        found = latest_review(wd)
+        if found is None:
+            console.print(f"[red]No saved review for {escape(str(spec))}.[/] Pass the exported review.md or - .")
+            raise typer.Exit(1)
+        path, review = found
+    else:
+        text = sys.stdin.read() if review_file == "-" else Path(review_file).expanduser().read_text(encoding="utf-8")
+        try:
+            path, review = save_review(wd, text)
+        except ReviewError as e:
+            console.print(f"[red]{escape(str(e))}[/]")
+            raise typer.Exit(1)
+    ad = get_adapter(spec)
     ir = _load(spec, None)
     state = "this version" if review.version == documents_hash(ir.documents) else "an earlier version"
     kinds: dict[str, int] = {}
     for i in review.items:
         kinds[i.kind] = kinds.get(i.kind, 0) + 1
-    console.print(f"Saved {path} · {len(review.items)} points on {state} ({', '.join(f'{n} {k}' for k, n in kinds.items())})")
-    console.print(f"Next: update the spec, then run `unboring render {spec}` to see what was addressed.")
+    verb = "Using" if review_file is None else "Saved"
+    console.print(f"{verb} {path} · {len(review.items)} points on {state} ({', '.join(f'{n} {k}' for k, n in kinds.items())})")
+
+    steps = plan_apply(review, ir, ad, spec, wd)
+    if not steps:
+        console.print("Nothing to apply: the review only approves. Render again to keep the approvals.")
+        return
+    if steps[0].step.command is None:
+        console.print("\nNo framework commands for this spec: edit the documents directly with this input:")
+    else:
+        console.print(f"\nApply it with {ad.label or ad.name}'s own commands, in this order. [bold]Do not edit the spec files directly.[/]")
+    missing = []
+    for n, p in enumerate(steps, start=1):
+        answers = len([i for i in p.items if i.kind == "answer"])
+        notes = len([i for i in p.items if i.kind == "question"])
+        parts = [f"{answers} answer{'s' * (answers != 1)}"] * bool(answers) + [f"{notes} decision{'s' * (notes != 1)}"] * bool(notes)
+        what = ", ".join(parts) or "no input"
+        call = p.invocation or "edit the documents"
+        optional = " (optional)" if p.step.optional else ""
+        line = f"  {n}. [bold]{escape(call)}[/]{optional} · {escape(p.step.covers)} · {what}"
+        if p.input_file:
+            line += f"\n     pass the content of {p.input_file}"
+        console.print(line)
+        if p.step.command is not None and not p.installed and not p.step.optional:
+            missing.append(p.step.command)
+    if missing:
+        console.print(
+            f"[yellow]⚠ Not found in this project or your home folder: {escape(', '.join(missing))}.[/] "
+            f"Install {ad.label or ad.name} for your agent, or apply the input files by hand."
+        )
+    console.print(f"Then: unboring prompt {spec} and unboring render {spec} to see what was addressed.")
 
 
 # --- API mode and offline --------------------------------------------------------

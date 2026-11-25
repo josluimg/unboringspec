@@ -503,6 +503,7 @@ details[open] > summary { margin-bottom: 8px; }
   // machine-readable block so the next render can follow it up (unboring feedback, #28).
   function buildReview() {
     const out = [`# Review: ${data.feature}`, "", `_Generated with unboringspec on ${new Date().toISOString().slice(0, 10)}_`, ""];
+    if (data.apply_hint) out.push(`> ${data.apply_hint}`, "");
     const answered = data.questions.filter(q => ((state[q.key] || {}).answer || "").trim());
     if (answered.length) {
       out.push("## Answers to open questions", "");

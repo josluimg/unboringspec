@@ -76,6 +76,7 @@ src/unboringspec/
   diff.py          semantic diff between two versions of an analysed spec
   history.py       snapshots of previous versions, and the --since git baseline
   feedback.py      saved reviews (hidden unboring:review block) and their follow-up on the next version
+  apply.py         routes a review to the framework's own apply commands (adapters declare them)
   diagrams.py      Mermaid diagrams: task graph and data model from the spec, checks for agent diagrams
   podcast.py       the podcast contract: build_podcast_prompt → PodcastScript JSON → validate_script
   tts.py           voice engines (kokoro; system: say, sapi, espeak) and audio assembly
@@ -112,9 +113,12 @@ Two principles to keep:
 2. Report **format drift**: when a document exists but nothing parses, add a message to
    `ir.warnings` that names `tested_with` (see `SpecKitAdapter._drift_warnings`).
 3. Register it in `adapters/__init__.py`, before `GenericAdapter`.
-4. Add a fixture under `tests/fixtures/<framework>/<version>/` copied from the framework's
+4. Declare `apply_steps()`: the framework's own commands that change the spec when a review is applied (which
+   files each one owns, where it is installed for each agent). Without them the agent edits the documents
+   directly. unboringspec reviews; the framework changes the spec.
+5. Add a fixture under `tests/fixtures/<framework>/<version>/` copied from the framework's
    **current templates**, plus tests. A fixture that drifts should produce a warning, not a crash.
-5. Add it to the frameworks table in the README (*What it supports*).
+6. Add it to the frameworks table in the README (*What it supports*).
 
 ### When a framework releases a new template version
 

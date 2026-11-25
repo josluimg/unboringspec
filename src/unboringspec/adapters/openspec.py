@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 from ..ir import Attention, Decision, OpenQuestion, Requirement, Risk, SpecIR, Task
-from .base import Adapter, find_clarifications, read_documents, ref
+from .base import Adapter, ApplyStep, find_clarifications, read_documents, ref
 
 DELTA_RE = re.compile(r"^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements\b", re.IGNORECASE)
 REQ_HEADER_RE = re.compile(r"^###\s*Requirement:\s*(.+?)\s*#*\s*$", re.IGNORECASE)
@@ -85,10 +85,32 @@ def _pretty(change_id: str) -> str:
     return " ".join(words).strip().capitalize() or change_id
 
 
+# OpenSpec v2 installs skills machine-wide by default, or per project; older setups use commands.
+OPENSPEC_UPDATE_PATHS = [
+    ".claude/skills/openspec-update-change/SKILL.md", ".agents/skills/openspec-update-change/SKILL.md",
+    ".github/skills/openspec-update-change/SKILL.md", ".cursor/skills/openspec-update-change/SKILL.md",
+    ".claude/commands/opsx/update.md", ".gemini/commands/opsx/update.toml",
+]
+
+
 class OpenSpecAdapter(Adapter):
     name = "openspec"
+    label = "OpenSpec"
     tested_with = "OpenSpec v2.2.0, spec-driven schema"
     docs_url = "https://github.com/Fission-AI/OpenSpec"
+
+    def project_markers(self) -> tuple[str, ...]:
+        return ("openspec", ".git")
+
+    def apply_steps(self, ir: SpecIR) -> list:
+        """/opsx:update folds new decisions into a change and keeps its artifacts coherent."""
+        change = ir.folder or "<change>"
+        return [
+            ApplyStep(
+                id="update", command=f"/opsx:update {change}", covers="fold the review into the change, keeping its artifacts coherent",
+                files=["*"], install_paths=OPENSPEC_UPDATE_PATHS,
+            )
+        ]
 
     @classmethod
     def detect(cls, path: Path) -> bool:
