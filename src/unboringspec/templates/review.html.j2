@@ -9,6 +9,7 @@
     <span class="tag tag-{{ d.attention.value }}">{{ d.attention.value }}</span>
     <h3>{{ d.title }}</h3>
   </header>
+  {% if ir.follow_up and ir.follow_up.flags.get(keys[d.id]) %}<p class="flag">{{ ir.follow_up.flags[keys[d.id]] }}</p>{% endif %}
   <p class="choice">{{ d.choice }}</p>
   {% if d.rationale %}<p class="muted"><strong>Why:</strong> {{ d.rationale }}</p>{% endif %}
   {% if d.alternatives %}<p class="muted"><strong>Instead of:</strong> {{ d.alternatives | join(" · ") }}</p>{% endif %}
@@ -100,6 +101,10 @@ h3 { font-size: 1rem; margin: 0; }
 .tag-chg-added, .tag-chg-resolved, .tag-chg-completed { background: var(--routine-soft); color: var(--routine); }
 .tag-chg-changed { background: var(--review-soft); color: var(--review); }
 .tag-chg-removed, .tag-chg-reopened { background: var(--decide-soft); color: var(--decide); }
+.followup { border: 1px solid var(--review); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; background: var(--surface); }
+.fu-icon { display: inline-block; width: 1.4em; }
+.flag { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--review-soft); color: var(--review); font-size: .88rem; }
+.carried-badge { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-left: auto; }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
 .card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -138,6 +143,8 @@ details[open] > summary { margin-bottom: 8px; }
 .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
 .bar .in { max-width: 860px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .progress { font-size: .9rem; color: var(--muted); }
+.bar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.secondary { font: inherit; font-weight: 600; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 .primary { font: inherit; font-weight: 600; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100%); background: var(--surface); border-left: 1px solid var(--line);
   transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column; z-index: 10; }
@@ -194,6 +201,35 @@ details[open] > summary { margin-bottom: 8px; }
   </section>
   {% endif %}
 
+  {% if ir.follow_up and ir.follow_up.items %}
+  {% set outcomes = {
+    "approved-changed": ("⚠️", "Approved, then changed: look again"),
+    "changed": ("🔎", "Changed since you questioned it: check it matches your note"),
+    "not-addressed": ("⏳", "Questioned, not changed yet"),
+    "pending": ("⏳", "Answered, still open in the spec"),
+    "addressed": ("✅", "Answered and resolved in the spec"),
+    "removed": ("➖", "No longer in the spec"),
+    "approved": ("✓", "Approved, unchanged: still approved")} %}
+  {% set open_items = ir.follow_up.items | rejectattr("outcome", "equalto", "approved") | list %}
+  {% set still = ir.follow_up.items | selectattr("outcome", "equalto", "approved") | list %}
+  <section class="followup" aria-label="Your last review">
+    <p class="changes-title">Your last review</p>
+    <p class="muted">What became of {{ ir.follow_up.reviewed }}. Marks that still hold are already filled in below.</p>
+    <ul class="change-list">
+      {% for i in open_items %}
+      <li class="fu-{{ i.outcome }}">
+        <span class="fu-icon">{{ outcomes[i.outcome][0] }}</span> <strong>{{ i.label }}</strong>
+        <span class="muted">· {{ outcomes[i.outcome][1] }}</span>
+        {% if i.reader_said %}<div class="delta"><span class="muted">You said:</span> {{ i.reader_said }}</div>{% endif %}
+        <div class="sources">{{ chips(i.sources) }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if still %}<p class="muted">✓ {{ still | length }} approval{{ "s" if still | length != 1 }} still hold{{ "" if still | length != 1 else "s" }}: {{ still | map(attribute="label") | join(", ") }}.</p>{% endif %}
+    {% for n in ir.follow_up.notes %}<p class="muted"><em>{{ n }}</em></p>{% endfor %}
+  </section>
+  {% endif %}
+
   {% for w in ir.warnings %}
   <p class="callout warn">⚠ {{ w }}</p>
   {% endfor %}
@@ -225,6 +261,7 @@ details[open] > summary { margin-bottom: 8px; }
   </div>
   {% for q in ir.questions %}
   <article class="card question" data-qid="{{ q.id }}" data-key="{{ keys[q.id] }}">
+    {% if ir.follow_up and ir.follow_up.flags.get(keys[q.id]) %}<p class="flag">{{ ir.follow_up.flags[keys[q.id]] }}</p>{% endif %}
     <header><span class="tag tag-decide">{{ q.id }}</span><h3>{{ q.question }}</h3></header>
     {% if q.why_it_matters %}<p class="muted">{{ q.why_it_matters }}</p>{% endif %}
     <div class="sources">{{ chips(q.sources) }}</div>
@@ -302,7 +339,10 @@ details[open] > summary { margin-bottom: 8px; }
 
 <div class="bar"><div class="in">
   <span class="progress" id="progress"></span>
-  <button class="primary" id="export">Export review.md</button>
+  <span class="bar-actions">
+    <button class="secondary" id="copy" title="Copy the review to paste into your coding agent">Copy for your agent</button>
+    <button class="primary" id="export">Export review.md</button>
+  </span>
 </div></div>
 
 <aside class="drawer" id="drawer" aria-hidden="true">
@@ -323,6 +363,11 @@ details[open] > summary { margin-bottom: 8px; }
     localStorage.removeItem("unboringspec:" + data.feature);
     state = JSON.parse(localStorage.getItem(key) || "{}");
   } catch (e) {}
+  // Marks carried over from the last saved review fill the gaps; what the reader did in this
+  // browser wins. A carried mark stops being "carried" as soon as the reader touches it.
+  Object.entries(data.carried || {}).forEach(([k, mark]) => {
+    if (!state[k]) state[k] = Object.assign({ carried: true }, mark);
+  });
   const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} updateProgress(); };
 
   // Verdicts on decision cards
@@ -335,14 +380,20 @@ details[open] > summary { margin-bottom: 8px; }
       card.querySelectorAll(".v").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === s.v)));
       note.hidden = s.v !== "question";
       note.value = s.note || "";
+      let badge = card.querySelector(".carried-badge");
+      if (s.carried && s.v) {
+        if (!badge) { badge = document.createElement("span"); badge.className = "carried-badge"; card.querySelector("header").appendChild(badge); }
+        badge.textContent = "from your last review";
+      } else if (badge) badge.remove();
     };
     card.querySelectorAll(".v").forEach(b => b.addEventListener("click", () => {
       const s = state[id] || {};
       s.v = s.v === b.dataset.v ? undefined : b.dataset.v;
+      delete s.carried;
       state[id] = s; save(); apply();
       if (s.v === "question") note.focus();
     }));
-    note.addEventListener("input", () => { (state[id] = state[id] || {}).note = note.value; save(); });
+    note.addEventListener("input", () => { (state[id] = state[id] || {}).note = note.value; delete state[id].carried; save(); });
     apply();
   });
 
@@ -350,13 +401,16 @@ details[open] > summary { margin-bottom: 8px; }
   document.querySelectorAll(".question").forEach(card => {
     const id = card.dataset.key, ta = card.querySelector(".answer");
     ta.value = (state[id] || {}).answer || "";
-    ta.addEventListener("input", () => { (state[id] = state[id] || {}).answer = ta.value; save(); });
+    ta.addEventListener("input", () => { (state[id] = state[id] || {}).answer = ta.value; delete state[id].carried; save(); });
   });
 
   function updateProgress() {
     const ids = data.decisions.map(d => d.key).concat(data.questions.map(q => q.key));
-    const done = ids.filter(id => state[id] && (state[id].v || (state[id].answer || "").trim())).length;
-    document.getElementById("progress").textContent = `${done} of ${ids.length} items reviewed`;
+    const marked = id => state[id] && (state[id].v || (state[id].answer || "").trim());
+    const done = ids.filter(marked).length;
+    const carried = ids.filter(id => marked(id) && state[id].carried).length;
+    document.getElementById("progress").textContent =
+      `${done} of ${ids.length} items reviewed` + (carried ? ` (${carried} from your last review)` : "");
   }
   updateProgress();
 
@@ -445,10 +499,11 @@ details[open] > summary { margin-bottom: 8px; }
     });
   });
 
-  // Export: structured feedback the agent can consume (e.g. in /speckit.clarify)
-  document.getElementById("export").addEventListener("click", () => {
+  // Export: structured feedback the agent can consume (e.g. in /speckit.clarify), plus a hidden
+  // machine-readable block so the next render can follow it up (unboring feedback, #28).
+  function buildReview() {
     const out = [`# Review: ${data.feature}`, "", `_Generated with unboringspec on ${new Date().toISOString().slice(0, 10)}_`, ""];
-    const answered = data.questions.filter(q => (state[q.key] || {}).answer);
+    const answered = data.questions.filter(q => ((state[q.key] || {}).answer || "").trim());
     if (answered.length) {
       out.push("## Answers to open questions", "");
       answered.forEach(q => out.push(`- **${q.id}** ${q.question}`, `  - Answer: ${state[q.key].answer.trim()}`));
@@ -466,10 +521,37 @@ details[open] > summary { margin-bottom: 8px; }
       ok.forEach(d => out.push(`- ${d.id} ${d.title}: ${d.choice}`));
       out.push("");
     }
-    const blob = new Blob([out.join("\n")], { type: "text/markdown" });
+    const items = [];
+    answered.forEach(q => items.push({ id: q.id, key: q.key, kind: "answer", text: q.question, cite: q.cite, answer: state[q.key].answer.trim() }));
+    qd.forEach(d => items.push({ id: d.id, key: d.key, kind: "question", text: d.title, choice: d.choice, cite: d.cite, note: (state[d.key].note || "").trim() }));
+    ok.forEach(d => items.push({ id: d.id, key: d.key, kind: "approve", text: d.title, choice: d.choice, cite: d.cite }));
+    // "--" cannot appear inside an HTML comment; inside JSON strings it is written as -\u002d.
+    const block = JSON.stringify({ version: data.version, feature: data.feature, created: new Date().toISOString(), items })
+      .replace(/--/g, "-\\u002d");
+    out.push(`<!-- unboring:review ${block} -->`, "");
+    return out.join("\n");
+  }
+
+  document.getElementById("export").addEventListener("click", () => {
+    const blob = new Blob([buildReview()], { type: "text/markdown" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "review.md"; a.click();
     URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("copy").addEventListener("click", async e => {
+    const text = buildReview();
+    const button = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {  // file:// pages and older browsers
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+    }
+    const label = button.textContent;
+    button.textContent = "Copied: paste it to your agent";
+    setTimeout(() => { button.textContent = label; }, 2500);
   });
 })();
 </script>
