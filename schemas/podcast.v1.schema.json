@@ -104,6 +104,12 @@
       "title": "Language",
       "type": "string"
     },
+    "tone": {
+      "default": "",
+      "description": "The tone the episode was written in: a preset id (e.g. 'roast') or 'custom'.",
+      "title": "Tone",
+      "type": "string"
+    },
     "hosts": {
       "description": "Exactly two hosts: A (guide) and B (skeptic).",
       "items": {

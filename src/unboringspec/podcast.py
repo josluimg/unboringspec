@@ -48,6 +48,7 @@ class PodcastScript(BaseModel):
 
     title: str = Field(description="Episode title, max 10 words.")
     language: str = Field(description="BCP 47 language code of the script, e.g. 'es' or 'en'.")
+    tone: str = Field("", description="The tone the episode was written in: a preset id (e.g. 'roast') or 'custom'.")
     hosts: list[Host] = Field(description="Exactly two hosts: A (guide) and B (skeptic).")
     turns: list[Turn] = Field(description="The conversation in order. Aim for 900 to 1200 words in total.")
 
@@ -62,6 +63,100 @@ def podcast_json_schema() -> dict:
     }
 
 
+class Tone(BaseModel):
+    id: str
+    label: str
+    summary: str  # one line for `unboring podcast tones`
+    style: str  # instructions for the script writer, in English (the script language is set separately)
+    speed: float = 1.0  # default speech speed for this tone
+
+
+TONES: dict[str, Tone] = {
+    t.id: t
+    for t in [
+        Tone(
+            id="casual",
+            label="Casual",
+            summary="Two colleagues over coffee. The default.",
+            style="Two colleagues chatting over coffee. Relaxed and natural, a little humour, plain words. "
+            "They interrupt, agree and disagree.",
+        ),
+        Tone(
+            id="formal",
+            label="Formal",
+            summary="A measured briefing, like an architecture review board.",
+            style="A professional briefing, like a presentation to an architecture review board. Measured, "
+            "precise language. No slang and no jokes. The skeptic is polite but rigorous and asks for evidence.",
+        ),
+        Tone(
+            id="bro",
+            label="Bro",
+            summary="Close friends, heavy slang and banter (tío, illo, bro, no cap...).",
+            style="Two close friends talking with heavy colloquial slang that is typical of the script language "
+            "(in Spanish things like 'tío', 'illo', 'en plan', 'qué fuerte', 'flipar'; in English things like "
+            "'bro', 'no cap', 'lowkey', 'that's wild'). Banter, exaggeration and running jokes. "
+            "The slang is in the delivery; every fact about the spec is still exact.",
+            speed=1.05,
+        ),
+        Tone(
+            id="roast",
+            label="Roast",
+            summary="A comedy roast of the spec. No mercy, all of it true.",
+            style="A comedy roast of the spec, and the skeptic does not hold back: sarcasm, punchlines, "
+            "exaggerated disbelief at every risky decision and every unanswered question. The guide defends "
+            "the spec with comebacks and concedes when a hit lands. Roast the spec and its decisions, never "
+            "real people, teams or the authors. Under every joke there must be a real, cited issue: the "
+            "listener should finish laughing and knowing exactly what to fix.",
+            speed=1.05,
+        ),
+        Tone(
+            id="sports",
+            label="Sports commentary",
+            summary="Live play-by-play, like two football commentators.",
+            style="Live sports commentary, like two football commentators narrating a match. The spec is the "
+            "game, decisions are plays, risks are fouls, open questions are penalties still to be called. "
+            "Excited, fast, with commentator catchphrases and replays of the key moments.",
+            speed=1.1,
+        ),
+        Tone(
+            id="noir",
+            label="Detective noir",
+            summary="A hard-boiled detective investigates the spec.",
+            style="A hard-boiled detective story. The guide narrates in first person as a detective investigating "
+            "the spec; the skeptic is the partner who doubts every lead. Rainy-night atmosphere and short, "
+            "dramatic sentences, but every clue is a real fact from the documents, and the open questions are "
+            "the unsolved part of the case.",
+            speed=0.95,
+        ),
+        Tone(
+            id="eli5",
+            label="For non-technical listeners",
+            summary="No jargon: for product, business or anyone outside engineering.",
+            style="For listeners outside engineering (product, business, leadership). No jargon at all: every "
+            "technical idea is explained with an everyday analogy. The skeptic asks what a manager would ask: "
+            "cost, risk for users, what happens if we get it wrong.",
+        ),
+    ]
+}
+DEFAULT_TONE = "casual"
+MAX_CUSTOM_TONE = 300
+
+
+def resolve_tone(tone: str | None) -> tuple[str, str, float]:
+    """Return (id, style instructions, default speed) for a preset id or a custom description."""
+    tone = (tone or DEFAULT_TONE).strip()
+    if tone.lower() in TONES:
+        t = TONES[tone.lower()]
+        return t.id, t.style, t.speed
+    if len(tone) > MAX_CUSTOM_TONE:
+        raise ValueError(f"A custom tone must be at most {MAX_CUSTOM_TONE} characters.")
+    return "custom", f"Custom style requested by the listener: {tone}", 1.0
+
+
+def tone_speed(tone_id: str) -> float:
+    return TONES[tone_id].speed if tone_id in TONES else 1.0
+
+
 PODCAST_PROMPT = """You write the script of a short podcast episode that helps a software engineer review a
 Spec-Driven Development spec by listening instead of reading.
 
@@ -69,8 +164,7 @@ Two hosts:
 - Host A, the guide: explains what is being built and why, clearly and with some enthusiasm.
 - Host B, the skeptic: friendly but sharp. Pushes on risky decisions, gaps, contradictions and
   anything marked as unresolved. Asks "what happens if...", "who decided that...", "is that enough?".
-They are colleagues having a real conversation, not reading a document. They interrupt, agree,
-disagree, use short sentences and plain words.
+It is a real conversation, not two people reading a document.
 
 Structure:
 1. Hook (1 or 2 turns): the one thing that makes this spec interesting or risky.
@@ -86,12 +180,21 @@ Rules:
   like FR-006 or T012. Say "the requirement about GPS data" instead. Spell out symbols.
 - Do not invent facts that are not in the documents. Opinions and questions are welcome.
 - When a turn states a fact from the spec, add a citation (file + line number from the numbered documents).
+- Whatever the tone: the facts stay exact, the open questions are all mentioned, and nobody real is mocked.
+- Set "tone" in the output to "{tone_id}".
+
+## Tone
+
+{tone_style}
 """
 
 
-def build_podcast_prompt(ir: SpecIR, insights_json: str | None = None, lang: str | None = None) -> str:
+def build_podcast_prompt(
+    ir: SpecIR, insights_json: str | None = None, lang: str | None = None, tone: str | None = None
+) -> str:
     lang_rule = f"write in {lang}" if lang else "the same language as the spec"
-    parts = [PODCAST_PROMPT.format(lang_rule=lang_rule)]
+    tone_id, tone_style, _ = resolve_tone(tone)
+    parts = [PODCAST_PROMPT.format(lang_rule=lang_rule, tone_id=tone_id, tone_style=tone_style)]
     parts.append(
         "## Output\n\nWrite ONLY a JSON object that validates against this JSON Schema. "
         "No prose, no Markdown fences.\n\n```json\n"

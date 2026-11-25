@@ -24,7 +24,10 @@ def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
         turns, _ = validate_script(parsed, docs)
     except Exception:
         return None
-    return {"audio": audio.name, "title": parsed.title, "turns": turns}
+    from .podcast import TONES
+
+    tone = TONES[parsed.tone].label if parsed.tone in TONES else ("Custom tone" if parsed.tone else "")
+    return {"audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns}
 
 
 def render_html(ir: SpecIR, podcast: dict | None = None) -> str:

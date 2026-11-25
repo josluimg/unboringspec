@@ -192,20 +192,30 @@ app.add_typer(podcast_app, name="podcast")
 def podcast_prompt(
     spec: Path = SPEC_ARG,
     lang: Optional[str] = typer.Option(None, "--lang", help="Script language, e.g. es or en (default: same as the spec)."),
+    tone: Optional[str] = typer.Option(
+        None, "--tone", "-t", help="A preset (see `unboring podcast tones`) or your own description in quotes."
+    ),
     adapter: Optional[str] = ADAPTER_OPT,
 ) -> None:
     """Step 1: write the script prompt for your agent (uses insights.json if the review was done)."""
-    from .podcast import build_podcast_prompt
+    from .podcast import build_podcast_prompt, resolve_tone
+
+    try:
+        tone_id = resolve_tone(tone)[0]
+    except ValueError as e:
+        console.print(f"[red]{escape(str(e))}[/]")
+        raise typer.Exit(2)
 
     ir = _load(spec, adapter)
     wd = _workdir(spec)
     wd.mkdir(parents=True, exist_ok=True)
     insights = wd / "insights.json"
-    text = build_podcast_prompt(ir, insights.read_text(encoding="utf-8") if insights.is_file() else None, lang)
+    text = build_podcast_prompt(ir, insights.read_text(encoding="utf-8") if insights.is_file() else None, lang, tone)
     out = wd / "podcast.prompt.md"
     out.write_text(text, encoding="utf-8")
     if not insights.is_file():
         console.print("[dim]No insights.json yet: the script will be based on the spec alone.[/]")
+    console.print(f"Tone:     {tone_id}" + (f" ({escape(tone)})" if tone_id == "custom" else ""))
     console.print(f"Prompt:   {out}")
     console.print(f"Write to: {wd / 'podcast.json'}")
     console.print(f"Then run: unboring podcast render {spec}")
@@ -218,14 +228,16 @@ def podcast_render(
     engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto (Kokoro if ready, else system), system, kokoro, say, sapi or espeak."),
     voice_guide: Optional[str] = typer.Option(None, "--voice-guide", help="Override the guide's voice."),
     voice_skeptic: Optional[str] = typer.Option(None, "--voice-skeptic", help="Override the skeptic's voice."),
-    speed: float = typer.Option(1.0, "--speed", min=0.5, max=2.0, help="Speech speed."),
+    speed: Optional[float] = typer.Option(
+        None, "--speed", min=0.5, max=2.0, help="Speech speed (default: the tone's, e.g. faster for sports)."
+    ),
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the review page with the player."),
 ) -> None:
     """Step 2: validate the script, voice it and add a player to the review page."""
     import tempfile
 
-    from .podcast import parse_script, transcript_markdown, validate_script, word_count
+    from .podcast import parse_script, tone_speed, transcript_markdown, validate_script, word_count
     from .tts import PAUSE_MS, EngineUnavailable, assemble, pick_engine, wav_seconds
 
     ir = _load(spec, adapter)
@@ -242,6 +254,8 @@ def podcast_render(
         raise typer.Exit(1)
     for p in problems:
         console.print(f"[yellow]⚠ {escape(p)}[/]")
+    if speed is None:
+        speed = tone_speed(parsed.tone)
 
     try:
         tts = pick_engine(engine)
@@ -296,6 +310,17 @@ def podcast_render(
     console.print(f"[green]✓[/] {page}  (review page with player)")
     if open_browser:
         webbrowser.open(page.resolve().as_uri())
+
+
+@podcast_app.command("tones")
+def podcast_tones() -> None:
+    """List tone presets. Any other text passed to --tone is used as a custom tone."""
+    from .podcast import DEFAULT_TONE, TONES
+
+    for t in TONES.values():
+        default = " [dim](default)[/]" if t.id == DEFAULT_TONE else ""
+        console.print(f"• [bold]{t.id}[/]{default}  {t.summary}")
+    console.print('\nOr describe your own: unboring podcast prompt <folder> --tone "two pirates arguing over a treasure map"')
 
 
 def _voice_report(lang: str) -> dict:

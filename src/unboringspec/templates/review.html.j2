@@ -144,7 +144,7 @@ details[open] > summary { margin-bottom: 8px; }
 
   {% if podcast %}
   <section class="listen" aria-label="Podcast">
-    <p class="listen-title">🎧 Listen instead · {{ podcast.title }}</p>
+    <p class="listen-title">🎧 Listen instead · {{ podcast.title }}{% if podcast.tone %} <span class="tag tag-routine">{{ podcast.tone }}</span>{% endif %}</p>
     <audio controls preload="metadata" src="{{ podcast.audio }}"></audio>
     <details>
       <summary>Transcript</summary>

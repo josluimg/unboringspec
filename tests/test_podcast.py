@@ -209,3 +209,73 @@ def test_schema_command_podcast():
     r = runner.invoke(app, ["schema", "podcast"])
     assert r.exit_code == 0
     assert json.loads(r.output) == json.loads(PUBLISHED.read_text())
+
+
+# --- tones -----------------------------------------------------------------------
+
+from unboringspec.podcast import DEFAULT_TONE, TONES, resolve_tone, tone_speed  # noqa: E402
+
+
+def test_every_preset_tone_is_complete():
+    assert DEFAULT_TONE in TONES
+    for t in TONES.values():
+        assert t.summary and len(t.style) > 60 and 0.5 <= t.speed <= 2.0
+
+
+def test_resolve_tone_preset_custom_and_default():
+    assert resolve_tone(None)[0] == "casual"
+    assert resolve_tone("ROAST")[0] == "roast"
+    tone_id, style, speed = resolve_tone("como dos piratas discutiendo un mapa")
+    assert tone_id == "custom" and "piratas" in style and speed == 1.0
+    with pytest.raises(ValueError):
+        resolve_tone("x" * 400)
+
+
+def test_prompt_carries_tone_and_keeps_the_guardrails():
+    ir = get_adapter(EXAMPLE_SPEC).load(EXAMPLE_SPEC)
+    roast = build_podcast_prompt(ir, None, "es", "roast")
+    assert TONES["roast"].style in roast
+    assert 'Set "tone" in the output to "roast"' in roast
+    assert "nobody real is mocked" in roast
+    custom = build_podcast_prompt(ir, None, "es", "narrado como un partido de pádel")
+    assert "partido de pádel" in custom and '"custom"' in custom
+
+
+def test_render_uses_tone_speed_and_shows_label(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    speeds = []
+
+    class SpeedSpy(FakeEngine):
+        def synth(self, text, voice, lang, speed, out):
+            speeds.append(speed)
+            super().synth(text, voice, lang, speed, out)
+
+    monkeypatch.setitem(tts.ENGINES, "spy", SpeedSpy)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    data = json.loads(EXAMPLE_SCRIPT.read_text())
+    data["tone"] = "sports"
+    (wd / "podcast.json").write_text(json.dumps(data))
+    r = runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "spy"])
+    assert r.exit_code == 0, r.output
+    assert set(speeds) == {tone_speed("sports")} == {1.1}
+    assert "Sports commentary" in (wd / "review.html").read_text()
+
+    speeds.clear()
+    runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "spy", "--speed", "0.8"])
+    assert set(speeds) == {0.8}
+
+
+def test_prompt_command_reports_tone(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    r = runner.invoke(app, ["podcast", "prompt", str(EXAMPLE_SPEC), "--tone", "noir"])
+    assert r.exit_code == 0 and "Tone:     noir" in r.output
+    r = runner.invoke(app, ["podcast", "prompt", str(EXAMPLE_SPEC), "--tone", "y" * 400])
+    assert r.exit_code == 2
+
+
+def test_tones_command_lists_presets():
+    r = runner.invoke(app, ["podcast", "tones"])
+    assert r.exit_code == 0
+    for t in TONES:
+        assert t in r.output

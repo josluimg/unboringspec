@@ -110,7 +110,7 @@ Two principles to keep:
 3. Register it in `adapters/__init__.py`, before `GenericAdapter`.
 4. Add a fixture under `tests/fixtures/<framework>/<version>/` copied from the framework's
    **current templates**, plus tests. A fixture that drifts should produce a warning, not a crash.
-5. Add a row to the adapters table in the README.
+5. Add it to the frameworks table in the README (*What it supports*).
 
 ### When a framework releases a new template version
 
@@ -126,7 +126,8 @@ Two principles to keep:
    If the agent needs another file format (like Gemini's TOML), add a `kind` and handle it in
    `render_integration`. Agent-specific frontmatter goes in `extra_frontmatter` (Claude Code uses it
    for `allowed-tools: Bash(unboring:*)`). Only pre-approve the `unboring` CLI, never broader access.
-3. Add it to the agents table in the README.
+3. Add it to the agents table in [docs/setup.md](docs/setup.md#where-each-agent-finds-the-skill) and, once tested,
+   to the README.
 4. To mark it **tested**, run the full flow in that agent on the example spec
    (`/unboring-review examples/speckit/specs/001-photo-albums`), and mention the agent version in the PR.
 
@@ -164,7 +165,7 @@ flowchart LR
 3. Heavy dependencies go in an optional extra in `pyproject.toml`, imported inside the engine, never at
    module level. Model downloads only happen through an explicit command like `unboring podcast setup`.
 4. Add tests with a fake or mocked backend (see `FakeEngine` in `tests/test_podcast.py`), and a row to the
-   *Podcast voices* table in the README.
+   voice tables in [docs/podcast.md](docs/podcast.md#voices).
 
 ## Changing a contract
 
