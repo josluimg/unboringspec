@@ -79,3 +79,14 @@ def test_cli_offline(tmp_path):
     assert "Shared Photo Albums" in html
     assert "Needs your judgment" in html
     assert "spec.md:" in html
+
+
+def test_page_degrades_without_javascript():
+    """In viewers that do not run scripts, say so and hide controls that cannot work (#24)."""
+    html = render_html(load())
+    head = html.split("</head>")[0]
+    assert 'document.documentElement.classList.add("js")' in head  # set before the page paints
+    assert "html:not(.js) .verdict" in head and "html:not(.js) .bar" in head
+    body = html.split("<main>")[1]
+    assert body.lstrip().startswith('<noscript><p class="nojs">')
+    assert "Open <code>review.html</code> in a web browser" in body
