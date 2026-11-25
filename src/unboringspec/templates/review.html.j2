@@ -61,6 +61,14 @@ h3 { font-size: 1rem; margin: 0; }
 .tldr ul { margin: 0; padding-left: 20px; }
 .callout { background: var(--decide-soft); border-radius: var(--radius); padding: 16px 20px; }
 .callout.warn { background: var(--review-soft); color: var(--review); margin: 16px 0 0; font-size: .9rem; }
+.listen { background: var(--accent-soft); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; }
+.listen-title { font-weight: 600; margin: 0 0 8px; }
+.listen audio { width: 100%; }
+.listen details { background: var(--surface); margin: 12px 0 0; }
+.turn { margin: 8px 0; font-size: .95rem; }
+.turn strong { display: inline-block; min-width: 4.5em; }
+.turn-guide strong { color: var(--accent); }
+.turn-skeptic strong { color: var(--review); }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
 .card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -131,6 +139,19 @@ details[open] > summary { margin-bottom: 8px; }
   <section class="tldr" aria-label="Summary">
     <p class="one">{{ ir.summary.one_liner }}</p>
     <ul>{% for b in ir.summary.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  {% if podcast %}
+  <section class="listen" aria-label="Podcast">
+    <p class="listen-title">🎧 Listen instead · {{ podcast.title }}{% if podcast.tone %} <span class="tag tag-routine">{{ podcast.tone }}</span>{% endif %}</p>
+    <audio controls preload="metadata" src="{{ podcast.audio }}"></audio>
+    <details>
+      <summary>Transcript</summary>
+      {% for t in podcast.turns %}
+      <p class="turn turn-{{ t.role }}"><strong>{{ t.name }}</strong> {{ t.text }} {{ chips(t.sources) }}</p>
+      {% endfor %}
+    </details>
   </section>
   {% endif %}
 

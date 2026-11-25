@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/josluimg/unboringspec/main/schemas/podcast.v1.schema.json",
+  "title": "unboringspec podcast script v1",
+  "$defs": {
+    "Citation": {
+      "description": "A pointer to the exact line in the spec documents that supports a claim.",
+      "properties": {
+        "file": {
+          "description": "Document path exactly as shown in the '===== FILE: <path> =====' header.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "description": "1-based line number as shown in the numbered document.",
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "line"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "Host": {
+      "description": "One of the two voices.",
+      "properties": {
+        "id": {
+          "enum": [
+            "A",
+            "B"
+          ],
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "description": "A first name that sounds natural in the script language.",
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "description": "'guide' explains the spec with enthusiasm; 'skeptic' challenges decisions and gaps.",
+          "enum": [
+            "guide",
+            "skeptic"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role"
+      ],
+      "title": "Host",
+      "type": "object"
+    },
+    "Turn": {
+      "description": "One spoken turn. Written for the ear: no Markdown, no lists, no file paths, no IDs like FR-006.",
+      "properties": {
+        "speaker": {
+          "enum": [
+            "A",
+            "B"
+          ],
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "description": "What the host says, 1 to 3 short sentences.",
+          "title": "Text",
+          "type": "string"
+        },
+        "sources": {
+          "description": "Optional citations for the claim in this turn (shown in the transcript).",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "speaker",
+        "text"
+      ],
+      "title": "Turn",
+      "type": "object"
+    }
+  },
+  "description": "unboringspec podcast script: a two-host conversation about one spec.",
+  "properties": {
+    "title": {
+      "description": "Episode title, max 10 words.",
+      "title": "Title",
+      "type": "string"
+    },
+    "language": {
+      "description": "BCP 47 language code of the script, e.g. 'es' or 'en'.",
+      "title": "Language",
+      "type": "string"
+    },
+    "tone": {
+      "default": "",
+      "description": "The tone the episode was written in: a preset id (e.g. 'roast') or 'custom'.",
+      "title": "Tone",
+      "type": "string"
+    },
+    "hosts": {
+      "description": "Exactly two hosts: A (guide) and B (skeptic).",
+      "items": {
+        "$ref": "#/$defs/Host"
+      },
+      "title": "Hosts",
+      "type": "array"
+    },
+    "turns": {
+      "description": "The conversation in order. Aim for 900 to 1200 words in total.",
+      "items": {
+        "$ref": "#/$defs/Turn"
+      },
+      "title": "Turns",
+      "type": "array"
+    }
+  },
+  "required": [
+    "title",
+    "language",
+    "hosts",
+    "turns"
+  ],
+  "type": "object"
+}

@@ -11,7 +11,26 @@ from . import __version__
 from .ir import Attention, SpecIR
 
 
-def render_html(ir: SpecIR) -> str:
+def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
+    """If a rendered podcast sits next to the page, embed a player and the transcript."""
+    from .podcast import parse_script, validate_script
+
+    audio = next((folder / n for n in ("podcast.mp3", "podcast.wav") if (folder / n).exists()), None)
+    script = folder / "podcast.json"
+    if not audio or not script.exists():
+        return None
+    try:
+        parsed = parse_script(script.read_text(encoding="utf-8"))
+        turns, _ = validate_script(parsed, docs)
+    except Exception:
+        return None
+    from .podcast import TONES
+
+    tone = TONES[parsed.tone].label if parsed.tone in TONES else ("Custom tone" if parsed.tone else "")
+    return {"audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns}
+
+
+def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
     env = Environment(loader=PackageLoader("unboringspec", "templates"), autoescape=select_autoescape(["html"]))
     tpl = env.get_template("review.html.j2")
 
@@ -41,10 +60,11 @@ def render_html(ir: SpecIR) -> str:
         stories=stories,
         tasks_by_story=tasks_by_story,
         payload=payload,
+        podcast=podcast,
     )
 
 
 def write_html(ir: SpecIR, out: Path) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_html(ir), encoding="utf-8")
+    out.write_text(render_html(ir, find_podcast(out.parent, ir.documents)), encoding="utf-8")
     return out

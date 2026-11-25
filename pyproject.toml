@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "unboringspec"
-version = "0.1.0"
+version = "0.2.0"
 description = "Specs your brain actually wants to review. A human review experience for Spec-Driven Development."
 readme = "README.md"
 license = "MIT"
@@ -26,6 +26,8 @@ dependencies = [
 
 [project.optional-dependencies]
 llm = ["litellm>=1.40"]
+# Kokoro TTS. kokoro-onnx supports Python 3.10 to 3.13; on 3.14 use the macOS say engine or uv --python 3.12.
+podcast = ["kokoro-onnx>=0.4; python_version < '3.14'", "numpy"]
 dev = ["pytest>=8", "jsonschema>=4.18"]
 
 [project.scripts]

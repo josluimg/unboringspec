@@ -15,7 +15,7 @@ import json
 import re
 from collections import Counter
 
-from typing import Literal
+from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -174,14 +174,22 @@ def _resolve(cites: list[Citation], docs: dict[str, str]) -> list[SourceRef]:
     return out
 
 
-def _parse_json(content: str) -> LLMInsights:
+M = TypeVar("M", bound=BaseModel)
+
+
+def _parse_json_as(model: type[M], content: str) -> M:
+    """Validate JSON written by an agent or a model. Tolerates code fences and stray prose."""
     try:
-        return LLMInsights.model_validate_json(content)
+        return model.model_validate_json(content)
     except ValidationError:
         match = re.search(r"\{.*\}", content, re.DOTALL)
         if not match:
             raise
-        return LLMInsights.model_validate(json.loads(match.group(0)))
+        return model.model_validate(json.loads(match.group(0)))
+
+
+def _parse_json(content: str) -> LLMInsights:
+    return _parse_json_as(LLMInsights, content)
 
 
 def parse_insights(content: str) -> LLMInsights:
