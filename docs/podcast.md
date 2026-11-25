@@ -1,6 +1,6 @@
 # Spec podcast
 
-Prefer to listen? Two hosts talk a spec through in about five minutes: a **guide** who explains it and a
+Prefer to listen? Two hosts talk a spec through: a **guide** who explains it and a
 **skeptic** who pushes on every risky decision and open question. The skeptic is what makes it a review and not
 a summary read aloud. The audio is generated on your machine, and the review page gets a player and a
 transcript whose lines link to the spec.
