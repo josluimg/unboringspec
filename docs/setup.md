@@ -118,7 +118,7 @@ jobs:
         with: { name: spec-review, path: .unboring/ }
 ```
 
-A ready-made GitHub Action that comments the summary on the PR is on the roadmap.
+A ready-made GitHub Action that comments the summary on the PR is planned: [#15](https://github.com/josluimg/unboringspec/issues/15).
 </details>
 
 ## Quick try, no LLM

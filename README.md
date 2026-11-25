@@ -85,13 +85,11 @@ The full flow, step by step, is diagrammed in [CONTRIBUTING.md](CONTRIBUTING.md#
 
 ## Roadmap
 
-- [x] v0.1: spec-kit adapter, attention-ranked review page, traceability, `review.md` export
-- [x] v0.1: agent mode (no API key) for Claude Code, Copilot, Codex, Cursor, Gemini
-- [x] v0.2: spec podcast with tones, system voices on every OS and Kokoro
-- [ ] v0.2.x: podcast in API mode for CI, more voice engines (Piper, Chatterbox), chapter markers
-- [ ] v0.3: visuals (user journey, sequence, data model, task graph) and a diff between spec iterations
-- [ ] v0.4: conversational review: the agent asks you the five questions that matter
-- [ ] v0.5: Kiro and OpenSpec adapters, a GitHub Action that comments on PRs, PyPI release
+Shipped: **v0.1** (attention-ranked review, agent mode) and **v0.2** (spec podcast with tones and voices on
+every OS). What comes next is tracked on GitHub, by
+[milestone](https://github.com/josluimg/unboringspec/milestones): visuals and diffs between spec iterations,
+a conversational review, more frameworks, a PR Action and a PyPI release.
+Looking for a place to start? See the [`help wanted`](https://github.com/josluimg/unboringspec/labels/help%20wanted) issues.
 
 ## Contributing
 
