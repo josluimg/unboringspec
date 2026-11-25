@@ -4,7 +4,7 @@
 {%- endfor -%}
 {%- endmacro -%}
 {%- macro decision_card(d) -%}
-<article class="card decision" data-id="{{ d.id }}" data-attention="{{ d.attention.value }}">
+<article class="card decision" data-id="{{ d.id }}" data-key="{{ keys[d.id] }}" data-attention="{{ d.attention.value }}">
   <header>
     <span class="tag tag-{{ d.attention.value }}">{{ d.attention.value }}</span>
     <h3>{{ d.title }}</h3>
@@ -224,7 +224,7 @@ details[open] > summary { margin-bottom: 8px; }
     Only these need a human call. Everything below is optional depth.
   </div>
   {% for q in ir.questions %}
-  <article class="card question" data-qid="{{ q.id }}">
+  <article class="card question" data-qid="{{ q.id }}" data-key="{{ keys[q.id] }}">
     <header><span class="tag tag-decide">{{ q.id }}</span><h3>{{ q.question }}</h3></header>
     {% if q.why_it_matters %}<p class="muted">{{ q.why_it_matters }}</p>{% endif %}
     <div class="sources">{{ chips(q.sources) }}</div>
@@ -314,14 +314,20 @@ details[open] > summary { margin-bottom: 8px; }
 <script>
 (() => {
   const data = JSON.parse(document.getElementById("data").textContent);
-  const key = "unboringspec:" + data.feature;
+  // Marks are saved per item identity (data-key), never per position (D1, Q2...), which is
+  // reassigned on every render (#29). Old position-based marks cannot be mapped safely, so the
+  // previous storage entry is dropped instead of being applied to whatever now sits in that slot.
+  const key = "unboringspec:v2:" + data.feature;
   let state = {};
-  try { state = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+  try {
+    localStorage.removeItem("unboringspec:" + data.feature);
+    state = JSON.parse(localStorage.getItem(key) || "{}");
+  } catch (e) {}
   const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} updateProgress(); };
 
   // Verdicts on decision cards
   document.querySelectorAll(".decision").forEach(card => {
-    const id = card.dataset.id, note = card.querySelector(".note");
+    const id = card.dataset.key, note = card.querySelector(".note");
     const apply = () => {
       const s = state[id] || {};
       card.classList.toggle("is-approve", s.v === "approve");
@@ -342,13 +348,13 @@ details[open] > summary { margin-bottom: 8px; }
 
   // Answers to open questions
   document.querySelectorAll(".question").forEach(card => {
-    const id = card.dataset.qid, ta = card.querySelector(".answer");
+    const id = card.dataset.key, ta = card.querySelector(".answer");
     ta.value = (state[id] || {}).answer || "";
     ta.addEventListener("input", () => { (state[id] = state[id] || {}).answer = ta.value; save(); });
   });
 
   function updateProgress() {
-    const ids = data.decisions.map(d => d.id).concat(data.questions.map(q => q.id));
+    const ids = data.decisions.map(d => d.key).concat(data.questions.map(q => q.key));
     const done = ids.filter(id => state[id] && (state[id].v || (state[id].answer || "").trim())).length;
     document.getElementById("progress").textContent = `${done} of ${ids.length} items reviewed`;
   }
@@ -442,19 +448,19 @@ details[open] > summary { margin-bottom: 8px; }
   // Export: structured feedback the agent can consume (e.g. in /speckit.clarify)
   document.getElementById("export").addEventListener("click", () => {
     const out = [`# Review: ${data.feature}`, "", `_Generated with unboringspec on ${new Date().toISOString().slice(0, 10)}_`, ""];
-    const answered = data.questions.filter(q => (state[q.id] || {}).answer);
+    const answered = data.questions.filter(q => (state[q.key] || {}).answer);
     if (answered.length) {
       out.push("## Answers to open questions", "");
-      answered.forEach(q => out.push(`- **${q.id}** ${q.question}`, `  - Answer: ${state[q.id].answer.trim()}`));
+      answered.forEach(q => out.push(`- **${q.id}** ${q.question}`, `  - Answer: ${state[q.key].answer.trim()}`));
       out.push("");
     }
-    const qd = data.decisions.filter(d => (state[d.id] || {}).v === "question");
+    const qd = data.decisions.filter(d => (state[d.key] || {}).v === "question");
     if (qd.length) {
       out.push("## Decisions to revisit", "");
-      qd.forEach(d => out.push(`- **${d.id} ${d.title}**: ${d.choice}`, `  - Reviewer: ${(state[d.id].note || "(no comment)").trim()}`));
+      qd.forEach(d => out.push(`- **${d.id} ${d.title}**: ${d.choice}`, `  - Reviewer: ${(state[d.key].note || "(no comment)").trim()}`));
       out.push("");
     }
-    const ok = data.decisions.filter(d => (state[d.id] || {}).v === "approve");
+    const ok = data.decisions.filter(d => (state[d.key] || {}).v === "approve");
     if (ok.length) {
       out.push("## Approved", "");
       ok.forEach(d => out.push(`- ${d.id} ${d.title}: ${d.choice}`));
