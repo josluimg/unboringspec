@@ -191,9 +191,22 @@ Keep the split between strict and lenient: the schema states the rules (for exam
 citation"), while `apply_insights` drops the offending item and reports it instead of failing the
 whole review.
 
+## Workflow: issue → branch → pull request
+
+Work is planned as [GitHub issues](https://github.com/josluimg/unboringspec/issues), grouped by
+[milestone](https://github.com/josluimg/unboringspec/milestones). Every issue follows the same path:
+
+1. **Pick an issue** (or open one first, so the change is discussed before it is built). Comment on it so
+   nobody else starts the same work.
+2. **Branch from an up-to-date `main`**, named after the issue: `feature/<issue-number>-<short-slug>`,
+   e.g. `feature/17-podcast-length`. Never commit to `main` directly.
+3. **Open a pull request against `main`** that says `Closes #<issue-number>` in its description and carries
+   the issue's milestone.
+4. **Merging the pull request closes the issue**: that is what marks it as done.
+
 ## Pull requests
 
-- Keep PRs focused: one adapter, one integration or one feature.
+- One issue per pull request. Keep it focused: one adapter, one integration or one feature.
 - Include tests; `pytest` must pass.
 - Describe how you checked it (which spec, which agent, screenshots of the page if UI changed).
 - English for code, comments and docs. Example specs can be in any language.
