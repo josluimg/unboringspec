@@ -18,6 +18,54 @@ Try your change on the example spec:
 unboring review examples/speckit/specs/001-photo-albums --offline --open
 ```
 
+## How it works
+
+The main flow is **agent mode**: the coding agent the user already runs is the LLM. The CLI never
+calls a model in this mode. It only does the deterministic work: parse, check, render.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Reviewer
+    participant A as Coding agent<br/>(Claude Code, Copilot, Codex...)
+    participant C as unboring CLI
+    participant AD as Adapter<br/>(spec-kit, generic...)
+    participant F as .unboring/feature/
+
+    U->>A: /unboring-review specs/001-feature
+    Note over A: The skill installed by<br/>unboring init tells the agent what to do
+
+    A->>C: unboring prompt specs/001-feature
+    C->>AD: detect framework and parse
+    AD-->>C: Spec IR (stories, requirements, tasks,<br/>decisions, NEEDS CLARIFICATION, file:line)
+    C->>F: prompt.md = instructions + JSON Schema<br/>+ line-numbered documents
+
+    A->>F: read prompt.md
+    Note over A: LLM analysis: summary, decisions,<br/>risks, questions, each citing file:line
+    A->>F: write insights.json (the contract)
+
+    loop until the JSON is valid
+        A->>C: unboring render specs/001-feature
+        C->>C: validate against insights.v1.schema.json<br/>and drop items with non-existent citations
+        C-->>A: errors or dropped items, if any
+    end
+    C->>F: review.html
+    A-->>U: path to review.html, one-liner,<br/>items that need a human call
+
+    rect rgba(127, 127, 127, 0.12)
+        Note over U,A: Human review (today: in the browser)
+        U->>F: open review.html, answer questions,<br/>approve or question decisions
+        U->>A: Export review.md and hand it to the agent
+    end
+    A->>A: update the spec, or run the framework's<br/>clarify step (e.g. /speckit.clarify)
+
+    Note over U,A: Planned v0.4, Socratic mode: instead of the page,<br/>the agent asks the decide items one by one in the chat<br/>and writes review.md itself
+```
+
+In **API mode** (`unboring review`, for CI) steps 2 to 11 collapse into one command: the CLI builds the
+same prompt, calls a model through LiteLLM and validates the same contract. In **offline mode** there is
+no LLM step at all: the page shows only what the adapter extracted.
+
 ## How the code is organised
 
 ```
