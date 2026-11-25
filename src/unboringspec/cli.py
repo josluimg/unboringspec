@@ -9,6 +9,7 @@ from typing import List, Optional
 import typer
 from pydantic import ValidationError
 from rich.console import Console
+from rich.markup import escape
 
 from . import __version__
 from .adapters import ADAPTERS, get_adapter
@@ -53,7 +54,7 @@ def _load(spec: Path, adapter: str | None) -> SpecIR:
     ir = ad.load(spec)
     console.print(f"[bold]{ir.feature}[/] · adapter [cyan]{ad.name}[/] ({ad.tested_with}) · {len(ir.documents)} documents")
     for w in ir.warnings:
-        console.print(f"[yellow]⚠ {w}[/]")
+        console.print(f"[yellow]⚠ {escape(w)}[/]")
     return ir
 
 
@@ -84,7 +85,10 @@ def init(
         raise typer.Exit(2)
     for path, outcome in install(root, ai, force):
         console.print(f"  {path}  [dim]{outcome}[/]")
-    console.print("\nNow ask your agent: [bold]review the spec in specs/<feature>[/] (or use /unboring-review).")
+    console.print(
+        "\nNow ask your agent: [bold]review the spec in specs/<feature>[/] (/unboring-review) "
+        "or [bold]make a podcast about it[/] (/unboring-podcast)."
+    )
 
 
 @app.command()
@@ -122,7 +126,7 @@ def render(
     try:
         data = parse_insights(src.read_text(encoding="utf-8"))
     except (ValidationError, ValueError) as e:
-        console.print(f"[red]{src} is not valid insights JSON:[/]\n{e}")
+        console.print(f"[red]{escape(str(src))} is not valid insights JSON:[/]\n{escape(str(e))}")
         raise typer.Exit(1)
     ir, dropped = apply_insights(ir, data, "agent")
     if dropped:
@@ -154,7 +158,7 @@ def review(
             with console.status(f"Asking {model} where your attention is needed..."):
                 ir, dropped = llm_insights(ir, model=model, lang=lang)
         except Exception as e:  # provider errors vary a lot; give one actionable message
-            console.print(f"[red]LLM call failed:[/] {e}")
+            console.print(f"[red]LLM call failed:[/] {escape(str(e))}")
             console.print(
                 "Working inside an IDE agent? Use agent mode instead, no API key needed: "
                 "[bold]unboring init --ai claude|copilot|codex|cursor|gemini[/]\n"
@@ -164,6 +168,165 @@ def review(
         if dropped:
             console.print(f"[yellow]⚠ Dropped {dropped} item(s) with invented citations.[/]")
     _done(ir, write_html(ir, out or _workdir(spec) / "review.html"), open_browser)
+
+
+# --- podcast ---------------------------------------------------------------------
+
+podcast_app = typer.Typer(
+    help=(
+        "Spec podcast: two hosts talk through the spec, a guide and a skeptic.\n\n"
+        "Agent mode: `unboring podcast prompt <folder>`, the agent writes podcast.json, "
+        "then `unboring podcast render <folder>`."
+    ),
+    no_args_is_help=True,
+)
+app.add_typer(podcast_app, name="podcast")
+
+
+@podcast_app.command("prompt")
+def podcast_prompt(
+    spec: Path = SPEC_ARG,
+    lang: Optional[str] = typer.Option(None, "--lang", help="Script language, e.g. es or en (default: same as the spec)."),
+    adapter: Optional[str] = ADAPTER_OPT,
+) -> None:
+    """Step 1: write the script prompt for your agent (uses insights.json if the review was done)."""
+    from .podcast import build_podcast_prompt
+
+    ir = _load(spec, adapter)
+    wd = _workdir(spec)
+    wd.mkdir(parents=True, exist_ok=True)
+    insights = wd / "insights.json"
+    text = build_podcast_prompt(ir, insights.read_text(encoding="utf-8") if insights.is_file() else None, lang)
+    out = wd / "podcast.prompt.md"
+    out.write_text(text, encoding="utf-8")
+    if not insights.is_file():
+        console.print("[dim]No insights.json yet: the script will be based on the spec alone.[/]")
+    console.print(f"Prompt:   {out}")
+    console.print(f"Write to: {wd / 'podcast.json'}")
+    console.print(f"Then run: unboring podcast render {spec}")
+
+
+@podcast_app.command("render")
+def podcast_render(
+    spec: Path = SPEC_ARG,
+    script: Optional[Path] = typer.Option(None, "--script", help="Script JSON. Default: .unboring/<feature>/podcast.json"),
+    engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto, kokoro or say."),
+    voice_guide: Optional[str] = typer.Option(None, "--voice-guide", help="Override the guide's voice."),
+    voice_skeptic: Optional[str] = typer.Option(None, "--voice-skeptic", help="Override the skeptic's voice."),
+    speed: float = typer.Option(1.0, "--speed", min=0.5, max=2.0, help="Speech speed."),
+    adapter: Optional[str] = ADAPTER_OPT,
+    open_browser: bool = typer.Option(False, "--open", help="Open the review page with the player."),
+) -> None:
+    """Step 2: validate the script, voice it and add a player to the review page."""
+    import tempfile
+
+    from .podcast import parse_script, transcript_markdown, validate_script, word_count
+    from .tts import PAUSE_MS, EngineUnavailable, assemble, pick_engine, wav_seconds
+
+    ir = _load(spec, adapter)
+    wd = _workdir(spec)
+    src = script or wd / "podcast.json"
+    if not src.is_file():
+        console.print(f"[red]No script found at {src}.[/] Run `unboring podcast prompt {spec}` and have your agent write it.")
+        raise typer.Exit(1)
+    try:
+        parsed = parse_script(src.read_text(encoding="utf-8"))
+        turns, problems = validate_script(parsed, ir.documents)
+    except (ValidationError, ValueError) as e:
+        console.print(f"[red]{escape(str(src))} is not a valid podcast script:[/]\n{escape(str(e))}")
+        raise typer.Exit(1)
+    for p in problems:
+        console.print(f"[yellow]⚠ {escape(p)}[/]")
+
+    try:
+        tts = pick_engine(engine)
+        voices = tts.voices(parsed.language)
+    except EngineUnavailable as e:
+        console.print(f"[red]{escape(str(e))}[/]")
+        raise typer.Exit(1)
+    if voice_guide:
+        voices["guide"] = voice_guide
+    if voice_skeptic:
+        voices["skeptic"] = voice_skeptic
+    console.print(
+        f"Voicing {len(turns)} turns, {word_count(turns)} words with [cyan]{tts.name}[/] "
+        f"(guide: {voices['guide']}, skeptic: {voices['skeptic']})"
+    )
+
+    with tempfile.TemporaryDirectory(prefix="unboring-") as tmp:
+        parts = []
+        with console.status("Recording...") as status:
+            for i, t in enumerate(turns, start=1):
+                status.update(f"Recording turn {i}/{len(turns)} · {t.name}")
+                part = Path(tmp) / f"{i:04d}.wav"
+                try:
+                    tts.synth(t.text, voices[t.role], parsed.language, speed, part)
+                except EngineUnavailable as e:
+                    status.stop()
+                    console.print(f"[red]{escape(str(e))}[/]")
+                    raise typer.Exit(1)
+                parts.append(part)
+            status.update("Mixing...")
+            for old in (wd / "podcast.mp3", wd / "podcast.wav"):
+                old.unlink(missing_ok=True)
+            audio = assemble(parts, wd / "podcast", pause_ms=PAUSE_MS)
+            seconds = sum(wav_seconds(p) for p in parts) + PAUSE_MS / 1000 * (len(parts) - 1)
+
+    (wd / "podcast.md").write_text(transcript_markdown(parsed, turns), encoding="utf-8")
+    console.print(f"[green]✓[/] {audio}  ({int(seconds // 60)}:{int(seconds % 60):02d} min)")
+    console.print(f"[green]✓[/] {wd / 'podcast.md'}  (transcript)")
+
+    # Re-render the review page so it carries the player.
+    insights = wd / "insights.json"
+    if insights.is_file():
+        try:
+            ir, _ = apply_insights(ir, parse_insights(insights.read_text(encoding="utf-8")), "agent")
+        except (ValidationError, ValueError):
+            ir = heuristic_insights(ir)
+    else:
+        ir = heuristic_insights(ir)
+    page = write_html(ir, wd / "review.html")
+    console.print(f"[green]✓[/] {page}  (review page with player)")
+    if open_browser:
+        webbrowser.open(page.resolve().as_uri())
+
+
+@podcast_app.command("setup")
+def podcast_setup(
+    yes: bool = typer.Option(False, "--yes", "-y", help="Do not ask for confirmation."),
+) -> None:
+    """Download the Kokoro voice model (once) into ~/.cache/unboringspec/kokoro."""
+    from .tts import KOKORO_FILES, KOKORO_RELEASE, download_kokoro, kokoro_dir
+
+    model = KOKORO_FILES["model"]
+    voices = KOKORO_FILES["voices"]
+    console.print(f"From {KOKORO_RELEASE}\n  {model[0]} ({model[1]} MB)\n  {voices[0]} ({voices[1]} MB)\nTo   {kokoro_dir()}")
+    if not yes and not typer.confirm("Download?", default=True):
+        raise typer.Exit(1)
+    with console.status("Downloading...") as status:
+
+        def hook(blocks, size, total):
+            if total > 0:
+                status.update(f"Downloading... {min(100, blocks * size * 100 // total)}%")
+
+        files = download_kokoro(hook)
+    for f in files:
+        console.print(f"[green]✓[/] {f}")
+
+
+@podcast_app.command("engines")
+def podcast_engines(lang: str = typer.Option("es", "--lang", help="Language to show default voices for.")) -> None:
+    """List TTS engines, whether they work here, and their default voices."""
+    from .tts import ENGINES, EngineUnavailable
+
+    for name, cls in ENGINES.items():
+        engine = cls()
+        try:
+            engine.check()
+            v = engine.voices(lang)
+            console.print(f"• [bold]{name}[/] [green]ready[/]  guide: {v['guide']}, skeptic: {v['skeptic']}  [dim]{engine.description}[/]")
+        except EngineUnavailable as e:
+            console.print(f"• [bold]{name}[/] [yellow]unavailable[/]  {escape(str(e))}")
 
 
 # --- info ------------------------------------------------------------------------
@@ -180,14 +343,23 @@ def adapters() -> None:
 def agents() -> None:
     """List coding agents `init --ai` can install into."""
     for i in INTEGRATIONS.values():
-        console.print(f"• [bold]{i.key}[/]  {i.label} → {i.target}  [dim]{i.status}[/]")
+        where = escape(i.target.format(skill="<skill>", short="<skill>"))
+        console.print(f"• [bold]{i.key}[/]  {i.label} → {where}  [dim]{i.status}[/]")
 
 
 @app.command()
-def schema() -> None:
-    """Print the JSON Schema agents must return (the insights contract)."""
+def schema(
+    which: str = typer.Argument("insights", help="insights (review analysis) or podcast (episode script)."),
+) -> None:
+    """Print a contract's JSON Schema: what agents must return."""
+    from .podcast import podcast_json_schema
+
+    schemas = {"insights": json_schema, "podcast": podcast_json_schema}
+    if which not in schemas:
+        console.print(f"[red]Unknown schema '{escape(which)}'.[/] Available: {', '.join(schemas)}")
+        raise typer.Exit(2)
     # Plain print: the output is meant to be piped to a file or another tool.
-    print(json.dumps(json_schema(), indent=2, ensure_ascii=False))
+    print(json.dumps(schemas[which](), indent=2, ensure_ascii=False))
 
 
 @app.command()

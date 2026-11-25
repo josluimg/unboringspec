@@ -72,13 +72,16 @@ no LLM step at all: the page shows only what the adapter extracted.
 src/unboringspec/
   adapters/        one module per SDD framework → produces a SpecIR
   ir.py            SpecIR: the framework-agnostic model (every item carries file:line sources)
-  insights.py      the LLM contract: build_prompt → LLMInsights JSON → apply_insights
+  insights.py      the review contract: build_prompt → LLMInsights JSON → apply_insights
+  podcast.py       the podcast contract: build_podcast_prompt → PodcastScript JSON → validate_script
+  tts.py           text-to-speech engines (kokoro, say) and audio assembly
   integrations.py  where each coding agent expects its skill or command file
   render.py        SpecIR → single self-contained HTML page
   templates/       review page and the agent skill text
-  cli.py           init, prompt, render, review, schema
+  cli.py           init, prompt, render, review, schema, podcast (prompt, render, setup, engines)
 schemas/
-  insights.v1.schema.json   the public contract every agent must return (generated, do not edit by hand)
+  insights.v1.schema.json   the review contract every agent must return (generated, do not edit by hand)
+  podcast.v1.schema.json    the podcast script contract (generated, do not edit by hand)
   examples/                 valid responses, checked by tests
 tests/
   fixtures/<adapter>/<framework version>/   real-shaped spec folders per tested version
@@ -129,11 +132,41 @@ Two principles to keep:
 
 The skill text lives in `templates/skill.md` and is shared by every agent. Keep it agent-neutral.
 
-## Changing the insights contract
+## The podcast flow
 
-The contract between agents, API models and the renderer is published as
-`schemas/insights.v<N>.schema.json`. Its source of truth is the `LLMInsights` Pydantic model in
-`insights.py`; the file is generated from it and `tests/test_contract.py` fails if they drift.
+Same pattern as the review, with a voice step at the end:
+
+```mermaid
+flowchart LR
+    A["/unboring-podcast specs/001 es"] --> B["unboring podcast prompt"]
+    B --> C["podcast.prompt.md<br/>(uses insights.json if the review was done)"]
+    C --> D["agent writes podcast.json<br/>guide + skeptic"]
+    D --> E["unboring podcast render"]
+    E --> F["validate script<br/>(podcast.v1 schema, citations)"]
+    F --> G["TTS engine per turn<br/>kokoro or say"]
+    G --> H["podcast.mp3 + podcast.md<br/>player in review.html"]
+```
+
+## Add a TTS engine
+
+1. Subclass `Engine` in `tts.py`:
+   - `check()`: raise `EngineUnavailable` with an actionable message (what to install or run).
+   - `voices(lang)`: default voices for the `guide` and the `skeptic`. Pick two clearly different voices.
+   - `synth(text, voice, lang, speed, out)`: write one turn as a **24 kHz, mono, 16-bit WAV**. Keeping that
+     format lets `assemble` work even without ffmpeg.
+2. Register it in `ENGINES`. Order matters for `--engine auto`: best quality first, zero-install last.
+3. Heavy dependencies go in an optional extra in `pyproject.toml`, imported inside the engine, never at
+   module level. Model downloads only happen through an explicit command like `unboring podcast setup`.
+4. Add tests with a fake or mocked backend (see `FakeEngine` in `tests/test_podcast.py`), and a row to the
+   *Podcast voices* table in the README.
+
+## Changing a contract
+
+There are two published contracts: `schemas/insights.v<N>.schema.json` (review analysis, model
+`LLMInsights` in `insights.py`) and `schemas/podcast.v<N>.schema.json` (podcast script, model
+`PodcastScript` in `podcast.py`). The files are generated from the models, and `tests/test_contract.py`
+and `tests/test_podcast.py` fail if they drift. The steps below use the insights contract; for the podcast
+one, regenerate with `unboring schema podcast > schemas/podcast.v1.schema.json`.
 
 1. Edit the models in `insights.py` (descriptions included: agents read them).
 2. Regenerate the published file:
