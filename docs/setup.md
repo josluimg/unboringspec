@@ -48,6 +48,14 @@ or just *"review the spec in specs/001-my-feature"*. You get `.unboring/001-my-f
 Review it, click **Export review.md**, and give that file back to the agent to update the spec
 (for spec-kit, together with `/speckit.clarify`).
 
+What to point it at depends on your framework:
+
+| Framework | Folder to review | Example |
+|---|---|---|
+| spec-kit | A feature folder | `/unboring-review specs/001-my-feature` |
+| OpenSpec | A change (active or archived), or a capability spec | `/unboring-review openspec/changes/add-2fa` |
+| Anything else | Any folder of Markdown | `/unboring-review docs/rfcs/042-search` |
+
 `init` also adds `.unboring/` to your `.gitignore`. Add `--podcast` to install the optional podcast skill too.
 
 ### What happens under the hood
@@ -127,6 +135,7 @@ A ready-made GitHub Action that comments the summary on the PR is planned: [#15]
 git clone https://github.com/josluimg/unboringspec && cd unboringspec
 python -m venv .venv && source .venv/bin/activate && pip install -e .
 unboring review examples/speckit/specs/001-photo-albums --offline --open
+unboring review examples/openspec/openspec/changes/add-invite-link-revocation --offline --open
 ```
 
 Offline mode only extracts what the framework structure guarantees (stories, requirements, tasks, clarification

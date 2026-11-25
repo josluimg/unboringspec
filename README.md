@@ -40,6 +40,7 @@ Then ask your agent: `/unboring-review specs/001-my-feature`. Open `.unboring/00
 git clone https://github.com/josluimg/unboringspec && cd unboringspec
 python -m venv .venv && source .venv/bin/activate && pip install -e .
 unboring review examples/speckit/specs/001-photo-albums --offline --open
+unboring review examples/openspec/openspec/changes/add-invite-link-revocation --offline --open   # OpenSpec
 ```
 
 📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, CI with an API key, all commands.
@@ -52,9 +53,10 @@ document no longer parses (a sign the template changed) instead of showing an em
 
 | Framework | Status |
 |---|---|
-| [spec-kit](https://github.com/github/spec-kit) | ✅ tested with v1.4.4 templates |
+| [spec-kit](https://github.com/github/spec-kit) | ✅ tested with v1.4.4 templates · review a feature: `specs/<feature>/` |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | ✅ tested with v2.2.0 · review a change: `openspec/changes/<change>/`, with ADDED / MODIFIED / REMOVED / RENAMED requirements tagged |
 | Any folder of Markdown | ✅ generic adapter; the LLM does the analysis |
-| Kiro, OpenSpec, BMAD | 🛣️ wanted: [add an adapter](CONTRIBUTING.md#add-an-sdd-framework-adapter) |
+| Kiro, BMAD | 🛣️ wanted: [add an adapter](CONTRIBUTING.md#add-an-sdd-framework-adapter) |
 
 **Coding agents** through [Agent Skills](https://agentskills.io). Your agent is the LLM; no API key needed.
 
@@ -73,7 +75,7 @@ See [In CI](docs/setup.md#in-ci).
 
 ```
 spec folder ──adapter──▶ common model ──▶ prompt ──▶ your agent (or an API model) ──▶ JSON ──▶ review page
-(spec-kit, ...)          (every item has file:line)                                  (contract)  (+ podcast)
+(spec-kit, OpenSpec...)  (every item has file:line)                                  (contract)  (+ podcast)
 ```
 
 The CLI does the deterministic work: parsing the spec, validating citations, rendering. Your agent does the

@@ -82,6 +82,10 @@ h3 { font-size: 1rem; margin: 0; }
 .tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; border-radius: 6px; padding: 2px 8px; }
 .tag-decide, .tag-high { background: var(--decide-soft); color: var(--decide); }
 .tag-review, .tag-medium { background: var(--review-soft); color: var(--review); }
+.tag-change-added { background: var(--routine-soft); color: var(--routine); }
+.tag-change-modified { background: var(--review-soft); color: var(--review); }
+.tag-change-removed { background: var(--decide-soft); color: var(--decide); }
+.tag-change-renamed { background: var(--accent-soft); color: var(--accent); }
 .tag-routine, .tag-low { background: var(--routine-soft); color: var(--routine); }
 .src { font: .75rem var(--mono); background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 6px; padding: 2px 8px; margin: 2px 4px 2px 0; cursor: pointer; }
 .src:hover { text-decoration: underline; }
@@ -124,11 +128,10 @@ details[open] > summary { margin-bottom: 8px; }
   </div>
   <h1>{{ ir.feature }}</h1>
   <div class="pills">
-    <span class="pill"><b>{{ ir.stories | length }}</b> stories</span>
-    <span class="pill"><b>{{ ir.requirements | length }}</b> requirements</span>
-    <span class="pill"><b>{{ ir.decisions | length }}</b> decisions</span>
-    <span class="pill"><b>{{ ir.tasks | length }}</b> tasks</span>
-    <span class="pill"><b>{{ ir.questions | length }}</b> open questions</span>
+    {% set req_label = "requirement changes" if ir.requirements | selectattr("change") | list else "requirements" %}
+    {% for count, label in [(ir.stories | length, "stories"), (ir.requirements | length, req_label), (ir.decisions | length, "decisions"), (ir.tasks | length, "tasks"), (ir.questions | length, "open questions")] if count %}
+    <span class="pill"><b>{{ count }}</b> {{ label }}</span>
+    {% endfor %}
   </div>
 
   {% for w in ir.warnings %}
@@ -212,9 +215,9 @@ details[open] > summary { margin-bottom: 8px; }
   {% endfor %}
   {% if ir.requirements %}
   <details>
-    <summary>{{ ir.requirements | length }} requirements</summary>
+    <summary>{{ ir.requirements | length }} {{ req_label }}</summary>
     <ul class="tasks">
-    {% for r in ir.requirements %}<li><span class="tid">{{ r.id }}</span><span>{{ r.text }}</span></li>{% endfor %}
+    {% for r in ir.requirements %}<li><span class="tid">{{ r.id }}</span>{% if r.change %}<span class="tag tag-change-{{ r.change }}">{{ r.change }}</span>{% endif %}<span>{{ r.text }}</span></li>{% endfor %}
     </ul>
   </details>
   {% endif %}

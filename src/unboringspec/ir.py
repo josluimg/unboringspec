@@ -60,6 +60,8 @@ class Risk(BaseModel):
 class Requirement(BaseModel):
     id: str
     text: str
+    # For frameworks that describe changes as deltas (OpenSpec): added, modified, removed, renamed.
+    change: str = ""
     sources: list[SourceRef] = Field(default_factory=list)
 
 
