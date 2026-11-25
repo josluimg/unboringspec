@@ -19,7 +19,8 @@ from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 
-from .ir import Attention, Decision, OpenQuestion, Risk, SourceRef, SpecIR, Summary
+from .diagrams import check_mermaid
+from .ir import Attention, Decision, Diagram, OpenQuestion, Risk, SourceRef, SpecIR, Summary
 
 DEFAULT_MODEL = "anthropic/claude-sonnet-5-5"
 
@@ -120,6 +121,21 @@ class QuestionInsight(BaseModel):
     sources: list[Citation] = Field(json_schema_extra=_AT_LEAST_ONE)
 
 
+class DiagramInsight(BaseModel):
+    """A Mermaid diagram the spec does not draw itself: the user journey or a key interaction."""
+
+    kind: Literal["journey", "sequence", "flow", "state"] = Field(
+        description="'journey': the main user journey; 'sequence': a key interaction between actors and systems; "
+        "'flow': another process; 'state': the lifecycle of an important object."
+    )
+    title: str = Field(description="Short title, max 8 words.")
+    mermaid: str = Field(
+        description="Plain Mermaid source starting with its type (flowchart, sequenceDiagram, journey, stateDiagram-v2). "
+        "Names from the spec. No init directives, click handlers, links or HTML. Max 40 lines."
+    )
+    sources: list[Citation] = Field(description="Lines the diagram is based on.", json_schema_extra=_AT_LEAST_ONE)
+
+
 class LLMInsights(BaseModel):
     """unboringspec insights: what a human reviewer needs from a spec, with every claim cited."""
 
@@ -131,6 +147,11 @@ class LLMInsights(BaseModel):
     decisions: list[DecisionInsight]
     risks: list[RiskInsight]
     questions: list[QuestionInsight]
+    diagrams: list[DiagramInsight] = Field(
+        default_factory=list,
+        description="Optional, at most 2. The task graph and the data model are drawn from the spec automatically.",
+        json_schema_extra={"maxItems": 2},
+    )
 
 
 def json_schema() -> dict:
@@ -157,6 +178,9 @@ Rules:
   "routine" if conventional.
 - risks: real delivery or product risks, including ones the spec does not mention but implies.
 - questions: gaps, contradictions or missing edge cases a careful reviewer would raise.
+- diagrams (optional, at most 2): the main user journey (a flowchart or journey) and the key interaction
+  (a sequenceDiagram), only when the spec has enough material to draw them faithfully. Use the spec's own
+  names, keep each under 40 lines, and do not draw the task graph or the data model: those are automatic.
 - Every decision, risk and question MUST cite at least one source as file + line number from the
   numbered documents below. Never invent citations. If you cannot cite it, leave it out.
 """
@@ -292,6 +316,17 @@ def apply_insights(ir: SpecIR, data: LLMInsights, generated_by: str) -> tuple[Sp
         ir.questions.append(OpenQuestion(id="", question=q.question, why_it_matters=q.why_it_matters, sources=sources))
     for i, q in enumerate(ir.questions, start=1):
         q.id = f"Q{i}"
+
+    ir.diagrams = []
+    for d in data.diagrams[:2]:
+        sources = _resolve(d.sources, docs)
+        if not sources or check_mermaid(d.mermaid):
+            dropped += 1
+            continue
+        ir.diagrams.append(
+            Diagram(id=f"G{len(ir.diagrams) + 1}", kind=d.kind, title=d.title, mermaid=d.mermaid.strip(),
+                    origin="agent", sources=sources)
+        )
 
     ir.generated_by = generated_by
     return ir, dropped
