@@ -166,6 +166,9 @@ Folders follow the same conventions spec-kit uses.
 | Gemini CLI | `gemini` | `.gemini/commands/unboring.review.toml` | 🧪 experimental |
 | Others reading `.agents/skills` | `agents` | `.agents/skills/unboring-review/` | 🧪 experimental |
 
+For Claude Code the skill declares `allowed-tools: Bash(unboring:*)`, so the agent runs the `unboring`
+CLI without asking each time; any other command still asks.
+
 *Experimental* means the file follows the agent's documented format but nobody has reported a full run yet.
 Tried it? Open an issue or PR to mark it tested.
 

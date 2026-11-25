@@ -26,12 +26,23 @@ class Integration:
     target: str  # path relative to the project root
     kind: str = "skill"  # "skill" (SKILL.md) or "gemini-toml"
     status: str = "experimental"  # "tested" once someone has run it end to end
+    # Agent-specific frontmatter lines. Other agents ignore unknown fields, but we only
+    # write what each agent documents.
+    extra_frontmatter: tuple[str, ...] = ()
 
 
 INTEGRATIONS: dict[str, Integration] = {
     i.key: i
     for i in [
-        Integration("claude", "Claude Code", f".claude/skills/{SKILL_NAME}/SKILL.md", status="tested"),
+        Integration(
+            "claude",
+            "Claude Code",
+            f".claude/skills/{SKILL_NAME}/SKILL.md",
+            status="tested",
+            # Pre-approve only the unboring CLI while the skill runs; every other command
+            # still asks. Writing insights.json follows the user's normal edit permissions.
+            extra_frontmatter=("allowed-tools: Bash(unboring:*)",),
+        ),
         Integration("copilot", "GitHub Copilot (VS Code)", f".github/skills/{SKILL_NAME}/SKILL.md"),
         Integration("codex", "OpenAI Codex", f".agents/skills/{SKILL_NAME}/SKILL.md"),
         Integration("cursor", "Cursor", f".cursor/skills/{SKILL_NAME}/SKILL.md"),
@@ -58,7 +69,9 @@ def render_integration(integ: Integration) -> str:
         f"name: {SKILL_NAME}\n"
         f"description: {DESCRIPTION}\n"
         f'argument-hint: "{ARGUMENT_HINT}"\n'
-        "---\n\n" + body
+        + "".join(f"{line}\n" for line in integ.extra_frontmatter)
+        + "---\n\n"
+        + body
     )
 
 

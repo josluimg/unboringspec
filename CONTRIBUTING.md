@@ -121,7 +121,8 @@ Two principles to keep:
    it only needs a folder; check how spec-kit integrates the same agent for the convention.
 2. Add an `Integration` entry in `integrations.py` with `status="experimental"`.
    If the agent needs another file format (like Gemini's TOML), add a `kind` and handle it in
-   `render_integration`.
+   `render_integration`. Agent-specific frontmatter goes in `extra_frontmatter` (Claude Code uses it
+   for `allowed-tools: Bash(unboring:*)`). Only pre-approve the `unboring` CLI, never broader access.
 3. Add it to the agents table in the README.
 4. To mark it **tested**, run the full flow in that agent on the example spec
    (`/unboring-review examples/speckit/specs/001-photo-albums`), and mention the agent version in the PR.

@@ -98,7 +98,14 @@ def test_init_installs_skills(in_tmp):
     skill = (in_tmp / ".claude/skills/unboring-review/SKILL.md").read_text()
     assert skill.startswith("---\nname: unboring-review\n")
     assert "unboring prompt" in skill and "unboring render" in skill
-    assert (in_tmp / ".github/skills/unboring-review/SKILL.md").read_text() == skill
+    # Claude Code pre-approves only the unboring CLI; nothing broader.
+    frontmatter = skill.split("---\n")[1]
+    assert "allowed-tools: Bash(unboring:*)\n" in frontmatter
+    assert frontmatter.count("allowed-tools") == 1
+    # Other agents get the same instructions without Claude-specific fields.
+    copilot = (in_tmp / ".github/skills/unboring-review/SKILL.md").read_text()
+    assert "allowed-tools" not in copilot
+    assert copilot.split("---\n", 2)[2] == skill.split("---\n", 2)[2]
     toml = tomllib.loads((in_tmp / ".gemini/commands/unboring.review.toml").read_text())
     assert "{{args}}" in toml["prompt"]
     assert ".unboring/" in (in_tmp / ".gitignore").read_text()
