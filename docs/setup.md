@@ -58,6 +58,24 @@ What to point it at depends on your framework:
 
 `init` also adds `.unboring/` to your `.gitignore`. Add `--podcast` to install the optional podcast skill too.
 
+### Reviewing the next iteration
+
+Each render keeps a snapshot of the analysed spec in `.unboring/<feature>/history/`. When the spec changes,
+the next render opens with **What changed**: questions resolved or new, decisions and requirements changed,
+stories, entities and tasks added, removed or completed, each linked to its line. It is a semantic diff, not a
+text diff: rewording by the agent does not count as a change, while any word changed in the spec does
+(`MUST` → `SHOULD` shows up).
+
+To compare with a specific commit instead of the previous render, for example the version that was last
+approved:
+
+```bash
+unboring render specs/001-my-feature --since main      # or a tag, a commit, HEAD~3...
+```
+
+If a snapshot of that exact version exists, its analysis (including the agent's) is used; otherwise that version
+is analysed offline, and only what is written in the documents is compared.
+
 ### What happens under the hood
 
 ```
@@ -159,4 +177,5 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 | `unboring version` | Show the version. |
 
 Common options: `--lang` (output language, default: same as the spec), `--adapter` (force one), `--out`
-(HTML path), `--open` (open in the browser). Working files go to `.unboring/<feature>/` in the current folder.
+(HTML path), `--open` (open in the browser), `--since <git ref>` (compare with that version; `render` and
+`review`). Working files go to `.unboring/<feature>/` in the current folder.
