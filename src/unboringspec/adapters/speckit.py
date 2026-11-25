@@ -13,6 +13,7 @@ from ..ir import Attention, Decision, OpenQuestion, Requirement, SpecIR, Task, U
 from .base import (
     CLARIFICATION_RE,
     Adapter,
+    ApplyStep,
     data_model_entities,
     find_clarifications,
     key_entities,
@@ -32,6 +33,23 @@ TECH_RE = re.compile(
     r"^\*\*(Language/Version|Primary Dependencies|Storage|Testing|Target Platform|Project Type|"
     r"Performance Goals|Constraints|Scale/Scope)\*\*:\s*(.+)$"
 )
+# Where spec-kit installs its commands for each agent ({name} = speckit-<cmd> or speckit.<cmd>).
+SPECKIT_INSTALL_PATHS = [
+    ".claude/skills/{name}/SKILL.md", ".claude/commands/{name}.md",
+    ".github/skills/{name}/SKILL.md", ".github/prompts/{name}.prompt.md",
+    ".agents/skills/{name}/SKILL.md", ".codex/prompts/{name}.md",
+    ".cursor/skills/{name}/SKILL.md", ".cursor/commands/{name}.md",
+    ".gemini/commands/{name}.toml",
+]
+
+
+def _speckit_step(cmd: str, covers: str, files: list[str], optional: bool = False) -> ApplyStep:
+    return ApplyStep(
+        id=cmd, command=f"/speckit.{cmd}", covers=covers, files=files, optional=optional,
+        install_paths=SPECKIT_INSTALL_PATHS, names=[f"speckit-{cmd}", f"speckit.{cmd}"],
+    )
+
+
 # Reading order a reviewer expects: the what before the how.
 DOC_ORDER = ("spec.md", "plan.md", "research.md", "data-model.md", "quickstart.md", "tasks.md")
 FIELD_RE = re.compile(r"^\s*[-*]?\s*\*\*(Decision|Rationale|Alternatives(?: considered)?)\*\*:?\s*(.*)$", re.IGNORECASE)
@@ -48,6 +66,56 @@ class SpecKitAdapter(Adapter):
             return False
         has_siblings = any((path / f).is_file() for f in ("plan.md", "tasks.md", "research.md"))
         return has_siblings or path.parent.name == "specs"
+
+    def project_markers(self) -> tuple[str, ...]:
+        return (".specify", ".git")
+
+    def apply_steps(self, ir: SpecIR) -> list:
+        """spec-kit records answers with /speckit.clarify (spec.md only), revises the plan with
+        /speckit.plan and regenerates tasks with /speckit.tasks. Checked against v1.4.4."""
+        return [
+            _speckit_step("clarify", "answers and decisions about the spec, recorded under ## Clarifications", ["spec.md"]),
+            _speckit_step("plan", "decisions in the plan and research", ["plan.md", "research.md", "data-model.md", "quickstart.md", "contracts/*"]),
+            _speckit_step("tasks", "regenerate the tasks from the updated spec and plan", []),
+            _speckit_step("analyze", "check consistency across spec, plan and tasks", [], optional=True),
+        ]
+
+    def apply_checks(self, spec: Path) -> list[str]:
+        """spec-kit commands act on the *active* feature: SPECIFY_FEATURE_DIRECTORY, else
+        .specify/feature.json (written by /speckit-specify). Reviewing another feature and running
+        /speckit-clarify would change the wrong spec, so say so before the steps."""
+        import json
+        import os
+
+        root = self.project_root(spec, (".specify",))
+        if not (root / ".specify").is_dir():
+            return []
+        try:
+            rel = spec.resolve().relative_to(root).as_posix()
+        except ValueError:
+            return []
+        how = (
+            f'point it at this one first: write {{"feature_directory": "{rel}"}} to .specify/feature.json, '
+            f"or run the commands with SPECIFY_FEATURE_DIRECTORY={rel}."
+        )
+        env = os.environ.get("SPECIFY_FEATURE_DIRECTORY")
+        if env:
+            current = env
+        else:
+            fj = root / ".specify" / "feature.json"
+            try:
+                current = json.loads(fj.read_text(encoding="utf-8")).get("feature_directory", "") if fj.is_file() else ""
+            except (json.JSONDecodeError, OSError):
+                current = ""
+        if not current:
+            return [f"spec-kit has no active feature, so its commands would not find this spec. Ask the user, then {how}"]
+        resolved = (root / current).resolve() if not Path(current).is_absolute() else Path(current).resolve()
+        if resolved != spec.resolve():
+            return [
+                f"spec-kit's active feature is {current}, not {rel}: its commands would change the wrong spec. "
+                f"Ask the user, then {how}"
+            ]
+        return []
 
     def load(self, path: Path) -> SpecIR:
         docs = read_documents(path)

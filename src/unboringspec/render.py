@@ -34,6 +34,14 @@ def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
     return {"audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns}
 
 
+def _apply_hint(ir: SpecIR) -> str:
+    from .adapters import ADAPTERS
+    from .apply import apply_hint
+
+    adapter = next((a() for a in ADAPTERS if a.name == ir.framework), None)
+    return apply_hint(adapter, ir) if adapter else ""
+
+
 def _cite(item) -> str:
     return item.sources[0].label if item.sources else ""
 
@@ -80,6 +88,7 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
                 {"id": d.id, "key": keys[d.id], "title": d.title, "choice": d.choice, "cite": _cite(d)} for d in ir.decisions
             ],
             "questions": [{"id": q.id, "key": keys[q.id], "question": q.question, "cite": _cite(q)} for q in ir.questions],
+            "apply_hint": _apply_hint(ir),
             # Marks from the reader's last review that still hold (#28): they work in any browser.
             "carried": ir.follow_up.carried if ir.follow_up else {},
         },

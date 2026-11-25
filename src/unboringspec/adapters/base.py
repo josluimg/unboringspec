@@ -11,13 +11,32 @@ import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 from ..ir import Entity, OpenQuestion, SourceRef, SpecIR
 
 CLARIFICATION_RE = re.compile(r"\[NEEDS CLARIFICATION:?\s*([^\]]+)\]", re.IGNORECASE)
 
 
+class ApplyStep(BaseModel):
+    """One step of applying a review through the framework's own commands (#32)."""
+
+    id: str  # e.g. "clarify"
+    command: str | None  # canonical invocation, e.g. "/speckit.clarify"; None = edit the documents
+    covers: str  # what this step is for, in a few words
+    # Which review points this step receives: answers and notes whose cited file matches one of
+    # these patterns ("*" = everything); empty = the step takes no review input (e.g. regenerate tasks).
+    files: list[str] = Field(default_factory=list)
+    optional: bool = False
+    # Where this command may be installed, as path templates relative to the project or the home
+    # folder; {name} is filled with each name in `names`.
+    install_paths: list[str] = Field(default_factory=list)
+    names: list[str] = Field(default_factory=list)  # e.g. ["speckit-clarify", "speckit.clarify"]
+
+
 class Adapter(ABC):
     name: str = "base"
+    label: str = ""  # display name, e.g. "OpenSpec"; defaults to `name`
     # Which framework version the parsing rules were checked against. Frameworks evolve;
     # when the templates change, update the fixture under tests/fixtures/<adapter>/<version>/.
     tested_with: str = ""
@@ -31,6 +50,26 @@ class Adapter(ABC):
     @abstractmethod
     def load(self, path: Path) -> SpecIR:
         """Read the folder and return a partially filled SpecIR."""
+
+    def apply_steps(self, ir: SpecIR) -> list[ApplyStep]:
+        """How a review is applied for this framework. Default: no framework command, so the
+        agent edits the documents itself."""
+        return [ApplyStep(id="edit", command=None, covers="all review points: edit the documents directly", files=["*"])]
+
+    @staticmethod
+    def project_root(path: Path, markers: tuple[str, ...]) -> Path:
+        """The nearest parent holding one of `markers` (e.g. .specify), or the current folder."""
+        for parent in [path.resolve(), *path.resolve().parents]:
+            if any((parent / m).exists() for m in markers):
+                return parent
+        return Path.cwd()
+
+    def project_markers(self) -> tuple[str, ...]:
+        return (".git",)
+
+    def apply_checks(self, spec: Path) -> list[str]:
+        """Things to fix before running the apply steps, e.g. the framework pointing at another feature."""
+        return []
 
 
 def read_documents(root: Path, patterns: tuple[str, ...] = ("*.md", "contracts/*")) -> dict[str, str]:

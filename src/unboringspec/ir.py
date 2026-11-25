@@ -157,6 +157,7 @@ class Summary(BaseModel):
 class SpecIR(BaseModel):
     feature: str
     framework: str
+    folder: str = ""  # the spec folder's name, e.g. 001-photo-albums or add-2fa
     description: str = ""
     documents: dict[str, str] = Field(default_factory=dict)
     summary: Summary | None = None

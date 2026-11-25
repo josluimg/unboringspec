@@ -79,11 +79,33 @@ is analysed offline, and only what is written in the documents is compared.
 ### Bringing your review back
 
 On the page, **Copy for your agent** and paste it in the chat (or **Export review.md** and give the file to the agent).
-The agent saves it with `unboring feedback` and applies it to the spec. Without an agent:
+The agent saves it with `unboring feedback`, which prints how to apply it **with your framework's own commands**:
+unboringspec reviews, the framework changes the spec. Without an agent:
 
 ```bash
 unboring feedback specs/001-my-feature ~/Downloads/review.md
 ```
+
+```text
+Apply it with spec-kit's own commands, in this order. Do not edit the spec files directly.
+  1. /speckit-clarify · answers and decisions about the spec, recorded under ## Clarifications · 1 answer
+     pass the content of .unboring/001-my-feature/apply/1-clarify.md
+  2. /speckit-plan · decisions in the plan and research · 1 answer, 1 decision
+     pass the content of .unboring/001-my-feature/apply/2-plan.md
+  3. /speckit-tasks · regenerate the tasks from the updated spec and plan · no input
+```
+
+| Framework | Apply steps |
+|---|---|
+| spec-kit | `/speckit.clarify` for points in `spec.md`, `/speckit.plan` for the plan and research, then `/speckit.tasks` (and optionally `/speckit.analyze`) |
+| OpenSpec | `/opsx:update <change>` with the whole review |
+| Anything else | edit the documents directly |
+
+Each point goes to the command that owns the file it cites, and each command gets an input file with only its points,
+marked as already decided so the command does not ask them again. The command names follow how the framework was
+installed for your agent (`/speckit-clarify` as a skill, `/speckit.clarify` as a command), looked up in the project
+and in your home folder; if a command is missing, it says so. `unboring feedback <folder>` without a file prints the
+steps again for the last saved review.
 
 On the next render, the page opens with **Your last review**:
 
@@ -102,9 +124,13 @@ Marks that still hold are filled in from the saved review, in any browser. Revie
 ### What happens under the hood
 
 ```
-unboring prompt specs/001   →  .unboring/001/prompt.md   (instructions + JSON schema + line-numbered docs)
-agent reads it, writes      →  .unboring/001/insights.json
-unboring render specs/001   →  validates citations, writes .unboring/001/review.html
+unboring prompt specs/001     →  .unboring/001/prompt.md   (instructions + JSON schema + line-numbered docs)
+agent reads it, writes        →  .unboring/001/insights.json
+unboring render specs/001     →  validates citations; snapshot in .unboring/001/history/;
+                                 diff with the previous version; follow-up of the last review;
+                                 writes .unboring/001/review.html
+you review, copy it to agent  →  unboring feedback specs/001 -  →  .unboring/001/reviews/, apply steps
+agent runs the framework's commands with .unboring/001/apply/*.md, then renders again
 ```
 
 The CLI does the deterministic parts (parsing, citation checks, rendering). The agent does the interpretation,
@@ -190,7 +216,7 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 | `unboring prompt <folder>` | Agent mode, step 1: write the analysis prompt. |
 | `unboring render <folder>` | Agent mode, step 2: validate the agent's JSON and build the page. |
 | `unboring review <folder>` | One shot with an API key (`--model`), or `--offline`. |
-| `unboring feedback <folder> <review.md or ->` | Save a review so the next render follows it up. |
+| `unboring feedback <folder> [review.md or -]` | Save a review and print how to apply it with the framework's own commands; without a file, reprint the steps for the last review. |
 | `unboring podcast prompt <folder>` | Podcast, step 1: write the script prompt (`--lang`, `--tone`). |
 | `unboring podcast render <folder>` | Podcast, step 2: validate the script, voice it, add the player. |
 | `unboring podcast tones` | List the tone presets. |
