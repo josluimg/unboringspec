@@ -10,7 +10,7 @@ unboringspec turns those walls of text into two things you will actually enjoy:
 
 ### 🎧 A podcast about your spec
 
-Two hosts talk your spec, so you can review it **on a walk, on your commute or
+Two hosts talk your spec through, so you can review it **on a walk, on your commute or
 while the coffee brews**. One is the guide; the other is the skeptic who asks the uncomfortable questions.
 
 Pick the vibe: a chat between colleagues at the bar, a formal briefing for the architecture board, a no-mercy
@@ -41,14 +41,14 @@ cd your-project
 unboring init --ai claude --podcast     # or copilot, codex, cursor, gemini
 ```
 
-Then, in your agent's chat:
+Then, in your agent's chat, run these two in this order: first the review, then the podcast, which builds on it.
 
 ```text
-/unboring-review specs/001-my-feature
-/unboring-podcast specs/001-my-feature es, roast it
+/unboring-review specs/001-my-feature                  # 1. the review page
+/unboring-podcast specs/001-my-feature es, roast it    # 2. the episode, added to that page
 ```
 
-The review opens in your browser; the episode plays at the top of it.
+The review opens in your browser; once the episode is recorded, it plays at the top of the same page.
 
 - 📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, the review loop, CI, all commands.
 - 🎧 **[Podcast guide](docs/podcast.md)**: tones, custom styles, and voices on macOS, Windows and Linux.
@@ -57,7 +57,7 @@ The review opens in your browser; the episode plays at the top of it.
 
 | | |
 |---|---|
-| 🎧 **Spec podcast** | A guide and a skeptic, ~5 minutes, in the tone you choose. Player and transcript at the top of the page. |
+| 🎧 **Spec podcast** | A guide and a skeptic, in the tone you choose. Player and transcript at the top of the page. |
 | 🧭 **Needs your judgment** | Only what is blocked on a human: `[NEEDS CLARIFICATION]` markers, unresolved trade-offs, gaps a careful reviewer would raise. |
 | 🃏 **Decision cards** | Each decision with its rationale, the alternatives it beat and its risk. Approve it or question it. |
 | 🗺️ **Visual overview** | A map of the system, the main flow and key sequences, plus the data model and the task graph built from the spec. Click any diagram to see it full size. |
