@@ -10,7 +10,7 @@ unboringspec turns those walls of text into two things you will actually enjoy:
 
 ### 🎧 A podcast about your spec
 
-Two hosts talk your spec through in about five minutes, so you can review it **on a walk, on your commute or
+Two hosts talk your spec, so you can review it **on a walk, on your commute or
 while the coffee brews**. One is the guide; the other is the skeptic who asks the uncomfortable questions.
 
 Pick the vibe: a chat between colleagues at the bar, a formal briefing for the architecture board, a no-mercy
