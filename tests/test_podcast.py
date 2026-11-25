@@ -167,9 +167,30 @@ def test_kokoro_voices_cover_spanish_and_fallback():
 # --- skills ----------------------------------------------------------------------
 
 
-def test_init_installs_both_skills(tmp_path, monkeypatch):
+def test_init_skips_podcast_by_default(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     r = runner.invoke(app, ["init", "--ai", "claude", "--ai", "gemini"])
+    assert r.exit_code == 0, r.output
+    assert (tmp_path / ".claude/skills/unboring-review/SKILL.md").exists()
+    assert not (tmp_path / ".claude/skills/unboring-podcast").exists()
+    assert not (tmp_path / ".gemini/commands/unboring.podcast.toml").exists()
+    assert "unboring init --ai claude --ai gemini --podcast" in r.output
+
+
+def test_init_podcast_can_be_added_later(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--ai", "claude"])
+    review = tmp_path / ".claude/skills/unboring-review/SKILL.md"
+    review.write_text("customised")
+    r = runner.invoke(app, ["init", "--ai", "claude", "--podcast"])
+    assert r.exit_code == 0, r.output
+    assert review.read_text() == "customised"  # existing skill untouched
+    assert (tmp_path / ".claude/skills/unboring-podcast/SKILL.md").exists()
+
+
+def test_init_installs_both_skills(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    r = runner.invoke(app, ["init", "--ai", "claude", "--ai", "gemini", "--podcast"])
     assert r.exit_code == 0, r.output
     podcast = (tmp_path / ".claude/skills/unboring-podcast/SKILL.md").read_text()
     assert "name: unboring-podcast" in podcast and "unboring podcast render" in podcast

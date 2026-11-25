@@ -1,8 +1,8 @@
 """Install unboringspec into the coding agent the user already has.
 
 Most agents now read Agent Skills (a folder with a SKILL.md); only the folder differs.
-Folder conventions follow the ones spec-kit uses for each agent. Every agent gets every
-skill in SKILLS.
+Folder conventions follow the ones spec-kit uses for each agent. Every agent gets the core
+skills; optional ones (the podcast) only when the user asks for them.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ class Skill:
     description: str
     template: str  # file under templates/
     argument_hint: str = "[spec folder, e.g. specs/001-my-feature]"
+    optional: bool = False  # installed only when asked for (init --podcast)
 
 
 SKILLS: dict[str, Skill] = {
@@ -40,6 +41,7 @@ SKILLS: dict[str, Skill] = {
             "audio summary or something to listen to about a spec.",
             "skill-podcast.md",
             "[spec folder] [language, e.g. es]",
+            optional=True,
         ),
     ]
 }
@@ -110,13 +112,15 @@ def render_integration(integ: Integration, skill: Skill | str = SKILL_NAME) -> s
     )
 
 
-def install(root: Path, keys: list[str], force: bool = False) -> list[tuple[Path, str]]:
-    """Write every skill for each chosen agent. Returns (path, outcome) pairs."""
+def install(root: Path, keys: list[str], force: bool = False, podcast: bool = False) -> list[tuple[Path, str]]:
+    """Write the skills for each chosen agent. Optional skills (the podcast) only when asked.
+    Returns (path, outcome) pairs."""
+    skills = [s for s in SKILLS.values() if not s.optional or podcast]
     results: list[tuple[Path, str]] = []
     written: set[Path] = set()
     for key in keys:
         integ = INTEGRATIONS[key]
-        for skill in SKILLS.values():
+        for skill in skills:
             path = root / integ.path_for(skill)
             if path in written:
                 continue

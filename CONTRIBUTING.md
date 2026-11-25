@@ -130,7 +130,9 @@ Two principles to keep:
 4. To mark it **tested**, run the full flow in that agent on the example spec
    (`/unboring-review examples/speckit/specs/001-photo-albums`), and mention the agent version in the PR.
 
-The skill text lives in `templates/skill.md` and is shared by every agent. Keep it agent-neutral.
+Skill texts live in `templates/` (`skill.md`, `skill-podcast.md`) and are shared by every agent. Keep them
+agent-neutral. Skills marked `optional=True` in `SKILLS` (the podcast) are only installed when the user asks
+(`init --podcast`): nice-to-have features must never add files, dependencies or downloads by default.
 
 ## The podcast flow
 

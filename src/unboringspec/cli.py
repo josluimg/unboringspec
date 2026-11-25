@@ -75,6 +75,9 @@ def init(
     ai: List[str] = typer.Option(
         ..., "--ai", help=f"Agent(s) to install into: {', '.join(INTEGRATIONS)}. Repeat for several."
     ),
+    podcast: bool = typer.Option(
+        False, "--podcast", help="Also install the optional podcast skill (voices need the podcast extra)."
+    ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing files."),
     root: Path = typer.Option(Path("."), "--root", file_okay=False, help="Project root."),
 ) -> None:
@@ -83,12 +86,14 @@ def init(
     if unknown:
         console.print(f"[red]Unknown agent(s): {', '.join(unknown)}.[/] Available: {', '.join(INTEGRATIONS)}")
         raise typer.Exit(2)
-    for path, outcome in install(root, ai, force):
+    for path, outcome in install(root, ai, force, podcast=podcast):
         console.print(f"  {path}  [dim]{outcome}[/]")
-    console.print(
-        "\nNow ask your agent: [bold]review the spec in specs/<feature>[/] (/unboring-review) "
-        "or [bold]make a podcast about it[/] (/unboring-podcast)."
-    )
+    console.print("\nNow ask your agent: [bold]review the spec in specs/<feature>[/] (/unboring-review).")
+    if podcast:
+        console.print("Or: [bold]make a podcast about it[/] (/unboring-podcast). Check voices with: unboring podcast engines")
+    else:
+        flags = " ".join(f"--ai {a}" for a in ai)
+        console.print(f"[dim]Optional spec podcast: unboring init {flags} --podcast[/]")
 
 
 @app.command()

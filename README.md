@@ -47,14 +47,20 @@ Then, in your agent's chat:
 or just *"review the spec in specs/001-my-feature"*. You get `.unboring/001-my-feature/review.html`.
 Review it, click **Export review.md**, and give that file back to the agent to update the spec.
 
-**Rather listen?** Ask for the podcast, in the language you want:
+**Rather listen? (optional)** The podcast is opt-in: nothing related to it is installed unless you ask.
+Add its skill with `--podcast`, then ask for it in the language you want:
+
+```bash
+unboring init --ai claude --podcast   # adds /unboring-podcast next to /unboring-review
+```
 
 ```text
 /unboring-podcast specs/001-my-feature es
 ```
 
 The agent writes the script (building on the review if you did it), the CLI voices it locally and adds a
-player to `review.html`. Voices: see [Podcast voices](#podcast-voices).
+player to `review.html`. On macOS it works out of the box with the system voices; for natural voices
+see [Podcast voices](#podcast-voices).
 
 <details>
 <summary>What happens under the hood</summary>
@@ -190,7 +196,8 @@ Tried it? Open an issue or PR to mark it tested.
 
 ### Podcast voices
 
-Voices are generated on your machine. Nothing is sent to a TTS service.
+Optional. The core install has no audio dependencies; the `podcast` extra and the model download are only
+needed if you want Kokoro voices. Voices are generated on your machine; nothing is sent to a TTS service.
 
 | Engine | Quality | Install | Languages |
 |---|---|---|---|
@@ -212,7 +219,7 @@ without it, a WAV.
 
 | Command | What it does |
 |---|---|
-| `unboring init --ai <agent>` | Install the review and podcast skills into your agent. |
+| `unboring init --ai <agent> [--podcast]` | Install the review skill into your agent; `--podcast` adds the optional podcast skill. |
 | `unboring prompt <folder>` | Agent mode, step 1: write the analysis prompt. |
 | `unboring render <folder>` | Agent mode, step 2: validate the agent's JSON and build the page. |
 | `unboring review <folder>` | One shot with an API key (`--model`), or `--offline`. |
