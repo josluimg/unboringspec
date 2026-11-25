@@ -29,19 +29,20 @@ sequenceDiagram
     actor U as Reviewer
     participant A as Coding agent<br/>(Claude Code, Copilot, Codex...)
     participant C as unboring CLI
-    participant AD as Adapter<br/>(spec-kit, generic...)
+    participant AD as Adapter<br/>(spec-kit, OpenSpec, generic)
     participant F as .unboring/feature/
+    participant K as Framework commands<br/>(/speckit-clarify, /opsx:update...)
 
     U->>A: /unboring-review specs/001-feature
     Note over A: The skill installed by<br/>unboring init tells the agent what to do
 
     A->>C: unboring prompt specs/001-feature
     C->>AD: detect framework and parse
-    AD-->>C: Spec IR (stories, requirements, tasks,<br/>decisions, NEEDS CLARIFICATION, file:line)
+    AD-->>C: common model (stories, requirements, tasks,<br/>decisions, entities, NEEDS CLARIFICATION, file:line)
     C->>F: prompt.md = instructions + JSON Schema<br/>+ line-numbered documents
 
     A->>F: read prompt.md
-    Note over A: LLM analysis: summary, decisions,<br/>risks, questions, each citing file:line
+    Note over A: LLM analysis: summary, decisions, risks,<br/>questions, diagrams, each citing file:line
     A->>F: write insights.json (the contract)
 
     loop until the JSON is valid
@@ -49,20 +50,27 @@ sequenceDiagram
         C->>C: validate against insights.v1.schema.json<br/>and drop items with non-existent citations
         C-->>A: errors or dropped items, if any
     end
-    C->>F: review.html
+    C->>F: snapshot in history/, diff with the previous version,<br/>follow-up of the last saved review
+    C->>F: review.html: What changed, Your last review,<br/>decisions, visuals (+ podcast player)
     A-->>U: path to review.html, one-liner,<br/>items that need a human call
 
     rect rgba(127, 127, 127, 0.12)
-        Note over U,A: Human review (today: in the browser)
-        U->>F: open review.html, answer questions,<br/>approve or question decisions
-        U->>A: Export review.md and hand it to the agent
+        Note over U,A: Human review, in the browser
+        U->>F: answer questions, approve or question decisions
+        U->>A: Copy for your agent (or Export review.md)
     end
-    A->>A: update the spec, or run the framework's<br/>clarify step (e.g. /speckit.clarify)
 
-    Note over U,A: Planned v0.4, Socratic mode: instead of the page,<br/>the agent asks the decide items one by one in the chat<br/>and writes review.md itself
+    A->>C: unboring feedback specs/001-feature review
+    C->>F: reviews/timestamp.md (hidden unboring:review block)
+    C-->>A: the framework's apply steps,<br/>one input file per command
+    A->>K: run each command with its input<br/>(never edit the spec directly)
+    K->>K: record answers, revise the plan,<br/>regenerate tasks
+
+    Note over U,C: Next iteration: back to step 2. The page opens with<br/>What changed and Your last review
+    Note over U,A: Planned (#11): the agent asks the decide items in the chat<br/>and writes the review in the same format
 ```
 
-In **API mode** (`unboring review`, for CI) steps 2 to 11 collapse into one command: the CLI builds the
+In **API mode** (`unboring review`, for CI) steps 2 to 12 collapse into one command: the CLI builds the
 same prompt, calls a model through LiteLLM and validates the same contract. In **offline mode** there is
 no LLM step at all: the page shows only what the adapter extracted.
 
@@ -92,12 +100,17 @@ tests/
   fixtures/<adapter>/<framework version>/   real-shaped spec folders per tested version
 ```
 
-Two principles to keep:
+Principles to keep:
 
 1. **Adapters are deterministic.** They only extract what the framework guarantees (headings,
    IDs, checkboxes, markers). Interpretation belongs to the LLM layer.
 2. **Every claim is traceable.** Anything shown to the reviewer carries a `SourceRef` to a real
    `file:line`. Never render something the reader cannot verify.
+3. **unboringspec reviews; the framework changes the spec.** A review is applied through the
+   framework's own commands (`apply_steps()` in the adapter), never by editing spec files, unless
+   the framework has none.
+4. **Nice-to-haves are opt-in.** Optional features (the podcast, voices) add no files, dependencies
+   or downloads unless the user asks for them.
 
 ## Add an SDD framework adapter
 
@@ -149,12 +162,12 @@ Same pattern as the review, with a voice step at the end:
 
 ```mermaid
 flowchart LR
-    A["/unboring-podcast specs/001 es"] --> B["unboring podcast prompt"]
-    B --> C["podcast.prompt.md<br/>(uses insights.json if the review was done)"]
+    A["/unboring-podcast specs/001 es"] --> B["unboring podcast prompt<br/>--lang --tone"]
+    B --> C["podcast.prompt.md, with the tone<br/>(uses insights.json if the review was done)"]
     C --> D["agent writes podcast.json<br/>guide + skeptic"]
     D --> E["unboring podcast render"]
     E --> F["validate script<br/>(podcast.v1 schema, citations)"]
-    F --> G["TTS engine per turn<br/>kokoro or say"]
+    F --> G["voice per turn: Kokoro,<br/>or system voices (say, SAPI, espeak-ng)"]
     G --> H["podcast.mp3 + podcast.md<br/>player in review.html"]
 ```
 
@@ -198,6 +211,15 @@ one, regenerate with `unboring schema podcast > schemas/podcast.v1.schema.json`.
 Keep the split between strict and lenient: the schema states the rules (for example "at least one
 citation"), while `apply_insights` drops the offending item and reports it instead of failing the
 whole review.
+
+### The saved review format
+
+Reviews exported or copied from the page end with a hidden `<!-- unboring:review {...} -->` block
+(`SavedReview` in `feedback.py`): the reviewed version's documents hash and each mark with its stable
+key (`review_keys` in `render.py`), kind, text, citation, answer or note. Users keep these files in
+`.unboring/<feature>/reviews/` and later versions read them back, so treat it like a contract too:
+add fields as optional, never rename or drop one, and keep `buildReview()` in the template and
+`SavedReview` in sync (`tests/test_feedback.py` covers the round trip).
 
 ## Workflow: issue → branch → pull request
 

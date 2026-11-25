@@ -21,7 +21,7 @@ with the SDD framework you use and the coding agent you already have, with no ex
 | 🗺️ **Visual overview** | A map of the system, the main flow and key sequences drawn by your agent when they apply, plus the data model and the task graph built from the spec. The map opens first; click any diagram to see it full size. |
 | 📂 **Progressive disclosure** | Routine decisions, stories, tasks and requirements stay collapsed until you want them. |
 | 🔗 **Traceability** | Every claim links to its `file:line`; the source opens beside the summary. Invented citations are dropped. |
-| 🔁 **Feedback loop** | *Copy for your agent* (or export `review.md`) and the agent updates the spec. Next time, the page shows which of your points were addressed and keeps the marks that still hold, so you only review what is new or changed. |
+| 🔁 **Feedback loop** | *Copy for your agent* (or export `review.md`); the agent applies it through your framework's own commands (`/speckit-clarify`, `/opsx:update`…). Next time, the page shows which of your points were addressed and keeps the marks that still hold, so you only review what is new or changed. |
 | 🎧 **Spec podcast** *(optional)* | A guide and a skeptic talk the spec through in ~5 minutes, voiced locally. Formal, casual, roast, sports commentary... |
 
 ## Quick start
@@ -78,10 +78,14 @@ See [In CI](docs/setup.md#in-ci).
 ```
 spec folder ──adapter──▶ common model ──▶ prompt ──▶ your agent (or an API model) ──▶ JSON ──▶ review page
 (spec-kit, OpenSpec...)  (every item has file:line)                                  (contract)  (+ podcast)
+
+review page ──your review──▶ unboring feedback ──▶ framework's own commands ──▶ next render:
+                                                   (/speckit-clarify, /opsx:update…)  What changed + Your last review
 ```
 
-The CLI does the deterministic work: parsing the spec, validating citations, rendering. Your agent does the
-interpretation. Whatever the framework or the model, the answer follows a published, versioned contract:
+The CLI does the deterministic work: parsing the spec, validating citations, rendering, comparing versions.
+Your agent does the interpretation. **unboringspec reviews; your framework changes the spec**: your review is
+applied through the framework's own commands, never by editing the spec behind its back. Whatever the framework or the model, the answer follows a published, versioned contract:
 [`insights.v1`](schemas/insights.v1.schema.json) for the review and [`podcast.v1`](schemas/podcast.v1.schema.json)
 for the podcast script, with [examples](schemas/examples/). Breaking changes get a new version file.
 

@@ -124,9 +124,13 @@ Marks that still hold are filled in from the saved review, in any browser. Revie
 ### What happens under the hood
 
 ```
-unboring prompt specs/001   →  .unboring/001/prompt.md   (instructions + JSON schema + line-numbered docs)
-agent reads it, writes      →  .unboring/001/insights.json
-unboring render specs/001   →  validates citations, writes .unboring/001/review.html
+unboring prompt specs/001     →  .unboring/001/prompt.md   (instructions + JSON schema + line-numbered docs)
+agent reads it, writes        →  .unboring/001/insights.json
+unboring render specs/001     →  validates citations; snapshot in .unboring/001/history/;
+                                 diff with the previous version; follow-up of the last review;
+                                 writes .unboring/001/review.html
+you review, copy it to agent  →  unboring feedback specs/001 -  →  .unboring/001/reviews/, apply steps
+agent runs the framework's commands with .unboring/001/apply/*.md, then renders again
 ```
 
 The CLI does the deterministic parts (parsing, citation checks, rendering). The agent does the interpretation,
@@ -212,7 +216,7 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 | `unboring prompt <folder>` | Agent mode, step 1: write the analysis prompt. |
 | `unboring render <folder>` | Agent mode, step 2: validate the agent's JSON and build the page. |
 | `unboring review <folder>` | One shot with an API key (`--model`), or `--offline`. |
-| `unboring feedback <folder> <review.md or ->` | Save a review so the next render follows it up. |
+| `unboring feedback <folder> [review.md or -]` | Save a review and print how to apply it with the framework's own commands; without a file, reprint the steps for the last review. |
 | `unboring podcast prompt <folder>` | Podcast, step 1: write the script prompt (`--lang`, `--tone`). |
 | `unboring podcast render <folder>` | Podcast, step 2: validate the script, voice it, add the player. |
 | `unboring podcast tones` | List the tone presets. |
