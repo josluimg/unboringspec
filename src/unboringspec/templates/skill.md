@@ -4,7 +4,8 @@ You are the LLM for unboringspec. The `unboring` CLI does the deterministic work
 spec, validating citations, rendering the page). You do the analysis. No API key is involved.
 
 1. **Pick the spec folder.** Use the one the user named. If they named none, use the most recently
-   modified folder under `specs/`. Ask only if it is genuinely ambiguous.
+   modified spec folder: `specs/<feature>/` (spec-kit) or
+   `openspec/changes/<change>/` (OpenSpec, excluding `archive/`). Ask only if it is genuinely ambiguous.
 2. **Check the CLI** with `unboring version`. If the command is not found, tell the user to install it
    with `uv tool install git+https://github.com/josluimg/unboringspec`
    (or `pipx install git+https://github.com/josluimg/unboringspec`) and stop.

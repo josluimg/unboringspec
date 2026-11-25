@@ -4,10 +4,12 @@ from pathlib import Path
 
 from .base import Adapter
 from .generic import GenericAdapter
+from .openspec import OpenSpecAdapter
 from .speckit import SpecKitAdapter
 
 # Order matters: most specific first, generic last.
-ADAPTERS: list[type[Adapter]] = [SpecKitAdapter, GenericAdapter]
+# OpenSpec goes before spec-kit: openspec/specs/<capability>/spec.md would otherwise look like spec-kit.
+ADAPTERS: list[type[Adapter]] = [OpenSpecAdapter, SpecKitAdapter, GenericAdapter]
 
 
 def get_adapter(path: Path, name: str | None = None) -> Adapter:

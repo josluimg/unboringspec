@@ -37,7 +37,12 @@ def heuristic_insights(ir: SpecIR) -> SpecIR:
             + ")"
         )
     if ir.requirements:
-        bullets.append(f"{len(ir.requirements)} requirements")
+        changes = Counter(r.change for r in ir.requirements if r.change)
+        if changes:
+            detail = ", ".join(f"{n} {op}" for op, n in sorted(changes.items()))
+            bullets.append(f"{len(ir.requirements)} requirement changes ({detail})")
+        else:
+            bullets.append(f"{len(ir.requirements)} requirements")
     if ir.tasks:
         par = sum(t.parallel for t in ir.tasks)
         done = sum(t.done for t in ir.tasks)
