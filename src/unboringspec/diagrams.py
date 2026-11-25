@@ -14,7 +14,7 @@ import re
 
 from .ir import Diagram, Entity, SpecIR, Task
 
-AGENT_KINDS = {"journey", "sequence", "flow", "state"}
+AGENT_KINDS = {"system", "journey", "sequence", "flow", "state"}
 ALLOWED_TYPES = {
     "flowchart", "graph", "sequenceDiagram", "journey", "stateDiagram", "stateDiagram-v2", "erDiagram", "classDiagram",
 }

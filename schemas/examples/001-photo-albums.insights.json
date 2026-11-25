@@ -209,6 +209,29 @@
   ],
   "diagrams": [
     {
+      "kind": "system",
+      "title": "What is involved and how it connects",
+      "mermaid": "flowchart LR\n  owner([Album owner])\n  relative([Relative with the invite link])\n  subgraph product[\"Shared Photo Albums\"]\n    web[Web app<br/>React]\n    api[REST API<br/>FastAPI]\n    worker[Background worker<br/>Celery]\n  end\n  subgraph data[\"Data\"]\n    db[(PostgreSQL<br/>albums, photos, members)]\n    store[(Object storage<br/>photo files)]\n  end\n  mail[[Email provider<br/>not specified]]\n  owner --> web\n  relative -->|invite link| web\n  web --> api\n  web -->|presigned upload| store\n  api --> db\n  store -->|new file| worker\n  worker -->|thumbnails, GPS stripped| store\n  worker --> db\n  worker -->|weekly digest| mail\n  mail --> owner\n  mail --> relative",
+      "sources": [
+        {
+          "file": "plan.md",
+          "line": 7
+        },
+        {
+          "file": "plan.md",
+          "line": 13
+        },
+        {
+          "file": "plan.md",
+          "line": 14
+        },
+        {
+          "file": "spec.md",
+          "line": 57
+        }
+      ]
+    },
+    {
       "kind": "journey",
       "title": "From new album to weekly digest",
       "mermaid": "flowchart LR\n  A[Owner creates album] --> B[Uploads photos]\n  B --> C[Worker makes thumbnails<br/>strips GPS]\n  A --> D[Owner shares invite link]\n  D --> E{Relative opens link}\n  E --> F[Joins as member]\n  F --> G[Views and uploads photos]\n  G --> C\n  C --> H[Monday 08:00 local time]\n  H --> I[Weekly digest email]",

@@ -71,6 +71,11 @@ h3 { font-size: 1rem; margin: 0; }
 .turn-skeptic strong { color: var(--review); }
 .diagram-canvas { overflow-x: auto; margin-top: 10px; }
 .diagram-canvas svg { max-width: 100%; height: auto; }
+.diagram-canvas.drawn { cursor: zoom-in; }
+.diagram-hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
+.diagram-canvas.zoomed { position: fixed; inset: 0; z-index: 30; margin: 0; padding: 24px; overflow: auto;
+  background: var(--surface); cursor: zoom-out; }
+.diagram-canvas.zoomed svg { max-width: none !important; width: auto; height: auto; }
 .diagram-fallback { font: .78rem/1.5 var(--mono); white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 10px; }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
@@ -206,7 +211,8 @@ details[open] > summary { margin-bottom: 8px; }
   {% set ns.n = ns.n + 1 %}
   <h2>{{ ns.n }} · Visual overview</h2>
   {% for d in diagrams %}
-  <details class="diagram" data-kind="{{ d.kind }}">
+  {# The first diagram is the starting point (usually the system map), so it comes open. #}
+  <details class="diagram" data-kind="{{ d.kind }}"{% if loop.first %} open{% endif %}>
     <summary>{{ d.title }} <span class="tag tag-{{ 'routine' if d.origin == 'spec' else 'review' }}">{{ 'from the spec' if d.origin == 'spec' else 'by the agent' }}</span></summary>
     <div class="sources">{{ chips(d.sources) }}</div>
     <div class="diagram-canvas"></div>
@@ -330,7 +336,7 @@ details[open] > summary { margin-bottom: 8px; }
     });
     return m.default;
   }));
-  document.querySelectorAll("details.diagram").forEach((d, i) => d.addEventListener("toggle", async () => {
+  const draw = async (d, i) => {
     if (!d.open || d.dataset.drawn) return;
     d.dataset.drawn = "1";
     const canvas = d.querySelector(".diagram-canvas");
@@ -349,12 +355,37 @@ details[open] > summary { margin-bottom: 8px; }
       await mermaid.parse(src);
       const { svg } = await mermaid.render("diagram-" + i, src);
       canvas.innerHTML = svg;
+      canvas.classList.add("drawn");
+      canvas.title = "Click to enlarge";
+      const hint = document.createElement("p");
+      hint.className = "diagram-hint";
+      hint.textContent = "Click the diagram to see it full size.";
+      canvas.after(hint);
       d.dataset.rendered = "1";
     } catch (e) {
       fallback("This diagram could not be drawn. Source:");
       d.dataset.failed = "1";
     }
-  }));
+  };
+  document.querySelectorAll("details.diagram").forEach((d, i) => {
+    d.addEventListener("toggle", () => draw(d, i));
+    draw(d, i);  // diagrams that start open
+    const canvas = d.querySelector(".diagram-canvas");
+    canvas.addEventListener("click", () => {
+      if (!canvas.classList.contains("drawn")) return;
+      const zoomed = canvas.classList.toggle("zoomed");
+      // Mermaid sizes the SVG to its container; full size means its own viewBox width.
+      const svg = canvas.querySelector("svg");
+      svg.style.width = zoomed && svg.viewBox.baseVal ? svg.viewBox.baseVal.width + "px" : "";
+    });
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    document.querySelectorAll(".diagram-canvas.zoomed").forEach(c => {
+      c.classList.remove("zoomed");
+      c.querySelector("svg").style.width = "";
+    });
+  });
 
   // Export: structured feedback the agent can consume (e.g. in /speckit.clarify)
   document.getElementById("export").addEventListener("click", () => {

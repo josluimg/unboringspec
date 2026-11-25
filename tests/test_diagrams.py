@@ -116,6 +116,21 @@ def test_openspec_task_groups():
     assert 't_1_1["1.1 Add `expires_at`' in m
 
 
+def test_offline_page_opens_the_first_spec_diagram():
+    html = render_html(heuristic_insights(load(SPECKIT)))
+    assert '<details class="diagram" data-kind="data-model" open>' in html
+    assert '<details class="diagram" data-kind="tasks">' in html
+
+
+def test_prompt_asks_for_a_system_map_first():
+    from unboringspec.insights import build_prompt
+
+    prompt = build_prompt(load(SPECKIT))
+    assert "1. system: the map of what is involved" in prompt
+    assert prompt.index("1. system") < prompt.index("2. the main flow") < prompt.index("3. state")
+    assert "only\n  those that apply" in prompt
+
+
 def test_no_diagrams_without_tasks_or_entities():
     assert spec_diagrams(SpecIR(feature="x", framework="t")) == []
 
@@ -145,15 +160,18 @@ def test_agent_diagrams_are_kept_validated_and_capped():
     data = json.loads(EXAMPLE_INSIGHTS.read_text())
     ir, dropped = apply_insights(load(SPECKIT), parse_insights(json.dumps(data)), "agent")
     assert dropped == 0
-    assert [(d.kind, d.origin) for d in ir.diagrams] == [("journey", "agent"), ("sequence", "agent")]
+    assert [(d.kind, d.origin) for d in ir.diagrams] == [("system", "agent"), ("journey", "agent"), ("sequence", "agent")]
 
+    good = {"kind": "flow", "title": "Ok", "mermaid": "flowchart LR\n A-->B", "sources": [{"file": "spec.md", "line": 10}]}
     data["diagrams"] = [
         {"kind": "flow", "title": "Bad", "mermaid": "flowchart LR\n click A x", "sources": [{"file": "spec.md", "line": 10}]},
         {"kind": "flow", "title": "Uncited", "mermaid": "flowchart LR\n A-->B", "sources": [{"file": "spec.md", "line": 999}]},
-        {"kind": "flow", "title": "Third", "mermaid": "flowchart LR\n A-->B", "sources": [{"file": "spec.md", "line": 10}]},
+        good,
+        {**good, "title": "Fourth"},
     ]
     ir, dropped = apply_insights(load(SPECKIT), parse_insights(json.dumps(data)), "agent")
-    assert ir.diagrams == [] and dropped == 2  # two refused; the third is beyond the limit of two
+    # Two refused, one kept; the fourth is beyond the limit of three.
+    assert [d.title for d in ir.diagrams] == ["Ok"] and dropped == 2
 
 
 # --- page ------------------------------------------------------------------------
@@ -163,8 +181,12 @@ def test_page_shows_visual_overview_collapsed():
     ir, _ = apply_insights(load(SPECKIT), parse_insights(EXAMPLE_INSIGHTS.read_text()), "agent")
     html = render_html(ir)
     assert "· Visual overview</h2>" in html
-    assert html.count('<details class="diagram"') == 4
-    assert '<details class="diagram" data-kind="data-model">' in html  # closed by default
+    assert html.count('<details class="diagram"') == 5
+    # From understanding to planning: the agent's map first, and open; spec diagrams after, closed.
+    kinds = [chunk.split('"')[0] for chunk in html.split('<details class="diagram" data-kind="')[1:]]
+    assert kinds == ["system", "journey", "sequence", "data-model", "tasks"]
+    assert '<details class="diagram" data-kind="system" open>' in html
+    assert '<details class="diagram" data-kind="data-model">' in html
     assert "from the spec" in html and "by the agent" in html
     assert "t_T001 --&gt; t_T002" in html  # Mermaid source is escaped, read back with textContent
     assert 'securityLevel: "strict"' in html

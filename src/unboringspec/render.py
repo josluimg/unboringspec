@@ -62,8 +62,9 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
         tasks_by_story=tasks_by_story,
         payload=payload,
         podcast=podcast,
-        # Diagrams built from the spec first, then the agent's.
-        diagrams=spec_diagrams(ir) + ir.diagrams,
+        # From understanding to planning: the agent's map and flows first, then the data model
+        # and the task graph built from the spec.
+        diagrams=ir.diagrams + spec_diagrams(ir),
     )
 
 

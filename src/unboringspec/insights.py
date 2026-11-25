@@ -121,16 +121,21 @@ class QuestionInsight(BaseModel):
     sources: list[Citation] = Field(json_schema_extra=_AT_LEAST_ONE)
 
 
-class DiagramInsight(BaseModel):
-    """A Mermaid diagram the spec does not draw itself: the user journey or a key interaction."""
+MAX_AGENT_DIAGRAMS = 3
 
-    kind: Literal["journey", "sequence", "flow", "state"] = Field(
-        description="'journey': the main user journey; 'sequence': a key interaction between actors and systems; "
-        "'flow': another process; 'state': the lifecycle of an important object."
+
+class DiagramInsight(BaseModel):
+    """A Mermaid diagram that helps a reviewer understand the spec without reading all of it."""
+
+    kind: Literal["system", "journey", "sequence", "flow", "state"] = Field(
+        description="'system': the map of the parts involved (people, apps, services, data stores, external "
+        "systems) and how they connect; 'journey': the main user journey; 'sequence': a key interaction "
+        "between actors and systems; 'flow': another important process; 'state': the lifecycle of a central object."
     )
     title: str = Field(description="Short title, max 8 words.")
     mermaid: str = Field(
-        description="Plain Mermaid source starting with its type (flowchart, sequenceDiagram, journey, stateDiagram-v2). "
+        description="Plain Mermaid source starting with its type (flowchart for system, journey and flow; "
+        "sequenceDiagram; stateDiagram-v2). "
         "Names from the spec. No init directives, click handlers, links or HTML. Max 40 lines."
     )
     sources: list[Citation] = Field(description="Lines the diagram is based on.", json_schema_extra=_AT_LEAST_ONE)
@@ -149,8 +154,9 @@ class LLMInsights(BaseModel):
     questions: list[QuestionInsight]
     diagrams: list[DiagramInsight] = Field(
         default_factory=list,
-        description="Optional, at most 2. The task graph and the data model are drawn from the spec automatically.",
-        json_schema_extra={"maxItems": 2},
+        description=f"Optional, at most {MAX_AGENT_DIAGRAMS}, most useful first. The task graph and the data model "
+        "are drawn from the spec automatically.",
+        json_schema_extra={"maxItems": MAX_AGENT_DIAGRAMS},
     )
 
 
@@ -178,9 +184,15 @@ Rules:
   "routine" if conventional.
 - risks: real delivery or product risks, including ones the spec does not mention but implies.
 - questions: gaps, contradictions or missing edge cases a careful reviewer would raise.
-- diagrams (optional, at most 2): the main user journey (a flowchart or journey) and the key interaction
-  (a sequenceDiagram), only when the spec has enough material to draw them faithfully. Use the spec's own
-  names, keep each under 40 lines, and do not draw the task graph or the data model: those are automatic.
+- diagrams: pictures that make the spec understandable at a glance, most useful first, at most 3, and only
+  those that apply. In order of value:
+  1. system: the map of what is involved (people, apps, services, data stores, external systems) and how
+     they connect, as a flowchart with subgraphs for boundaries. Draw it whenever the spec involves more than
+     one part.
+  2. the main flow: the user journey (flowchart) or, when the order of calls matters, a sequenceDiagram.
+  3. state: only when the lifecycle of one object is central (an order, a link, a document).
+  Only draw what the documents support, with the spec's own names; keep each under 40 lines. Skip diagrams
+  that would be trivial. Never draw the task graph or the data model: those are drawn automatically.
 - Every decision, risk and question MUST cite at least one source as file + line number from the
   numbered documents below. Never invent citations. If you cannot cite it, leave it out.
 """
@@ -318,7 +330,7 @@ def apply_insights(ir: SpecIR, data: LLMInsights, generated_by: str) -> tuple[Sp
         q.id = f"Q{i}"
 
     ir.diagrams = []
-    for d in data.diagrams[:2]:
+    for d in data.diagrams[:MAX_AGENT_DIAGRAMS]:
         sources = _resolve(d.sources, docs)
         if not sources or check_mermaid(d.mermaid):
             dropped += 1

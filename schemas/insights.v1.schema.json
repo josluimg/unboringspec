@@ -92,11 +92,12 @@
       "type": "object"
     },
     "DiagramInsight": {
-      "description": "A Mermaid diagram the spec does not draw itself: the user journey or a key interaction.",
+      "description": "A Mermaid diagram that helps a reviewer understand the spec without reading all of it.",
       "properties": {
         "kind": {
-          "description": "'journey': the main user journey; 'sequence': a key interaction between actors and systems; 'flow': another process; 'state': the lifecycle of an important object.",
+          "description": "'system': the map of the parts involved (people, apps, services, data stores, external systems) and how they connect; 'journey': the main user journey; 'sequence': a key interaction between actors and systems; 'flow': another important process; 'state': the lifecycle of a central object.",
           "enum": [
+            "system",
             "journey",
             "sequence",
             "flow",
@@ -111,7 +112,7 @@
           "type": "string"
         },
         "mermaid": {
-          "description": "Plain Mermaid source starting with its type (flowchart, sequenceDiagram, journey, stateDiagram-v2). Names from the spec. No init directives, click handlers, links or HTML. Max 40 lines.",
+          "description": "Plain Mermaid source starting with its type (flowchart for system, journey and flow; sequenceDiagram; stateDiagram-v2). Names from the spec. No init directives, click handlers, links or HTML. Max 40 lines.",
           "title": "Mermaid",
           "type": "string"
         },
@@ -255,11 +256,11 @@
       "type": "array"
     },
     "diagrams": {
-      "description": "Optional, at most 2. The task graph and the data model are drawn from the spec automatically.",
+      "description": "Optional, at most 3, most useful first. The task graph and the data model are drawn from the spec automatically.",
       "items": {
         "$ref": "#/$defs/DiagramInsight"
       },
-      "maxItems": 2,
+      "maxItems": 3,
       "title": "Diagrams",
       "type": "array"
     }
