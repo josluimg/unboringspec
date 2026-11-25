@@ -2,51 +2,71 @@
 
 **Specs your brain actually wants to review.**
 
-Spec-Driven Development (SDD) moved the bottleneck. Agents now write the code, and people spend their day
-reading long specs, plans, research notes and task lists. It is exhausting, and the few decisions that really
-need a human get lost in the volume.
+Spec-Driven Development moved the bottleneck: agents write the code, and you spend your day reading specs,
+plans, research notes and task lists. Walls of text, where the three decisions that really need you hide
+somewhere on page four.
 
-unboringspec turns a spec folder into a **review built around your attention**: what needs your judgment comes
-first, everything else stays one click away, and every claim links back to the line it came from. It works
-with the SDD framework you use and the coding agent you already have, with no extra API key.
+unboringspec turns those walls of text into two things you will actually enjoy:
 
-## What you get
+### 🎧 A podcast about your spec
 
-| | |
-|---|---|
-| 🔁 **What changed** | On the next iteration, the page opens with what changed since the last review: questions resolved, decisions and requirements changed, tasks added or done. Compares with your previous render, or with any git commit. |
-| ⏱️ **30-second summary** | What is being built, in five bullets. |
-| 🧭 **Needs your judgment** | Only what is blocked on a human: `[NEEDS CLARIFICATION]` markers, unresolved trade-offs, gaps a careful reviewer would raise. |
-| 🃏 **Decision cards** | Each decision with its rationale, the alternatives it beat and its risk. Approve it or question it. |
-| 🗺️ **Visual overview** | A map of the system, the main flow and key sequences drawn by your agent when they apply, plus the data model and the task graph built from the spec. The map opens first; click any diagram to see it full size. |
-| 📂 **Progressive disclosure** | Routine decisions, stories, tasks and requirements stay collapsed until you want them. |
-| 🔗 **Traceability** | Every claim links to its `file:line`; the source opens beside the summary. Invented citations are dropped. |
-| 🔁 **Feedback loop** | *Copy for your agent* (or export `review.md`); the agent applies it through your framework's own commands (`/speckit-clarify`, `/opsx:update`…). Next time, the page shows which of your points were addressed and keeps the marks that still hold, so you only review what is new or changed. |
-| 🎧 **Spec podcast** *(optional)* | A guide and a skeptic talk the spec through in ~5 minutes, voiced locally. Formal, casual, roast, sports commentary... |
+Two hosts talk your spec through in about five minutes, so you can review it **on a walk, on your commute or
+while the coffee brews**. One is the guide; the other is the skeptic who asks the uncomfortable questions.
 
-## Quick start
+Pick the vibe: a chat between colleagues at the bar, a formal briefing for the architecture board, a no-mercy
+**roast**, live football commentary, a noir detective on the case… or describe your own: *"two pirates arguing
+over a treasure map"*. The jokes change; the facts don't. Every claim is true and cited, and every open question
+gets asked. Voiced on your machine, in English, Spanish and six more languages.
 
-**In your IDE with a coding agent** (recommended):
+### 🗺️ A visual review instead of a wall of text
+
+One page, built around your attention:
+
+- **What needs your call comes first**: open questions, risky trade-offs, the gaps a sharp reviewer would raise.
+- **Decisions become cards** you approve or question, with the alternatives they beat and what could go wrong.
+- **Pictures instead of prose**: a map of the system, the main flow, the data model and the task graph.
+- **Every claim links to the exact line** it came from, one click away.
+- **The next iteration opens with what changed**, and with what became of each point you raised.
+
+<!-- Demo GIF of the review page and the podcast player goes here: https://github.com/josluimg/unboringspec/issues/8 -->
+
+It plugs into the SDD framework you use (spec-kit, OpenSpec…) and the coding agent you already have
+(Claude Code, Copilot, Codex, Cursor, Gemini).
+
+## Get started
 
 ```bash
 uv tool install git+https://github.com/josluimg/unboringspec
 cd your-project
-unboring init --ai claude          # or copilot, codex, cursor, gemini
+unboring init --ai claude --podcast     # or copilot, codex, cursor, gemini
 ```
 
-Then ask your agent: `/unboring-review specs/001-my-feature`. Open `.unboring/001-my-feature/review.html`.
+Then, in your agent's chat:
 
-**Just looking?** Try it on the bundled example, no LLM involved:
-
-```bash
-git clone https://github.com/josluimg/unboringspec && cd unboringspec
-python -m venv .venv && source .venv/bin/activate && pip install -e .
-unboring review examples/speckit/specs/001-photo-albums --offline --open
-unboring review examples/openspec/openspec/changes/add-invite-link-revocation --offline --open   # OpenSpec
+```text
+/unboring-review specs/001-my-feature
+/unboring-podcast specs/001-my-feature es, roast it
 ```
 
-📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, CI with an API key, all commands.
-🎧 **[Podcast guide](docs/podcast.md)**: enabling it, tones, and voices on macOS, Windows and Linux.
+The review opens in your browser; the episode plays at the top of it.
+
+- 📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, the review loop, CI, all commands.
+- 🎧 **[Podcast guide](docs/podcast.md)**: tones, custom styles, and voices on macOS, Windows and Linux.
+
+## Everything in the review
+
+| | |
+|---|---|
+| 🎧 **Spec podcast** | A guide and a skeptic, ~5 minutes, in the tone you choose. Player and transcript at the top of the page. |
+| 🧭 **Needs your judgment** | Only what is blocked on a human: `[NEEDS CLARIFICATION]` markers, unresolved trade-offs, gaps a careful reviewer would raise. |
+| 🃏 **Decision cards** | Each decision with its rationale, the alternatives it beat and its risk. Approve it or question it. |
+| 🗺️ **Visual overview** | A map of the system, the main flow and key sequences, plus the data model and the task graph built from the spec. Click any diagram to see it full size. |
+| ⏱️ **30-second summary** | What is being built, in five bullets. |
+| 🔁 **What changed** | On the next iteration: questions resolved, decisions and requirements changed, tasks added or done. Compared with your last review or any git commit. |
+| ✅ **Your last review** | What became of each point you raised, and your marks carried over when they still hold, so you only review what is new. |
+| 🤝 **Feedback loop** | *Copy for your agent*: it applies your review through your framework's own commands (`/speckit-clarify`, `/opsx:update`…). |
+| 🔗 **Traceability** | Every claim links to its `file:line`; the source opens beside the summary. Invented citations are dropped. |
+| 📂 **Progressive disclosure** | Routine decisions, stories, tasks and requirements stay collapsed until you want them. |
 
 ## What it supports
 
@@ -60,7 +80,7 @@ document no longer parses (a sign the template changed) instead of showing an em
 | Any folder of Markdown | ✅ generic adapter; the LLM does the analysis |
 | Kiro, BMAD | 🛣️ wanted: [add an adapter](CONTRIBUTING.md#add-an-sdd-framework-adapter) |
 
-**Coding agents** through [Agent Skills](https://agentskills.io). Your agent is the LLM; no API key needed.
+**Coding agents** through [Agent Skills](https://agentskills.io): your agent does the analysis.
 
 | Agent | Status |
 |---|---|
@@ -85,24 +105,18 @@ review page ──your review──▶ unboring feedback ──▶ framework's o
 
 The CLI does the deterministic work: parsing the spec, validating citations, rendering, comparing versions.
 Your agent does the interpretation. **unboringspec reviews; your framework changes the spec**: your review is
-applied through the framework's own commands, never by editing the spec behind its back. Whatever the framework or the model, the answer follows a published, versioned contract:
+applied through the framework's own commands, never by editing the spec behind its back.
+
+Whatever the framework or the model, the answer follows a published, versioned contract:
 [`insights.v1`](schemas/insights.v1.schema.json) for the review and [`podcast.v1`](schemas/podcast.v1.schema.json)
 for the podcast script, with [examples](schemas/examples/). Breaking changes get a new version file.
 
 The full flow, step by step, is diagrammed in [CONTRIBUTING.md](CONTRIBUTING.md#how-it-works).
 
-## Roadmap
-
-Shipped: **v0.1** (attention-ranked review, agent mode) and **v0.2** (spec podcast with tones and voices on
-every OS). What comes next is tracked on GitHub, by
-[milestone](https://github.com/josluimg/unboringspec/milestones): visuals and diffs between spec iterations,
-a conversational review, more frameworks, a PR Action and a PyPI release.
-Looking for a place to start? See the [`help wanted`](https://github.com/josluimg/unboringspec/labels/help%20wanted) issues.
-
 ## Contributing
 
 New framework adapters, agent integrations and voice engines are the most valuable contributions.
-Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), or pick a [`help wanted`](https://github.com/josluimg/unboringspec/labels/help%20wanted) issue.
 
 ## License
 
