@@ -99,6 +99,7 @@ class SpecIR(BaseModel):
     questions: list[OpenQuestion] = Field(default_factory=list)
     tasks: list[Task] = Field(default_factory=list)
     generated_by: str = "heuristic"
+    warnings: list[str] = Field(default_factory=list)
 
     def decisions_by_attention(self, level: Attention) -> list[Decision]:
         return [d for d in self.decisions if d.attention == level]

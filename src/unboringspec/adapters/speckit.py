@@ -1,6 +1,7 @@
 """Adapter for GitHub spec-kit feature folders (specs/NNN-feature/).
 
 Understands: spec.md, plan.md, tasks.md, research.md, data-model.md, quickstart.md, contracts/.
+Parsing rules follow the templates in https://github.com/github/spec-kit/tree/main/templates.
 """
 
 from __future__ import annotations
@@ -8,7 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..ir import Attention, Decision, Requirement, SpecIR, Task, UserStory
+from ..ir import Attention, Decision, OpenQuestion, Requirement, SpecIR, Task, UserStory
 from .base import CLARIFICATION_RE, Adapter, find_clarifications, read_documents, ref
 
 STORY_RE = re.compile(
@@ -24,11 +25,13 @@ TECH_RE = re.compile(
 )
 # Reading order a reviewer expects: the what before the how.
 DOC_ORDER = ("spec.md", "plan.md", "research.md", "data-model.md", "quickstart.md", "tasks.md")
-FIELD_RE =re.compile(r"^\s*[-*]?\s*\*\*(Decision|Rationale|Alternatives(?: considered)?)\*\*:?\s*(.*)$", re.IGNORECASE)
+FIELD_RE = re.compile(r"^\s*[-*]?\s*\*\*(Decision|Rationale|Alternatives(?: considered)?)\*\*:?\s*(.*)$", re.IGNORECASE)
 
 
 class SpecKitAdapter(Adapter):
     name = "spec-kit"
+    tested_with = "spec-kit v1.4.4 templates"
+    docs_url = "https://github.com/github/spec-kit"
 
     @classmethod
     def detect(cls, path: Path) -> bool:
@@ -55,8 +58,22 @@ class SpecKitAdapter(Adapter):
         ir.decisions = self._research_decisions(docs.get("research.md", "")) + self._tech_context(
             docs.get("plan.md", "")
         )
-        ir.questions = find_clarifications(docs)
+        ir.questions = find_clarifications(docs) + self._bare_markers(docs.get("plan.md", ""))
+        for i, q in enumerate(ir.questions, start=1):
+            q.id = f"Q{i}"
+        ir.warnings = self._drift_warnings(ir)
         return ir
+
+    def _drift_warnings(self, ir: SpecIR) -> list[str]:
+        """Frameworks evolve. If a document exists but nothing parses, say so instead of
+        silently rendering an empty review."""
+        hint = f"The spec-kit template may have changed; this adapter is tested with {self.tested_with}."
+        out = []
+        if "spec.md" in ir.documents and not ir.stories and not ir.requirements:
+            out.append(f"spec.md has no 'User Story N' headings or **FR-###** requirements. {hint}")
+        if "tasks.md" in ir.documents and not ir.tasks:
+            out.append(f"tasks.md has no '- [ ] T###' tasks. {hint}")
+        return out
 
     # --- spec.md -----------------------------------------------------------------
 
@@ -157,6 +174,22 @@ class SpecKitAdapter(Adapter):
         flush()
         return decisions
 
+    def _bare_markers(self, text: str) -> list[OpenQuestion]:
+        """plan.md's Technical Context uses a bare 'NEEDS CLARIFICATION' (no brackets)."""
+        out = []
+        for i, line in enumerate(text.splitlines(), start=1):
+            m = TECH_RE.match(line)
+            if m and "NEEDS CLARIFICATION" in m.group(2).upper() and not CLARIFICATION_RE.search(line):
+                out.append(
+                    OpenQuestion(
+                        id="",
+                        question=f"{m.group(1)} is not decided yet",
+                        why_it_matters="The plan marks this technical choice as unresolved.",
+                        sources=[ref("plan.md", i, line)],
+                    )
+                )
+        return out
+
     def _tech_context(self, text: str) -> list[Decision]:
         out = []
         for i, line in enumerate(text.splitlines(), start=1):
@@ -165,7 +198,7 @@ class SpecKitAdapter(Adapter):
                 continue
             value = m.group(2).strip()
             # Unresolved fields already surface as open questions; don't show them twice.
-            if CLARIFICATION_RE.search(value) or value.upper() in {"N/A", "NONE"}:
+            if "NEEDS CLARIFICATION" in value.upper() or value.upper() in {"N/A", "NONE"}:
                 continue
             out.append(
                 Decision(

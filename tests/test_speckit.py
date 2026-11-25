@@ -4,7 +4,7 @@ from typer.testing import CliRunner
 
 from unboringspec.adapters import get_adapter
 from unboringspec.cli import app
-from unboringspec.insights import LLMInsights, _resolve, _Cite
+from unboringspec.insights import LLMInsights, _resolve, Citation
 from unboringspec.ir import Attention
 from unboringspec.render import render_html
 
@@ -55,7 +55,7 @@ def test_decisions_and_attention():
 
 def test_resolve_drops_invented_citations():
     docs = {"spec.md": "a\nb\nc"}
-    refs = _resolve([_Cite(file="spec.md", line=2), _Cite(file="spec.md", line=99), _Cite(file="nope.md", line=1)], docs)
+    refs = _resolve([Citation(file="spec.md", line=2), Citation(file="spec.md", line=99), Citation(file="nope.md", line=1)], docs)
     assert [(r.file, r.line, r.excerpt) for r in refs] == [("spec.md", 2, "b")]
 
 

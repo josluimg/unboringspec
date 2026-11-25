@@ -18,6 +18,10 @@ CLARIFICATION_RE = re.compile(r"\[NEEDS CLARIFICATION:?\s*([^\]]+)\]", re.IGNORE
 
 class Adapter(ABC):
     name: str = "base"
+    # Which framework version the parsing rules were checked against. Frameworks evolve;
+    # when the templates change, update the fixture under tests/fixtures/<adapter>/<version>/.
+    tested_with: str = ""
+    docs_url: str = ""
 
     @classmethod
     @abstractmethod

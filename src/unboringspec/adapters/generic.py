@@ -13,6 +13,7 @@ from .base import Adapter, find_clarifications, read_documents
 
 class GenericAdapter(Adapter):
     name = "generic"
+    tested_with = "any Markdown; analysis relies on the LLM"
 
     @classmethod
     def detect(cls, path: Path) -> bool:

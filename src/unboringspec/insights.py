@@ -1,9 +1,12 @@
 """Interpretation layer: turn a parsed SpecIR into something a human can review fast.
 
-Two engines:
-- heuristic: offline, deterministic, no API key. Good for CI and for trying the tool.
-- llm: any LiteLLM-supported model (Claude, OpenAI, Ollama...). Every claim must cite
-  file:line; citations that do not exist in the documents are dropped.
+Three modes share one contract (`build_prompt` -> `LLMInsights` JSON -> `apply_insights`):
+- agent: the coding agent the user already runs (Claude Code, Copilot, Codex...) reads the
+  prompt and writes the JSON. No API key.
+- api: LiteLLM calls a model directly (Claude, OpenAI, Ollama...). For CI.
+- heuristic: offline and deterministic, for a quick try and for tests.
+
+Every claim must cite file:line; citations that do not exist in the documents are dropped.
 """
 
 from __future__ import annotations
@@ -11,6 +14,8 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+
+from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -56,42 +61,82 @@ def heuristic_insights(ir: SpecIR) -> SpecIR:
 # --- llm -------------------------------------------------------------------------
 
 
-class _Cite(BaseModel):
-    file: str
-    line: int
+# The contract every agent (or API model) must return. It is published as
+# schemas/insights.v{SCHEMA_VERSION}.schema.json; tests keep both in sync.
+# Bump SCHEMA_VERSION on breaking changes (removed or renamed fields, new required fields).
+SCHEMA_VERSION = 1
+SCHEMA_ID = f"https://raw.githubusercontent.com/josluimg/unboringspec/main/schemas/insights.v{SCHEMA_VERSION}.schema.json"
 
 
-class _Decision(BaseModel):
+# Rules the schema publishes but parsing does not enforce: one bad item should be dropped
+# with a warning (see apply_insights), not fail the whole review.
+_AT_LEAST_ONE = {"minItems": 1}
+
+
+class Citation(BaseModel):
+    """A pointer to the exact line in the spec documents that supports a claim."""
+
+    file: str = Field(description="Document path exactly as shown in the '===== FILE: <path> =====' header.")
+    line: int = Field(
+        description="1-based line number as shown in the numbered document.", json_schema_extra={"minimum": 1}
+    )
+
+
+class DecisionInsight(BaseModel):
+    """A meaningful choice the spec makes (architecture, scope, data, UX, trade-off)."""
+
+    title: str = Field(description="Short name of the decision.")
+    choice: str = Field(description="What was decided, in one sentence.")
+    rationale: str = Field("", description="Why, as stated or implied by the spec.")
+    alternatives: list[str] = Field(default_factory=list, description="Options considered and not chosen.")
+    risk: str = Field("", description="What could go wrong with this choice. Empty if nothing notable.")
+    attention: Attention = Field(
+        description="'decide': unresolved, ambiguous or high-risk, needs a human call. "
+        "'review': a reasonable person could disagree. 'routine': conventional."
+    )
+    sources: list[Citation] = Field(description="At least one real citation.", json_schema_extra=_AT_LEAST_ONE)
+
+
+class RiskInsight(BaseModel):
+    """A delivery or product risk, including ones the spec implies but does not name."""
+
     title: str
-    choice: str
-    rationale: str = ""
-    alternatives: list[str] = Field(default_factory=list)
-    risk: str = ""
-    attention: Attention
-    sources: list[_Cite]
+    impact: str = Field("", description="What happens if the risk materialises.")
+    mitigation: str = Field("", description="A concrete way to reduce it.")
+    severity: Literal["low", "medium", "high"] = "medium"
+    sources: list[Citation] = Field(json_schema_extra=_AT_LEAST_ONE)
 
 
-class _Risk(BaseModel):
-    title: str
-    impact: str = ""
-    mitigation: str = ""
-    severity: str = "medium"
-    sources: list[_Cite]
+class QuestionInsight(BaseModel):
+    """A gap, contradiction or missing edge case a careful reviewer would raise."""
 
-
-class _Question(BaseModel):
     question: str
-    why_it_matters: str = ""
-    sources: list[_Cite]
+    why_it_matters: str = Field("", description="One sentence on the consequence of leaving it open.")
+    sources: list[Citation] = Field(json_schema_extra=_AT_LEAST_ONE)
 
 
 class LLMInsights(BaseModel):
-    one_liner: str
-    bullets: list[str]
-    you_must_decide: list[str]
-    decisions: list[_Decision]
-    risks: list[_Risk]
-    questions: list[_Question]
+    """unboringspec insights: what a human reviewer needs from a spec, with every claim cited."""
+
+    one_liner: str = Field(description="What is being built and for whom, max 25 words.")
+    bullets: list[str] = Field(
+        description="Up to 5 things a reviewer must know, max 20 words each.", json_schema_extra={"maxItems": 5}
+    )
+    you_must_decide: list[str] = Field(description="Only items that genuinely need a human call. May be empty.")
+    decisions: list[DecisionInsight]
+    risks: list[RiskInsight]
+    questions: list[QuestionInsight]
+
+
+def json_schema() -> dict:
+    """The published JSON Schema of the contract."""
+    schema = LLMInsights.model_json_schema()
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": SCHEMA_ID,
+        "title": f"unboringspec insights v{SCHEMA_VERSION}",
+        **{k: v for k, v in schema.items() if k != "title"},
+    }
 
 
 SYSTEM_PROMPT = """You help a software engineer review a Spec-Driven Development spec without reading all of it.
@@ -120,7 +165,7 @@ def _numbered(docs: dict[str, str]) -> str:
     return "\n\n".join(parts)
 
 
-def _resolve(cites: list[_Cite], docs: dict[str, str]) -> list[SourceRef]:
+def _resolve(cites: list[Citation], docs: dict[str, str]) -> list[SourceRef]:
     out = []
     for c in cites:
         lines = docs.get(c.file, "").splitlines()
@@ -139,65 +184,122 @@ def _parse_json(content: str) -> LLMInsights:
         return LLMInsights.model_validate(json.loads(match.group(0)))
 
 
-def llm_insights(ir: SpecIR, model: str = DEFAULT_MODEL, lang: str | None = None) -> SpecIR:
+def parse_insights(content: str) -> LLMInsights:
+    """Parse insights JSON written by an agent or returned by an API. Tolerates code fences."""
+    return _parse_json(content)
+
+
+# --- the contract shared by agent mode and API mode ---------------------------------
+
+
+def compact_schema() -> str:
+    """JSON Schema without pydantic's auto-generated titles: same contract, far fewer tokens."""
+
+    def strip(node):
+        if isinstance(node, dict):
+            return {k: strip(v) for k, v in node.items() if not (k == "title" and isinstance(v, str))}
+        if isinstance(node, list):
+            return [strip(v) for v in node]
+        return node
+
+    return json.dumps(strip(json_schema()), separators=(",", ":"))
+
+
+def build_prompt(ir: SpecIR, lang: str | None = None, *, for_agent: bool = False) -> str:
+    """The full prompt: instructions, JSON schema and the line-numbered documents.
+
+    In agent mode (Copilot, Claude Code, Codex...) the host agent reads this file and writes
+    insights.json itself, so no API key is needed.
+    """
+    lang_rule = f", but write the output in {lang}" if lang else ""
+    parts = [SYSTEM_PROMPT.format(lang_rule=lang_rule)]
+    if for_agent:
+        parts.append(
+            "## Output\n\nWrite ONLY a JSON object that validates against this JSON Schema. "
+            "No prose, no Markdown fences.\n\n```json\n" + compact_schema() + "\n```"
+        )
+    parts.append("## Documents\n\n" + _numbered(ir.documents))
+    return "\n\n".join(parts)
+
+
+def apply_insights(ir: SpecIR, data: LLMInsights, generated_by: str) -> tuple[SpecIR, int]:
+    """Merge LLM insights into the IR. Returns the IR and how many items were dropped
+    because none of their citations exist in the documents."""
+    docs = ir.documents
+    dropped = 0
+
+    ir.summary = Summary(one_liner=data.one_liner, bullets=data.bullets[:5], you_must_decide=data.you_must_decide)
+
+    # Keep the deterministic plan.md tech-context entries; replace interpretive decisions.
+    kept = [d for d in ir.decisions if d.id.startswith("TC")]
+    decisions = []
+    for d in data.decisions:
+        sources = _resolve(d.sources, docs)
+        if not sources:
+            dropped += 1
+            continue
+        decisions.append(
+            Decision(
+                id=f"D{len(decisions) + 1}",
+                title=d.title,
+                choice=d.choice,
+                rationale=d.rationale,
+                alternatives=d.alternatives,
+                risk=d.risk,
+                attention=d.attention,
+                sources=sources,
+            )
+        )
+    ir.decisions = decisions + kept
+
+    risks = []
+    for r in data.risks:
+        sources = _resolve(r.sources, docs)
+        if not sources:
+            dropped += 1
+            continue
+        risks.append(
+            Risk(
+                id=f"R{len(risks) + 1}",
+                title=r.title,
+                impact=r.impact,
+                mitigation=r.mitigation,
+                severity=r.severity,
+                sources=sources,
+            )
+        )
+    ir.risks = risks
+
+    # Explicit [NEEDS CLARIFICATION] markers always stay; LLM questions are added after.
+    for q in data.questions:
+        sources = _resolve(q.sources, docs)
+        if not sources:
+            dropped += 1
+            continue
+        ir.questions.append(OpenQuestion(id="", question=q.question, why_it_matters=q.why_it_matters, sources=sources))
+    for i, q in enumerate(ir.questions, start=1):
+        q.id = f"Q{i}"
+
+    ir.generated_by = generated_by
+    return ir, dropped
+
+
+def llm_insights(ir: SpecIR, model: str = DEFAULT_MODEL, lang: str | None = None) -> tuple[SpecIR, int]:
+    """API mode: call the model directly through LiteLLM (needs a provider API key)."""
     try:
         import litellm
     except ImportError as e:  # pragma: no cover
-        raise RuntimeError('LLM mode needs the extra: pip install "unboringspec[llm]"') from e
+        raise RuntimeError('API mode needs the extra: pip install "unboringspec[llm]"') from e
 
-    lang_rule = f", but write the output in {lang}" if lang else ""
+    instructions, _, documents = build_prompt(ir, lang).partition("## Documents\n\n")
     resp = litellm.completion(
         model=model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT.format(lang_rule=lang_rule)},
-            {"role": "user", "content": _numbered(ir.documents)},
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": documents},
         ],
         response_format=LLMInsights,
         temperature=0.2,
     )
     data = _parse_json(resp.choices[0].message.content)
-    docs = ir.documents
-
-    ir.summary = Summary(one_liner=data.one_liner, bullets=data.bullets, you_must_decide=data.you_must_decide)
-
-    # Keep the deterministic plan.md tech-context entries; replace interpretive decisions.
-    kept = [d for d in ir.decisions if d.id.startswith("TC")]
-    llm_decisions = [
-        Decision(
-            id=f"D{i}",
-            title=d.title,
-            choice=d.choice,
-            rationale=d.rationale,
-            alternatives=d.alternatives,
-            risk=d.risk,
-            attention=d.attention,
-            sources=_resolve(d.sources, docs),
-        )
-        for i, d in enumerate(data.decisions, start=1)
-    ]
-    ir.decisions = [d for d in llm_decisions if d.sources] + kept
-
-    ir.risks = [
-        Risk(
-            id=f"R{i}",
-            title=r.title,
-            impact=r.impact,
-            mitigation=r.mitigation,
-            severity=r.severity if r.severity in {"low", "medium", "high"} else "medium",
-            sources=_resolve(r.sources, docs),
-        )
-        for i, r in enumerate(data.risks, start=1)
-    ]
-    ir.risks = [r for r in ir.risks if r.sources]
-
-    # Explicit [NEEDS CLARIFICATION] markers always stay; LLM questions are added after.
-    llm_qs = [
-        OpenQuestion(id="", question=q.question, why_it_matters=q.why_it_matters, sources=_resolve(q.sources, docs))
-        for q in data.questions
-    ]
-    ir.questions = ir.questions + [q for q in llm_qs if q.sources]
-    for i, q in enumerate(ir.questions, start=1):
-        q.id = f"Q{i}"
-
-    ir.generated_by = f"llm:{model}"
-    return ir
+    return apply_insights(ir, data, f"api:{model}")

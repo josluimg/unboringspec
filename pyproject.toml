@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 llm = ["litellm>=1.40"]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "jsonschema>=4.18"]
 
 [project.scripts]
 unboring = "unboringspec.cli:app"

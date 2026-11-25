@@ -60,6 +60,7 @@ h3 { font-size: 1rem; margin: 0; }
 .tldr .one { font-size: 1.2rem; font-weight: 600; margin: 0 0 12px; }
 .tldr ul { margin: 0; padding-left: 20px; }
 .callout { background: var(--decide-soft); border-radius: var(--radius); padding: 16px 20px; }
+.callout.warn { background: var(--review-soft); color: var(--review); margin: 16px 0 0; font-size: .9rem; }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
 .card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -121,6 +122,10 @@ details[open] > summary { margin-bottom: 8px; }
     <span class="pill"><b>{{ ir.tasks | length }}</b> tasks</span>
     <span class="pill"><b>{{ ir.questions | length }}</b> open questions</span>
   </div>
+
+  {% for w in ir.warnings %}
+  <p class="callout warn">⚠ {{ w }}</p>
+  {% endfor %}
 
   {% if ir.summary %}
   <section class="tldr" aria-label="Summary">

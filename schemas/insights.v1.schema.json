@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/josluimg/unboringspec/main/schemas/insights.v1.schema.json",
+  "title": "unboringspec insights v1",
+  "$defs": {
+    "Attention": {
+      "description": "How much human judgment an item needs. This drives what the reviewer sees first.",
+      "enum": [
+        "decide",
+        "review",
+        "routine"
+      ],
+      "title": "Attention",
+      "type": "string"
+    },
+    "Citation": {
+      "description": "A pointer to the exact line in the spec documents that supports a claim.",
+      "properties": {
+        "file": {
+          "description": "Document path exactly as shown in the '===== FILE: <path> =====' header.",
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "description": "1-based line number as shown in the numbered document.",
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "line"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "DecisionInsight": {
+      "description": "A meaningful choice the spec makes (architecture, scope, data, UX, trade-off).",
+      "properties": {
+        "title": {
+          "description": "Short name of the decision.",
+          "title": "Title",
+          "type": "string"
+        },
+        "choice": {
+          "description": "What was decided, in one sentence.",
+          "title": "Choice",
+          "type": "string"
+        },
+        "rationale": {
+          "default": "",
+          "description": "Why, as stated or implied by the spec.",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "alternatives": {
+          "description": "Options considered and not chosen.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "risk": {
+          "default": "",
+          "description": "What could go wrong with this choice. Empty if nothing notable.",
+          "title": "Risk",
+          "type": "string"
+        },
+        "attention": {
+          "$ref": "#/$defs/Attention",
+          "description": "'decide': unresolved, ambiguous or high-risk, needs a human call. 'review': a reasonable person could disagree. 'routine': conventional."
+        },
+        "sources": {
+          "description": "At least one real citation.",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "choice",
+        "attention",
+        "sources"
+      ],
+      "title": "DecisionInsight",
+      "type": "object"
+    },
+    "QuestionInsight": {
+      "description": "A gap, contradiction or missing edge case a careful reviewer would raise.",
+      "properties": {
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "why_it_matters": {
+          "default": "",
+          "description": "One sentence on the consequence of leaving it open.",
+          "title": "Why It Matters",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "question",
+        "sources"
+      ],
+      "title": "QuestionInsight",
+      "type": "object"
+    },
+    "RiskInsight": {
+      "description": "A delivery or product risk, including ones the spec implies but does not name.",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "impact": {
+          "default": "",
+          "description": "What happens if the risk materialises.",
+          "title": "Impact",
+          "type": "string"
+        },
+        "mitigation": {
+          "default": "",
+          "description": "A concrete way to reduce it.",
+          "title": "Mitigation",
+          "type": "string"
+        },
+        "severity": {
+          "default": "medium",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "sources"
+      ],
+      "title": "RiskInsight",
+      "type": "object"
+    }
+  },
+  "description": "unboringspec insights: what a human reviewer needs from a spec, with every claim cited.",
+  "properties": {
+    "one_liner": {
+      "description": "What is being built and for whom, max 25 words.",
+      "title": "One Liner",
+      "type": "string"
+    },
+    "bullets": {
+      "description": "Up to 5 things a reviewer must know, max 20 words each.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5,
+      "title": "Bullets",
+      "type": "array"
+    },
+    "you_must_decide": {
+      "description": "Only items that genuinely need a human call. May be empty.",
+      "items": {
+        "type": "string"
+      },
+      "title": "You Must Decide",
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/DecisionInsight"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "risks": {
+      "items": {
+        "$ref": "#/$defs/RiskInsight"
+      },
+      "title": "Risks",
+      "type": "array"
+    },
+    "questions": {
+      "items": {
+        "$ref": "#/$defs/QuestionInsight"
+      },
+      "title": "Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "one_liner",
+    "bullets",
+    "you_must_decide",
+    "decisions",
+    "risks",
+    "questions"
+  ],
+  "type": "object"
+}
