@@ -79,6 +79,26 @@ def _with_changes(ir: SpecIR, spec: Path, since: str | None = None, adapter: str
     if baseline is not None:
         ir.changes = compare(baseline[0], ir, baseline[1])
         console.print(f"Changes since {escape(ir.changes.baseline)}: {summarize(ir.changes)}")
+    return _with_follow_up(ir, spec, history)
+
+
+def _with_follow_up(ir: SpecIR, spec: Path, history) -> SpecIR:
+    """Map the reader's last saved review onto this version (#28)."""
+    from .feedback import _when, follow_up, latest_review
+
+    found = latest_review(_workdir(spec))
+    if found is None:
+        return ir
+    path, review = found
+    ir.follow_up = follow_up(review, _when(path), ir, history)
+    if ir.follow_up.same_version:
+        console.print(f"Loaded {escape(ir.follow_up.reviewed)} ({len(ir.follow_up.carried)} marks)")
+    else:
+        counts: dict[str, int] = {}
+        for i in ir.follow_up.items:
+            counts[i.outcome] = counts.get(i.outcome, 0) + 1
+        detail = ", ".join(f"{n} {o}" for o, n in counts.items()) or "nothing to follow up"
+        console.print(f"Follow-up of {escape(ir.follow_up.reviewed)}: {detail}")
     return ir
 
 
@@ -163,6 +183,32 @@ def render(
         console.print(f"[yellow]⚠ Dropped {dropped} item(s) whose citations point to lines that do not exist.[/]")
     ir = _with_changes(ir, spec, since, adapter)
     _done(ir, write_html(ir, out or wd / "review.html"), open_browser)
+
+
+@app.command()
+def feedback(
+    spec: Path = SPEC_ARG,
+    review_file: str = typer.Argument(..., help="The exported review.md, or - to read it from standard input."),
+) -> None:
+    """Save a review (exported or copied from the page) so the next render follows it up."""
+    import sys
+
+    from .feedback import ReviewError, save_review
+    from .history import documents_hash
+
+    text = sys.stdin.read() if review_file == "-" else Path(review_file).expanduser().read_text(encoding="utf-8")
+    try:
+        path, review = save_review(_workdir(spec), text)
+    except ReviewError as e:
+        console.print(f"[red]{escape(str(e))}[/]")
+        raise typer.Exit(1)
+    ir = _load(spec, None)
+    state = "this version" if review.version == documents_hash(ir.documents) else "an earlier version"
+    kinds: dict[str, int] = {}
+    for i in review.items:
+        kinds[i.kind] = kinds.get(i.kind, 0) + 1
+    console.print(f"Saved {path} · {len(review.items)} points on {state} ({', '.join(f'{n} {k}' for k, n in kinds.items())})")
+    console.print(f"Next: update the spec, then run `unboring render {spec}` to see what was addressed.")
 
 
 # --- API mode and offline --------------------------------------------------------

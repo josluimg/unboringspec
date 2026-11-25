@@ -21,7 +21,7 @@ with the SDD framework you use and the coding agent you already have, with no ex
 | 🗺️ **Visual overview** | A map of the system, the main flow and key sequences drawn by your agent when they apply, plus the data model and the task graph built from the spec. The map opens first; click any diagram to see it full size. |
 | 📂 **Progressive disclosure** | Routine decisions, stories, tasks and requirements stay collapsed until you want them. |
 | 🔗 **Traceability** | Every claim links to its `file:line`; the source opens beside the summary. Invented citations are dropped. |
-| 🔁 **Feedback loop** | Export your verdicts as `review.md` and hand it back to your agent to update the spec. |
+| 🔁 **Feedback loop** | *Copy for your agent* (or export `review.md`) and the agent updates the spec. Next time, the page shows which of your points were addressed and keeps the marks that still hold, so you only review what is new or changed. |
 | 🎧 **Spec podcast** *(optional)* | A guide and a skeptic talk the spec through in ~5 minutes, voiced locally. Formal, casual, roast, sports commentary... |
 
 ## Quick start

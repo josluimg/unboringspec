@@ -11,6 +11,7 @@ from jinja2 import Environment, PackageLoader
 from . import __version__
 from .diagrams import spec_diagrams
 from .diff import _norm, areas, summarize
+from .history import documents_hash
 from .ir import Attention, SpecIR
 
 
@@ -31,6 +32,10 @@ def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
 
     tone = TONES[parsed.tone].label if parsed.tone in TONES else ("Custom tone" if parsed.tone else "")
     return {"audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns}
+
+
+def _cite(item) -> str:
+    return item.sources[0].label if item.sources else ""
 
 
 def review_keys(ir: SpecIR) -> dict[str, str]:
@@ -70,8 +75,13 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
         {
             "feature": ir.feature,
             "documents": ir.documents,
-            "decisions": [{"id": d.id, "key": keys[d.id], "title": d.title, "choice": d.choice} for d in ir.decisions],
-            "questions": [{"id": q.id, "key": keys[q.id], "question": q.question} for q in ir.questions],
+            "version": documents_hash(ir.documents),
+            "decisions": [
+                {"id": d.id, "key": keys[d.id], "title": d.title, "choice": d.choice, "cite": _cite(d)} for d in ir.decisions
+            ],
+            "questions": [{"id": q.id, "key": keys[q.id], "question": q.question, "cite": _cite(q)} for q in ir.questions],
+            # Marks from the reader's last review that still hold (#28): they work in any browser.
+            "carried": ir.follow_up.carried if ir.follow_up else {},
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")

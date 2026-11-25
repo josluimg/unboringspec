@@ -76,6 +76,29 @@ unboring render specs/001-my-feature --since main      # or a tag, a commit, HEA
 If a snapshot of that exact version exists, its analysis (including the agent's) is used; otherwise that version
 is analysed offline, and only what is written in the documents is compared.
 
+### Bringing your review back
+
+On the page, **Copy for your agent** and paste it in the chat (or **Export review.md** and give the file to the agent).
+The agent saves it with `unboring feedback` and applies it to the spec. Without an agent:
+
+```bash
+unboring feedback specs/001-my-feature ~/Downloads/review.md
+```
+
+On the next render, the page opens with **Your last review**:
+
+| You | In the new version | Shown as |
+|---|---|---|
+| Answered a question | Resolved | ✅ addressed |
+| Answered a question | Still open | ⏳ still open, your answer kept |
+| Questioned a decision | Changed | 🔎 check it matches your note |
+| Questioned a decision | Unchanged | ⏳ not changed yet, your note kept |
+| Approved a decision | Unchanged | ✓ still approved |
+| Approved a decision | Changed | ⚠️ approved, then changed: look again |
+
+Marks that still hold are filled in from the saved review, in any browser. Reviews are kept in
+`.unboring/<feature>/reviews/`; the latest one is followed up.
+
 ### What happens under the hood
 
 ```
@@ -167,6 +190,7 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 | `unboring prompt <folder>` | Agent mode, step 1: write the analysis prompt. |
 | `unboring render <folder>` | Agent mode, step 2: validate the agent's JSON and build the page. |
 | `unboring review <folder>` | One shot with an API key (`--model`), or `--offline`. |
+| `unboring feedback <folder> <review.md or ->` | Save a review so the next render follows it up. |
 | `unboring podcast prompt <folder>` | Podcast, step 1: write the script prompt (`--lang`, `--tone`). |
 | `unboring podcast render <folder>` | Podcast, step 2: validate the script, voice it, add the player. |
 | `unboring podcast tones` | List the tone presets. |

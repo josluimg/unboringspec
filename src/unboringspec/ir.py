@@ -128,6 +128,26 @@ class ChangeSet(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class FollowUpItem(BaseModel):
+    """What happened to one point of the reader's last review in the current version."""
+
+    kind: str  # answer, question, approve (what the reader did)
+    outcome: str  # addressed, pending, changed, not-addressed, approved, approved-changed, removed
+    label: str
+    reader_said: str = ""  # the answer or the note
+    key: str = ""  # current item key, when the item still exists
+    sources: list[SourceRef] = Field(default_factory=list)
+
+
+class FollowUp(BaseModel):
+    reviewed: str  # when / which version was reviewed
+    same_version: bool = False
+    items: list[FollowUpItem] = Field(default_factory=list)
+    carried: dict[str, dict] = Field(default_factory=dict)  # key -> mark to pre-fill on the page
+    flags: dict[str, str] = Field(default_factory=dict)  # key -> message shown on the card
+    notes: list[str] = Field(default_factory=list)
+
+
 class Summary(BaseModel):
     one_liner: str
     bullets: list[str] = Field(default_factory=list)
@@ -151,6 +171,7 @@ class SpecIR(BaseModel):
     generated_by: str = "heuristic"
     warnings: list[str] = Field(default_factory=list)
     changes: ChangeSet | None = None  # what changed since the previous version, set at render time
+    follow_up: FollowUp | None = None  # what happened to the reader's last review, set at render time
 
     def decisions_by_attention(self, level: Attention) -> list[Decision]:
         return [d for d in self.decisions if d.attention == level]

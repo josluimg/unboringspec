@@ -53,7 +53,7 @@ class History:
     @staticmethod
     def _write(snapshot: Path, ir: SpecIR) -> None:
         snapshot.mkdir(parents=True, exist_ok=True)
-        data = ir.model_dump(mode="json", exclude={"changes"})
+        data = ir.model_dump(mode="json", exclude={"changes", "follow_up"})
         (snapshot / "ir.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
     def find(self, doc_hash: str) -> Path | None:
