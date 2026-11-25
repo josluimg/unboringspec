@@ -227,6 +227,8 @@ def feedback(
     if not steps:
         console.print("Nothing to apply: the review only approves. Render again to keep the approvals.")
         return
+    for check in ad.apply_checks(spec):
+        console.print(f"\n[yellow]⚠ Before you start: {escape(check)}[/]")
     if steps[0].step.command is None:
         console.print("\nNo framework commands for this spec: edit the documents directly with this input:")
     else:

@@ -175,3 +175,56 @@ def test_exported_review_names_the_framework_commands():
     html = render_html(ir)
     assert "Apply this review with spec-kit's own commands (/speckit.clarify, /speckit.plan, /speckit.tasks)" in html
     assert "if (data.apply_hint) out.push(`> ${data.apply_hint}`" in html
+
+
+# --- spec-kit's active feature -------------------------------------------------------
+
+
+def _speckit_project(tmp_path):
+    project = tmp_path / "project"
+    spec = project / "specs/001-photo-albums"
+    shutil.copytree(SPECKIT, spec)
+    (project / ".specify").mkdir()
+    return project, spec
+
+
+def test_no_active_feature_is_reported(tmp_path, monkeypatch):
+    monkeypatch.delenv("SPECIFY_FEATURE_DIRECTORY", raising=False)
+    project, spec = _speckit_project(tmp_path)
+    [msg] = get_adapter(spec).apply_checks(spec)
+    assert "no active feature" in msg and '{"feature_directory": "specs/001-photo-albums"}' in msg
+
+
+def test_another_active_feature_is_reported(tmp_path, monkeypatch):
+    monkeypatch.delenv("SPECIFY_FEATURE_DIRECTORY", raising=False)
+    project, spec = _speckit_project(tmp_path)
+    (project / ".specify/feature.json").write_text('{"feature_directory": "specs/002-login"}')
+    [msg] = get_adapter(spec).apply_checks(spec)
+    assert "active feature is specs/002-login, not specs/001-photo-albums" in msg and "Ask the user" in msg
+
+
+def test_matching_active_feature_needs_nothing(tmp_path, monkeypatch):
+    project, spec = _speckit_project(tmp_path)
+    (project / ".specify/feature.json").write_text('{"feature_directory": "specs/001-photo-albums"}')
+    monkeypatch.delenv("SPECIFY_FEATURE_DIRECTORY", raising=False)
+    assert get_adapter(spec).apply_checks(spec) == []
+    monkeypatch.setenv("SPECIFY_FEATURE_DIRECTORY", "specs/002-login")  # the env var wins, like in spec-kit
+    assert "active feature is specs/002-login" in get_adapter(spec).apply_checks(spec)[0]
+
+
+def test_specs_outside_a_speckit_project_are_not_checked(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # no .specify anywhere up the tree
+    spec = tmp_path / "specs/001-photo-albums"
+    shutil.copytree(SPECKIT, spec)
+    assert get_adapter(spec).apply_checks(spec) == []
+
+
+def test_feedback_warns_before_the_steps(tmp_path, monkeypatch, home):
+    monkeypatch.delenv("SPECIFY_FEATURE_DIRECTORY", raising=False)
+    project, spec = _speckit_project(tmp_path)
+    monkeypatch.chdir(project)
+    ad, ir = load(spec)
+    r = review(ir, [("answer", "should links expire or be revocable?", "Revocable")])
+    md = "# Review\n<!-- unboring:review " + json.dumps(r.model_dump()) + " -->\n"
+    out = runner.invoke(app, ["feedback", "specs/001-photo-albums", "-"], input=md).output
+    assert out.index("Before you start") < out.index("1. /speckit.clarify")

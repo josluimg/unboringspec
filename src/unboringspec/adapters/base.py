@@ -67,6 +67,10 @@ class Adapter(ABC):
     def project_markers(self) -> tuple[str, ...]:
         return (".git",)
 
+    def apply_checks(self, spec: Path) -> list[str]:
+        """Things to fix before running the apply steps, e.g. the framework pointing at another feature."""
+        return []
+
 
 def read_documents(root: Path, patterns: tuple[str, ...] = ("*.md", "contracts/*")) -> dict[str, str]:
     docs: dict[str, str] = {}

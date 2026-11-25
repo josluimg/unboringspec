@@ -80,6 +80,43 @@ class SpecKitAdapter(Adapter):
             _speckit_step("analyze", "check consistency across spec, plan and tasks", [], optional=True),
         ]
 
+    def apply_checks(self, spec: Path) -> list[str]:
+        """spec-kit commands act on the *active* feature: SPECIFY_FEATURE_DIRECTORY, else
+        .specify/feature.json (written by /speckit-specify). Reviewing another feature and running
+        /speckit-clarify would change the wrong spec, so say so before the steps."""
+        import json
+        import os
+
+        root = self.project_root(spec, (".specify",))
+        if not (root / ".specify").is_dir():
+            return []
+        try:
+            rel = spec.resolve().relative_to(root).as_posix()
+        except ValueError:
+            return []
+        how = (
+            f'point it at this one first: write {{"feature_directory": "{rel}"}} to .specify/feature.json, '
+            f"or run the commands with SPECIFY_FEATURE_DIRECTORY={rel}."
+        )
+        env = os.environ.get("SPECIFY_FEATURE_DIRECTORY")
+        if env:
+            current = env
+        else:
+            fj = root / ".specify" / "feature.json"
+            try:
+                current = json.loads(fj.read_text(encoding="utf-8")).get("feature_directory", "") if fj.is_file() else ""
+            except (json.JSONDecodeError, OSError):
+                current = ""
+        if not current:
+            return [f"spec-kit has no active feature, so its commands would not find this spec. Ask the user, then {how}"]
+        resolved = (root / current).resolve() if not Path(current).is_absolute() else Path(current).resolve()
+        if resolved != spec.resolve():
+            return [
+                f"spec-kit's active feature is {current}, not {rel}: its commands would change the wrong spec. "
+                f"Ask the user, then {how}"
+            ]
+        return []
+
     def load(self, path: Path) -> SpecIR:
         docs = read_documents(path)
         rank = {n: i for i, n in enumerate(DOC_ORDER)}

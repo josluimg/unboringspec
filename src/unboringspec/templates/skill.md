@@ -34,6 +34,8 @@ has commands for it: they know how to record decisions and keep their documents 
    OpenSpec) and an input file: run that command and pass it the input file's content. Only when it prints
    "edit the documents directly" (no framework commands) do you edit the files yourself.
 3. **If it warns that a command is not installed**, tell the user and stop. Do not improvise the framework's work.
+   **If it says "Before you start"** (for example spec-kit's active feature is a different one), ask the user, and
+   only with their yes do what it says before running any step: otherwise the commands change the wrong spec.
 4. **Render again** (`unboring prompt` and `unboring render`): the page opens with *What changed* and
    *Your last review*, so the reader sees which points were addressed. Tell the user which ones you did not address.
 
