@@ -74,7 +74,7 @@ src/unboringspec/
   ir.py            SpecIR: the framework-agnostic model (every item carries file:line sources)
   insights.py      the review contract: build_prompt → LLMInsights JSON → apply_insights
   podcast.py       the podcast contract: build_podcast_prompt → PodcastScript JSON → validate_script
-  tts.py           text-to-speech engines (kokoro, say) and audio assembly
+  tts.py           voice engines (kokoro; system: say, sapi, espeak) and audio assembly
   integrations.py  where each coding agent expects its skill or command file
   render.py        SpecIR → single self-contained HTML page
   templates/       review page and the agent skill text
@@ -156,7 +156,11 @@ flowchart LR
    - `voices(lang)`: default voices for the `guide` and the `skeptic`. Pick two clearly different voices.
    - `synth(text, voice, lang, speed, out)`: write one turn as a **24 kHz, mono, 16-bit WAV**. Keeping that
      format lets `assemble` work even without ffmpeg.
-2. Register it in `ENGINES`. Order matters for `--engine auto`: best quality first, zero-install last.
+   Set `tier` to `"system"` (voices the OS already has) or `"neural"` (a model). When the engine cannot run,
+   raise `EngineUnavailable(reason, fix)`: `fix` is the exact command or settings path that solves it, and
+   `unboring podcast setup` shows it to the user.
+2. Register it in `ENGINES`. System engines are chosen per OS in `SYSTEM_ENGINE`; `--engine auto` tries Kokoro
+   first and then the system engine for the current OS.
 3. Heavy dependencies go in an optional extra in `pyproject.toml`, imported inside the engine, never at
    module level. Model downloads only happen through an explicit command like `unboring podcast setup`.
 4. Add tests with a fake or mocked backend (see `FakeEngine` in `tests/test_podcast.py`), and a row to the

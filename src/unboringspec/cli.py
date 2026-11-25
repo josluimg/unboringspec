@@ -215,7 +215,7 @@ def podcast_prompt(
 def podcast_render(
     spec: Path = SPEC_ARG,
     script: Optional[Path] = typer.Option(None, "--script", help="Script JSON. Default: .unboring/<feature>/podcast.json"),
-    engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto, kokoro or say."),
+    engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto (Kokoro if ready, else system), system, kokoro, say, sapi or espeak."),
     voice_guide: Optional[str] = typer.Option(None, "--voice-guide", help="Override the guide's voice."),
     voice_skeptic: Optional[str] = typer.Option(None, "--voice-skeptic", help="Override the skeptic's voice."),
     speed: float = typer.Option(1.0, "--speed", min=0.5, max=2.0, help="Speech speed."),
@@ -255,8 +255,10 @@ def podcast_render(
         voices["skeptic"] = voice_skeptic
     console.print(
         f"Voicing {len(turns)} turns, {word_count(turns)} words with [cyan]{tts.name}[/] "
-        f"(guide: {voices['guide']}, skeptic: {voices['skeptic']})"
+        f"(guide: {escape(voices['guide'])}, skeptic: {escape(voices['skeptic'])})"
     )
+    if engine == "auto" and tts.tier == "system":
+        console.print("[dim]Using system voices. For natural voices: unboring podcast setup[/]")
 
     with tempfile.TemporaryDirectory(prefix="unboring-") as tmp:
         parts = []
@@ -296,17 +298,50 @@ def podcast_render(
         webbrowser.open(page.resolve().as_uri())
 
 
+def _voice_report(lang: str) -> dict:
+    """Print what can speak on this machine and how to enable the rest. Returns the state."""
+    import platform
+
+    from .tts import ENGINES, EngineUnavailable, KokoroEngine, os_name, system_engine_name
+
+    console.print(f"Voices on [bold]{os_name()}[/] ({platform.machine()}), Python {platform.python_version()}, language '{escape(lang)}'\n")
+    state = {}
+    for tier, engine in (("system", ENGINES[system_engine_name()]()), ("kokoro", KokoroEngine())):
+        label = f"{tier} ({engine.name})" if tier == "system" else tier
+        try:
+            engine.check()
+            v = engine.voices(lang)
+            console.print(f"  [green]✓[/] [bold]{label}[/]  ready · {escape(v['guide'])} and {escape(v['skeptic'])}  [dim]{engine.description}[/]")
+            state[tier] = "ready"
+        except EngineUnavailable as e:
+            console.print(f"  [yellow]✗[/] [bold]{label}[/]  {escape(e.reason)}  [dim]{engine.description}[/]")
+            if e.fix:
+                console.print(f"      → {escape(e.fix)}")
+            state[tier] = e
+    return state
+
+
 @podcast_app.command("setup")
 def podcast_setup(
-    yes: bool = typer.Option(False, "--yes", "-y", help="Do not ask for confirmation."),
+    lang: str = typer.Option("es", "--lang", help="Language you will use, to check voices for it."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Download the Kokoro model without asking."),
 ) -> None:
-    """Download the Kokoro voice model (once) into ~/.cache/unboringspec/kokoro."""
-    from .tts import KOKORO_FILES, KOKORO_RELEASE, download_kokoro, kokoro_dir
+    """Guided setup: shows which voices work here, how to enable the rest, and downloads Kokoro's model."""
+    from .tts import KOKORO_FILES, KOKORO_RELEASE, KokoroEngine, download_kokoro, kokoro_dir
 
-    model = KOKORO_FILES["model"]
-    voices = KOKORO_FILES["voices"]
-    console.print(f"From {KOKORO_RELEASE}\n  {model[0]} ({model[1]} MB)\n  {voices[0]} ({voices[1]} MB)\nTo   {kokoro_dir()}")
-    if not yes and not typer.confirm("Download?", default=True):
+    state = _voice_report(lang)
+    kokoro = KokoroEngine()
+    if state["kokoro"] == "ready":
+        console.print("\n[green]All set.[/] Podcasts use Kokoro by default (--engine auto).")
+        return
+    if not kokoro.package_installed():
+        tip = "Meanwhile, podcasts use the system voices." if state["system"] == "ready" else ""
+        console.print(f"\nOptional: run the command above for natural voices, then `unboring podcast setup` again. {tip}")
+        return
+
+    files = "\n".join(f"  {name} ({size} MB)" for name, size in KOKORO_FILES.values())
+    console.print(f"\nKokoro is installed; its model is not. From {KOKORO_RELEASE}\n{files}\nTo   {kokoro_dir()}")
+    if not yes and not typer.confirm("Download now?", default=True):
         raise typer.Exit(1)
     with console.status("Downloading...") as status:
 
@@ -314,24 +349,15 @@ def podcast_setup(
             if total > 0:
                 status.update(f"Downloading... {min(100, blocks * size * 100 // total)}%")
 
-        files = download_kokoro(hook)
-    for f in files:
-        console.print(f"[green]✓[/] {f}")
+        for f in download_kokoro(hook):
+            console.print(f"[green]✓[/] {f}")
+    console.print("[green]All set.[/] Podcasts use Kokoro by default (--engine auto).")
 
 
 @podcast_app.command("engines")
-def podcast_engines(lang: str = typer.Option("es", "--lang", help="Language to show default voices for.")) -> None:
-    """List TTS engines, whether they work here, and their default voices."""
-    from .tts import ENGINES, EngineUnavailable
-
-    for name, cls in ENGINES.items():
-        engine = cls()
-        try:
-            engine.check()
-            v = engine.voices(lang)
-            console.print(f"• [bold]{name}[/] [green]ready[/]  guide: {v['guide']}, skeptic: {v['skeptic']}  [dim]{engine.description}[/]")
-        except EngineUnavailable as e:
-            console.print(f"• [bold]{name}[/] [yellow]unavailable[/]  {escape(str(e))}")
+def podcast_engines(lang: str = typer.Option("es", "--lang", help="Language to check voices for.")) -> None:
+    """Show which voice engines work on this machine and how to enable the others (downloads nothing)."""
+    _voice_report(lang)
 
 
 # --- info ------------------------------------------------------------------------

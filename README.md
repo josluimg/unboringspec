@@ -59,8 +59,8 @@ unboring init --ai claude --podcast   # adds /unboring-podcast next to /unboring
 ```
 
 The agent writes the script (building on the review if you did it), the CLI voices it locally and adds a
-player to `review.html`. On macOS it works out of the box with the system voices; for natural voices
-see [Podcast voices](#podcast-voices).
+player to `review.html`. It works out of the box with your system voices on macOS and Windows (one package on Linux); for natural
+voices run `unboring podcast setup`. See [Podcast voices](#podcast-voices).
 
 <details>
 <summary>What happens under the hood</summary>
@@ -196,24 +196,64 @@ Tried it? Open an issue or PR to mark it tested.
 
 ### Podcast voices
 
-Optional. The core install has no audio dependencies; the `podcast` extra and the model download are only
-needed if you want Kokoro voices. Voices are generated on your machine; nothing is sent to a TTS service.
+Optional, and only needed if you use the podcast. Everything runs on your machine; nothing is sent to a
+TTS service. There are two kinds of voices:
 
-| Engine | Quality | Install | Languages |
-|---|---|---|---|
-| `kokoro` | Natural ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) via ONNX) | `podcast` extra + `unboring podcast setup` (downloads ~336 MB once) | en, es, fr, it, pt, hi, ja, zh |
-| `say` | Robotic but clear | Nothing, built into macOS | Any voice installed in macOS |
+| | System voices | Kokoro |
+|---|---|---|
+| Sound | Robotic but clear | Natural ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)) |
+| Install | Already on macOS and Windows; one package on Linux | Python package + one-time model download (~336 MB) |
+| Languages | Whatever voices your OS has | en, es, fr, it, pt, hi, ja, zh |
+| Speed | Instant | About 1.5 min of CPU per 5 min of audio (measured on an Intel MacBook Pro) |
+
+**Start here** — the guided setup tells you what works on your machine and the exact command for the rest:
 
 ```bash
-# Kokoro needs Python 3.10 to 3.13; uv fetches a compatible Python for the tool if needed
-uv tool install --python 3.12 "unboringspec[podcast] @ git+https://github.com/josluimg/unboringspec"
-unboring podcast setup              # downloads the model into ~/.cache/unboringspec/kokoro
-unboring podcast engines --lang es  # what is ready, and the default voices
+unboring podcast setup --lang es
 ```
 
-`--engine auto` (default) uses Kokoro when it is ready and falls back to macOS voices. Override voices with
-`--voice-guide` / `--voice-skeptic`, and the pace with `--speed`. With ffmpeg installed you get an MP3;
-without it, a WAV.
+```text
+Voices on macOS (x86_64), Python 3.14.3, language 'es'
+
+  ✓ system (say)  ready · Mónica and Eddy (Español (España))
+  ✗ kokoro  The Kokoro package is not installed.
+      → uv tool install --python 3.12 "unboringspec[podcast] @ git+https://github.com/josluimg/unboringspec"
+```
+
+Run the suggested command, then `unboring podcast setup` again: it offers to download the model and you are done.
+`--engine auto` (the default) uses Kokoro when it is ready and the system voices otherwise.
+
+#### System voices, by operating system
+
+| OS | Engine | What you need |
+|---|---|---|
+| macOS | `say` | Nothing. More voices: System Settings › Accessibility › Spoken Content › System voice › Manage Voices |
+| Windows | `sapi` 🧪 | Nothing. More languages: Settings › Time & language › Speech › Manage voices › Add voices |
+| Linux | `espeak` 🧪 | `sudo apt install espeak-ng` (Fedora: `dnf`, Arch: `pacman`) |
+
+The guide gets a female voice and the skeptic a male one when the OS has both, so they are easy to tell apart.
+🧪 Windows and Linux voices are tested with mocks only so far; reports welcome.
+
+#### Kokoro, by platform
+
+Kokoro runs on macOS (Apple Silicon and Intel), Windows (x64 and ARM) and Linux (x64 and ARM). It brings its
+own phonemizer, so there is nothing to install from the system. The one constraint is **Python 3.10 to 3.13**,
+which uv solves for you:
+
+| How you installed unboringspec | Add Kokoro |
+|---|---|
+| `uv tool` (recommended) | `uv tool install --python 3.12 --reinstall "unboringspec[podcast] @ git+https://github.com/josluimg/unboringspec"` |
+| `pipx` | `pipx inject unboringspec kokoro-onnx numpy` (on Python 3.14: `pipx install --force --python python3.12 ...`) |
+| `pip` in a venv (Python ≤ 3.13) | `pip install "unboringspec[podcast] @ git+https://github.com/josluimg/unboringspec"` |
+
+`unboring podcast setup` detects which case you are in and prints the right line. The model goes to
+`~/.cache/unboringspec/kokoro` (override with `UNBORING_KOKORO_DIR`); delete that folder to remove it.
+On Intel Macs, uv picks ONNX Runtime 1.23, the last release built for Intel; it is the one tested here.
+
+#### Rendering options
+
+`unboring podcast render <folder>` accepts `--engine auto|system|kokoro|say|sapi|espeak`, `--voice-guide`,
+`--voice-skeptic` and `--speed`. With ffmpeg installed you get an MP3; without it, a WAV.
 
 ## Commands
 
@@ -225,7 +265,8 @@ without it, a WAV.
 | `unboring review <folder>` | One shot with an API key (`--model`), or `--offline`. |
 | `unboring podcast prompt <folder>` | Podcast, step 1: write the script prompt (`--lang es`). |
 | `unboring podcast render <folder>` | Podcast, step 2: validate the script, voice it, add the player. |
-| `unboring podcast setup` / `engines` | Download the Kokoro model / list voice engines. |
+| `unboring podcast setup` | Guided voice setup: what works here, how to add Kokoro, model download. |
+| `unboring podcast engines` | Same report as setup, without downloading anything. |
 | `unboring schema [insights\|podcast]` | Print a contract (JSON Schema). |
 | `unboring adapters` / `agents` | List supported frameworks and agents. |
 
