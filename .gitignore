@@ -11,3 +11,7 @@ review.md
 *.mp3
 *.wav
 .DS_Store
+
+# The demo site is committed as built (Vercel serves it with no build step)
+!demo/site/**/review.html
+!demo/site/**/*.mp3

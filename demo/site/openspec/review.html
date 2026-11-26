@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+/* Without JavaScript (e.g. a static HTML preview) the interactive parts cannot work:
+   hide them instead of showing dead buttons, and show diagram sources as text. */
+html:not(.js) .verdict, html:not(.js) .note, html:not(.js) .answer, html:not(.js) .bar { display: none !important; }
+html:not(.js) .src { cursor: default; }
+html:not(.js) .diagram-src[hidden] { display: block; font: .78rem/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+.nojs { margin: 0 0 20px; padding: 12px 16px; border-radius: 12px; background: #fff6db; color: #7a5200; font-size: .92rem; }
+@media (prefers-color-scheme: dark) { .nojs { background: #352c14; color: #f5c451; } }
+</style>
+<title>Add invite link revocation · unboringspec</title>
+<style>
+:root {
+  --bg: #f7f6f3; --surface: #ffffff; --ink: #1d1d1f; --muted: #5f6368; --line: #e4e2dc;
+  --accent: #4f46e5; --accent-soft: #eef0ff;
+  --decide: #b42318; --decide-soft: #fdecea; --review: #9a6700; --review-soft: #fff6db;
+  --routine: #3f6b4e; --routine-soft: #e8f3ec; --hl: #fff3b0;
+  --radius: 12px; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131315; --surface: #1c1c1f; --ink: #ececef; --muted: #a0a0a8; --line: #2e2e33;
+    --accent: #8b87ff; --accent-soft: #24234a;
+    --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14;
+    --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #4a4220;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 120px; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 1.15rem; margin: 48px 0 12px; letter-spacing: -0.01em; }
+h3 { font-size: 1rem; margin: 0; }
+.meta { color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pill { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; font-size: .85rem; }
+.pill b { color: var(--accent); }
+.tldr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; margin-top: 24px; }
+.tldr .one { font-size: 1.2rem; font-weight: 600; margin: 0 0 12px; }
+.tldr ul { margin: 0; padding-left: 20px; }
+.callout { background: var(--decide-soft); border-radius: var(--radius); padding: 16px 20px; }
+.callout.warn { background: var(--review-soft); color: var(--review); margin: 16px 0 0; font-size: .9rem; }
+.listen { background: var(--accent-soft); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; }
+.listen-title { font-weight: 600; margin: 0 0 8px; }
+.listen audio { width: 100%; }
+.listen details { background: var(--surface); margin: 12px 0 0; }
+.turn { margin: 8px 0; font-size: .95rem; }
+.turn strong { display: inline-block; min-width: 4.5em; }
+.turn-guide strong { color: var(--accent); }
+.turn-skeptic strong { color: var(--review); }
+.diagram-canvas { overflow-x: auto; margin-top: 10px; }
+.diagram-canvas svg { max-width: 100%; height: auto; }
+.diagram-canvas.drawn { cursor: zoom-in; }
+.diagram-hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
+.diagram-canvas.zoomed { position: fixed; inset: 0; z-index: 30; margin: 0; padding: 24px; overflow: auto;
+  background: var(--surface); cursor: zoom-out; }
+.diagram-canvas.zoomed svg { max-width: none !important; width: auto; height: auto; }
+.diagram-fallback { font: .78rem/1.5 var(--mono); white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 10px; }
+.changes { border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin-top: 20px; background: var(--surface); }
+.changes-title { font-weight: 700; font-size: 1.05rem; margin: 0 0 4px; }
+.change-area { font-weight: 600; margin: 14px 0 4px; }
+.change-list { list-style: none; padding: 0; margin: 0; }
+.change-list li { padding: 6px 0; border-top: 1px solid var(--line); font-size: .93rem; }
+.change-list li:first-child { border-top: 0; }
+.delta { margin: 4px 0 2px; font-size: .88rem; }
+.delta del { display: block; color: var(--decide); }
+.delta ins { display: block; color: var(--routine); text-decoration: none; }
+.was { font: .75rem var(--mono); color: var(--muted); }
+.tag-chg-added, .tag-chg-resolved, .tag-chg-completed { background: var(--routine-soft); color: var(--routine); }
+.tag-chg-changed { background: var(--review-soft); color: var(--review); }
+.tag-chg-removed, .tag-chg-reopened { background: var(--decide-soft); color: var(--decide); }
+.followup { border: 1px solid var(--review); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; background: var(--surface); }
+.fu-icon { display: inline-block; width: 1.4em; }
+.flag { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--review-soft); color: var(--review); font-size: .88rem; }
+.carried-badge { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-left: auto; }
+.callout ol { margin: 8px 0 0; padding-left: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
+.card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.card p { margin: 4px 0; }
+.card.is-approve { border-color: var(--routine); }
+.card.is-question { border-color: var(--review); }
+.choice { font-size: 1.02rem; }
+.muted { color: var(--muted); font-size: .92rem; }
+.risk-line { color: var(--decide); font-size: .92rem; }
+.tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; border-radius: 6px; padding: 2px 8px; }
+.tag-decide, .tag-high { background: var(--decide-soft); color: var(--decide); }
+.tag-review, .tag-medium { background: var(--review-soft); color: var(--review); }
+.tag-change-added { background: var(--routine-soft); color: var(--routine); }
+.tag-change-modified { background: var(--review-soft); color: var(--review); }
+.tag-change-removed { background: var(--decide-soft); color: var(--decide); }
+.tag-change-renamed { background: var(--accent-soft); color: var(--accent); }
+.tag-routine, .tag-low { background: var(--routine-soft); color: var(--routine); }
+.src { font: .75rem var(--mono); background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 6px; padding: 2px 8px; margin: 2px 4px 2px 0; cursor: pointer; }
+.src:hover { text-decoration: underline; }
+.verdict { display: flex; gap: 6px; }
+.v { font: inherit; font-size: .85rem; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; cursor: pointer; }
+.v[aria-pressed="true"][data-v="approve"] { background: var(--routine-soft); border-color: var(--routine); color: var(--routine); }
+.v[aria-pressed="true"][data-v="question"] { background: var(--review-soft); border-color: var(--review); color: var(--review); }
+textarea { width: 100%; margin-top: 10px; min-height: 64px; font: inherit; font-size: .92rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 20px; margin: 10px 0; }
+details > summary { cursor: pointer; font-weight: 600; }
+details[open] > summary { margin-bottom: 8px; }
+.tasks { list-style: none; padding: 0; margin: 0; }
+.tasks li { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: .92rem; }
+.tasks li:first-child { border-top: 0; }
+.tid { font: .78rem var(--mono); color: var(--muted); min-width: 44px; }
+.par { font-size: .7rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; }
+.done { text-decoration: line-through; color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
+.bar .in { max-width: 860px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.progress { font-size: .9rem; color: var(--muted); }
+.bar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.secondary { font: inherit; font-weight: 600; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.primary { font: inherit; font-weight: 600; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100%); background: var(--surface); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column; z-index: 10; }
+.drawer.open { transform: none; }
+.drawer header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font: .9rem var(--mono); }
+.drawer pre { margin: 0; overflow: auto; flex: 1; font: .8rem/1.55 var(--mono); padding: 8px 0; }
+.drawer .ln { display: block; padding: 0 16px; white-space: pre-wrap; }
+.drawer .ln span { color: var(--muted); display: inline-block; width: 3.5em; user-select: none; }
+.drawer .ln.hl { background: var(--hl); }
+.x { font-size: 1.2rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <noscript><p class="nojs"><strong>This viewer is not running JavaScript</strong>, so approving or questioning
+  decisions, answering questions, exporting review.md, opening sources and drawing diagrams are turned off.
+  Open <code>review.html</code> in a web browser, or render it with <code>--open</code>.</p></noscript>
+  <div class="meta">
+    <span>openspec</span>
+    <span>generated by agent</span>
+    <span>unboringspec 0.2.0</span>
+  </div>
+  <h1>Add invite link revocation</h1>
+  <div class="pills">
+    
+    
+    <span class="pill"><b>6</b> requirement changes</span>
+    
+    <span class="pill"><b>4</b> decisions</span>
+    
+    <span class="pill"><b>8</b> tasks</span>
+    
+    <span class="pill"><b>3</b> open questions</span>
+    
+  </div>
+
+  
+
+  
+
+  
+
+  
+  <section class="tldr" aria-label="Summary">
+    <p class="one">Album owners can revoke and expire invite links and remove any photo, replacing today&#39;s permanent links.</p>
+    <ul><li>Revoking rotates the album token: every outstanding link dies at once and a new one is issued.</li><li>Links get an expiry; the default lifetime is still undecided.</li><li>Breaking: permanent links are removed and existing ones expire 30 days after release.</li><li>Owners can delete any member&#39;s photo; members only their own.</li><li>Owners are emailed 3 days before a link expires.</li></ul>
+  </section>
+  
+
+  
+  <section class="listen" aria-label="Podcast">
+    <p class="listen-title">🎧 Listen instead · Roasting the change that finally locks the front door <span class="tag tag-routine">Roast</span></p>
+    
+    <audio controls preload="metadata" src="podcast.mp3"></audio>
+    <details>
+      <summary>Transcript</summary>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Welcome back to the spec roast. Today&#39;s change has a noble mission: stop family photo albums from being open to the whole internet. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Noble. Overdue. Today, an album link never expires and can&#39;t be revoked. Forward it to the wrong group chat and your cousin&#39;s coworkers are uploading memes into grandma&#39;s birthday album. <button class="src" data-file="proposal.md" data-line="5" title="Album invite links never expire and cannot be revoked. A link forwarded to the wrong group chat exposes a family&#39;s photos and lets strangers upload, and the owner has no way to stop it.">proposal.md:5</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Which is exactly what this fixes. Owners can revoke the link, and a new one is issued straight away. <button class="src" data-file="proposal.md" data-line="9" title="- Owners can revoke an album&#39;s invite link; a new link is issued at once.">proposal.md:9</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> I&#39;ll give it that. One click and the leak is closed. Applause, genuinely. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> And the clever bit: revoking doesn&#39;t keep a list of banned links. It just swaps the album&#39;s token for a new random one. <button class="src" data-file="design.md" data-line="20" title="Revoking replaces the album&#39;s token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.">design.md:20</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Clever, and also a nuclear option. Rotate the token and every link dies, including the one aunt Carmen printed and stuck on her fridge. <button class="src" data-file="design.md" data-line="34" title="- [Trade-off] Rotation invalidates every outstanding link, including legitimate ones → Acceptable: rotation is a deliberate owner action.">design.md:34</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> The design calls that acceptable, because rotating is a deliberate owner action. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Deliberate, sure. Until the owner realises the whole family is now locked out and the group chat lights up. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Fair. Next: links also expire. Each token gets an expiry date, and the lifetime comes from configuration. <button class="src" data-file="design.md" data-line="24" title="Each token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.">design.md:24</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Lovely. And what is that lifetime? </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> That&#39;s… an open question. Seven, thirty or ninety days. <button class="src" data-file="design.md" data-line="38" title="- What should the default link lifetime be: 7, 30 or 90 days?">design.md:38</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Undecided. And yet the migration already decided: existing links expire thirty days after release. The task list picked a number the design is still debating. <button class="src" data-file="tasks.md" data-line="6" title="- [ ] 1.2 Migration: set existing tokens to expire 30 days after release">tasks.md:6</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Okay, that one lands. Pick the default first, or derive the migration from it. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Now my favourite line. Owners get an email three days before a link expires, with a button to extend it. <button class="src" data-file="specs/notifications/spec.md" data-line="13" title="- **THEN** the owner SHALL receive an email with a button to extend it">specs/notifications/spec.md:13</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> That&#39;s thoughtful. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> It is a button to nowhere. No requirement says links can be extended, and no task builds it. We are emailing people a promise. <button class="src" data-file="tasks.md" data-line="21" title="- [ ] 4.1 Daily job that emails owners 3 days before expiry">tasks.md:21</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Point taken. Either add the requirement and the task, or drop the button. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Then there&#39;s the breaking change. Permanent links are removed outright. <button class="src" data-file="proposal.md" data-line="12" title="- **BREAKING**: permanent invite links are removed. Links created before this change expire 30 days after release.">proposal.md:12</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> With a migration: old links expire thirty days after release, and owners can issue new ones any time. <button class="src" data-file="specs/albums/spec.md" data-line="33" title="**Migration**: Existing links expire 30 days after release; owners can issue a new one at any time.">specs/albums/spec.md:33</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Right. Thirty days for every family to notice, in an app whose main channel to them is… an email we haven&#39;t built the button for. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Moderation, then. Owners can now delete any photo, whoever uploaded it. <button class="src" data-file="specs/albums/spec.md" data-line="14" title="The album owner SHALL be able to delete any photo in the album, whoever uploaded it.">specs/albums/spec.md:14</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Good. Also permanent. No undo, no record of who deleted what. One tired thumb at midnight and the wedding photos are gone for everyone. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> And one more open question: should people who joined through a revoked link stay in the album? <button class="src" data-file="design.md" data-line="39" title="- Should members who joined through a revoked link stay in the album?">design.md:39</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> Because if they stay, revoking the link closes the door after the burglar is already on the sofa. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Last roast, I promise. Rotation, expiry and a data migration all touch who can see what… </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> And the task list has zero tests. Not one. Access control on vibes. <button class="src" data-file="tasks.md" data-line="1" title="# Tasks">tasks.md:1</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Alright, serious minute. If you&#39;re reviewing this change, here&#39;s what&#39;s on you. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> One: pick the default link lifetime, and make the migration use it. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Two: decide whether members who came in through a revoked link keep their access. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Three: build the extend button, or stop promising it. And add tests while you&#39;re at it. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Leo</strong> And say nice things too. Revoking a leaked link in one click is a real improvement. It just needs the rest of the house finished. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Maya</strong> Thanks for listening. Go lock your front doors. </p>
+      
+    </details>
+  </section>
+  
+
+  <h2>1 · Needs your judgment</h2>
+  
+  <div class="callout">
+    Only these need a human call. Everything below is optional depth.
+  </div>
+  
+  <article class="card question" data-qid="Q1" data-key="q-953112d3e0de">
+    
+    <header><span class="tag tag-decide">Q1</span><h3>What should the default link lifetime be: 7, 30 or 90 days?</h3></header>
+    <p class="muted">The design lists this as an open question.</p>
+    <div class="sources"><button class="src" data-file="design.md" data-line="38" title="- What should the default link lifetime be: 7, 30 or 90 days?">design.md:38</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q2" data-key="q-bc2eec841ad9">
+    
+    <header><span class="tag tag-decide">Q2</span><h3>Should members who joined through a revoked link stay in the album?</h3></header>
+    <p class="muted">The design lists this as an open question.</p>
+    <div class="sources"><button class="src" data-file="design.md" data-line="39" title="- Should members who joined through a revoked link stay in the album?">design.md:39</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q3" data-key="q-9195ba166b2b">
+    
+    <header><span class="tag tag-decide">Q3</span><h3>Can a deleted photo be restored, and is the deletion logged?</h3></header>
+    <p class="muted">Owner moderation is irreversible as written, across every member&#39;s view.</p>
+    <div class="sources"><button class="src" data-file="specs/albums/spec.md" data-line="18" title="- **THEN** the photo SHALL disappear for every member">specs/albums/spec.md:18</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card decision" data-id="D1" data-key="d-3ba542d217df" data-attention="decide">
+  <header>
+    <span class="tag tag-decide">decide</span>
+    <h3>Remove permanent links, expire existing ones after 30 days</h3>
+  </header>
+  
+  <p class="choice">Breaking change: permanent invite links go away; links created before release expire 30 days after it.</p>
+  <p class="muted"><strong>Why:</strong> Permanent links cannot be revoked and are the product&#39;s main privacy risk.</p>
+  <p class="muted"><strong>Instead of:</strong> Keep permanent links but allow revocation</p>
+  <p class="risk-line"><strong>Risk:</strong> Families relying on an old link lose access without noticing; the 30-day grace period is fixed before the default lifetime is decided.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="proposal.md" data-line="12" title="- **BREAKING**: permanent invite links are removed. Links created before this change expire 30 days after release.">proposal.md:12</button><button class="src" data-file="specs/albums/spec.md" data-line="31" title="### Requirement: Permanent invite link">specs/albums/spec.md:31</button><button class="src" data-file="tasks.md" data-line="6" title="- [ ] 1.2 Migration: set existing tokens to expire 30 days after release">tasks.md:6</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Remove permanent links, expire existing ones after 30 days">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+  
+
+  <h2>2 · Decisions worth a look</h2>
+  <article class="card decision" data-id="D2" data-key="d-9dbb53ae414e" data-attention="review">
+  <header>
+    <span class="tag tag-review">review</span>
+    <h3>Revoke by rotating the token</h3>
+  </header>
+  
+  <p class="choice">Revoking replaces the album&#39;s token with a new random one instead of keeping a denylist.</p>
+  <p class="muted"><strong>Why:</strong> A denylist grows forever and must be checked on every join.</p>
+  <p class="muted"><strong>Instead of:</strong> Denylist of revoked tokens</p>
+  <p class="risk-line"><strong>Risk:</strong> Rotation also kills legitimate links already shared with relatives.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="design.md" data-line="20" title="Revoking replaces the album&#39;s token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.">design.md:20</button><button class="src" data-file="design.md" data-line="34" title="- [Trade-off] Rotation invalidates every outstanding link, including legitimate ones → Acceptable: rotation is a deliberate owner action.">design.md:34</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Revoke by rotating the token">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="D4" data-key="d-fd763c15bc53" data-attention="review">
+  <header>
+    <span class="tag tag-review">review</span>
+    <h3>Only owners moderate photos</h3>
+  </header>
+  
+  <p class="choice">The owner can delete any photo; members can delete only their own.</p>
+  <p class="muted"><strong>Why:</strong> Closes the abuse path of open upload links.</p>
+  
+  <p class="risk-line"><strong>Risk:</strong> Deleted photos disappear for everyone, with no undo or audit trail specified.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="design.md" data-line="28" title="Only the album owner can delete photos uploaded by others. Members can still delete their own.">design.md:28</button><button class="src" data-file="specs/albums/spec.md" data-line="14" title="The album owner SHALL be able to delete any photo in the album, whoever uploaded it.">specs/albums/spec.md:14</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Only owners moderate photos">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+  
+  <details>
+    <summary>1 routine decisions</summary>
+    <article class="card decision" data-id="D3" data-key="d-867df132af0b" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Expiry stored next to the token, lifetime from configuration</h3>
+  </header>
+  
+  <p class="choice">Each token has an expires_at; the default lifetime is a configuration value.</p>
+  <p class="muted"><strong>Why:</strong> The lifetime can change without a migration.</p>
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="design.md" data-line="24" title="Each token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.">design.md:24</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Expiry stored next to the token, lifetime from configuration">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+  </details>
+  
+
+  
+  
+  
+  <h2>3 · Risks</h2>
+  
+  <article class="card">
+    <header><span class="tag tag-medium">medium</span><h3>Migration hard-codes 30 days while the default lifetime is open</h3></header>
+    <p class="muted"><strong>Impact:</strong> If the team picks 7 or 90 days, existing and new links follow different rules.</p>
+    <p class="muted"><strong>Mitigation:</strong> Derive the migration expiry from the configured default, or decide the default first.</p>
+    <div class="sources"><button class="src" data-file="tasks.md" data-line="6" title="- [ ] 1.2 Migration: set existing tokens to expire 30 days after release">tasks.md:6</button><button class="src" data-file="design.md" data-line="38" title="- What should the default link lifetime be: 7, 30 or 90 days?">design.md:38</button></div>
+  </article>
+  
+  <article class="card">
+    <header><span class="tag tag-medium">medium</span><h3>The expiry email promises an action nobody builds</h3></header>
+    <p class="muted"><strong>Impact:</strong> The notification offers a button to extend the link, but no requirement or task covers extending.</p>
+    <p class="muted"><strong>Mitigation:</strong> Add an &#39;Extend invite link&#39; requirement and task, or drop the button from the scenario.</p>
+    <div class="sources"><button class="src" data-file="specs/notifications/spec.md" data-line="13" title="- **THEN** the owner SHALL receive an email with a button to extend it">specs/notifications/spec.md:13</button><button class="src" data-file="tasks.md" data-line="21" title="- [ ] 4.1 Daily job that emails owners 3 days before expiry">tasks.md:21</button></div>
+  </article>
+  
+  <article class="card">
+    <header><span class="tag tag-low">low</span><h3>No tasks for tests</h3></header>
+    <p class="muted"><strong>Impact:</strong> Rotation, expiry and the migration change access control with no planned verification.</p>
+    <p class="muted"><strong>Mitigation:</strong> Add contract tests for rotate and expired join, and a migration test.</p>
+    <div class="sources"><button class="src" data-file="tasks.md" data-line="1" title="# Tasks">tasks.md:1</button></div>
+  </article>
+  
+  
+
+  
+  
+  <h2>4 · Visual overview</h2>
+  
+  
+  <details class="diagram" data-kind="system" open>
+    <summary>What the change touches <span class="tag tag-review">by the agent</span></summary>
+    <div class="sources"><button class="src" data-file="proposal.md" data-line="24" title="Album API (`/albums/{id}/invite`), the join flow, the web join page, and the weekly digest job.">proposal.md:24</button><button class="src" data-file="design.md" data-line="20" title="Revoking replaces the album&#39;s token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.">design.md:20</button><button class="src" data-file="design.md" data-line="24" title="Each token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.">design.md:24</button><button class="src" data-file="tasks.md" data-line="21" title="- [ ] 4.1 Daily job that emails owners 3 days before expiry">tasks.md:21</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>flowchart LR
+  owner([Album owner])
+  relative([Relative with a link])
+  subgraph change[&#34;This change&#34;]
+    settings[Album settings&lt;br/&gt;revoke button]
+    join[Join page&lt;br/&gt;expired-link message]
+    api[Album API&lt;br/&gt;/albums/id/invite]
+    job[Daily job&lt;br/&gt;expiry emails]
+  end
+  token[(Invite token&lt;br/&gt;+ expires_at)]
+  mail[[Email]]
+  owner --&gt; settings --&gt; api
+  relative --&gt; join --&gt; api
+  api --&gt;|rotate, check expiry| token
+  job --&gt;|3 days before expiry| mail --&gt; owner</pre>
+  </details>
+  
+  
+  <details class="diagram" data-kind="sequence">
+    <summary>Revoking a leaked link <span class="tag tag-review">by the agent</span></summary>
+    <div class="sources"><button class="src" data-file="specs/albums/spec.md" data-line="6" title="The album owner SHALL be able to revoke the album&#39;s invite link, which issues a new link immediately.">specs/albums/spec.md:6</button><button class="src" data-file="tasks.md" data-line="10" title="- [ ] 2.1 POST /albums/{id}/invite/rotate rotates the token">tasks.md:10</button><button class="src" data-file="specs/albums/spec.md" data-line="27" title="- **THEN** the join page SHALL explain that the link expired and who can issue a new one">specs/albums/spec.md:27</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>sequenceDiagram
+  actor O as Owner
+  participant W as Web app
+  participant A as Album API
+  participant T as Token store
+  actor R as Relative (old link)
+  O-&gt;&gt;W: Revoke invite link
+  W-&gt;&gt;A: POST /albums/id/invite/rotate
+  A-&gt;&gt;T: Replace token with a new random one
+  A--&gt;&gt;W: New link
+  W--&gt;&gt;O: Show the new link
+  R-&gt;&gt;A: Open the old link
+  A-&gt;&gt;T: Look up token
+  T--&gt;&gt;A: Not found
+  A--&gt;&gt;R: Link expired, ask the owner for a new one</pre>
+  </details>
+  
+  
+  <details class="diagram" data-kind="tasks">
+    <summary>Task graph · 8 tasks in 4 phases <span class="tag tag-routine">from the spec</span></summary>
+    <div class="sources"><button class="src" data-file="tasks.md" data-line="5" title="- [x] 1.1 Add `expires_at` to the album invite token">tasks.md:5</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>flowchart TB
+  subgraph g0[&#34;Data model&#34;]
+    direction LR
+    t_1_1[&#34;1.1 Add `expires_at` to the album invite token&#34;]
+    class t_1_1 ub_done
+    t_1_2[&#34;1.2 Migration: set existing tokens to expire…&#34;]
+    t_1_1 --&gt; t_1_2
+  end
+  subgraph g1[&#34;API&#34;]
+    direction LR
+    t_2_1[&#34;2.1 POST /albums/{id}/invite/rotate rotates t…&#34;]
+    t_2_2[&#34;2.2 Reject expired tokens on join with a dedi…&#34;]
+    t_2_1 --&gt; t_2_2
+    t_2_3[&#34;2.3 Allow owners to delete any photo&#34;]
+    t_2_2 --&gt; t_2_3
+  end
+  subgraph g2[&#34;Web&#34;]
+    direction LR
+    t_3_1[&#34;3.1 Revoke button and confirmation on the alb…&#34;]
+    t_3_2[&#34;3.2 Expired-link message on the join page&#34;]
+    t_3_1 --&gt; t_3_2
+  end
+  subgraph g3[&#34;Notifications&#34;]
+    direction LR
+    t_4_1[&#34;4.1 Daily job that emails owners 3 days befor…&#34;]
+  end
+  g0 --&gt; g1
+  g1 --&gt; g2
+  g2 --&gt; g3
+  classDef ub_done opacity:0.55
+  classDef ub_parallel stroke-dasharray:4 3</pre>
+  </details>
+  
+  
+
+  
+  <h2>5 · Scope and plan</h2>
+  
+  
+  <details>
+    <summary>Data model · 2 tasks</summary>
+    
+    <ul class="tasks">
+    
+      <li><span class="tid">1.1</span><span class="done">Add `expires_at` to the album invite token</span></li>
+    
+      <li><span class="tid">1.2</span><span class="">Migration: set existing tokens to expire 30 days after release</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  <details>
+    <summary>API · 3 tasks</summary>
+    
+    <ul class="tasks">
+    
+      <li><span class="tid">2.1</span><span class="">POST /albums/{id}/invite/rotate rotates the token</span></li>
+    
+      <li><span class="tid">2.2</span><span class="">Reject expired tokens on join with a dedicated error</span></li>
+    
+      <li><span class="tid">2.3</span><span class="">Allow owners to delete any photo</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  <details>
+    <summary>Web · 2 tasks</summary>
+    
+    <ul class="tasks">
+    
+      <li><span class="tid">3.1</span><span class="">Revoke button and confirmation on the album settings page</span></li>
+    
+      <li><span class="tid">3.2</span><span class="">Expired-link message on the join page</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  <details>
+    <summary>Notifications · 1 tasks</summary>
+    
+    <ul class="tasks">
+    
+      <li><span class="tid">4.1</span><span class="">Daily job that emails owners 3 days before expiry</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  
+  <details>
+    <summary>6 requirement changes</summary>
+    <ul class="tasks">
+    <li><span class="tid">R1</span><span class="tag tag-change-added">added</span><span>Revoke invite link (albums): The album owner SHALL be able to revoke the album&#39;s invite link, which issues a new link immediately.</span></li><li><span class="tid">R2</span><span class="tag tag-change-added">added</span><span>Owner deletes any photo (albums): The album owner SHALL be able to delete any photo in the album, whoever uploaded it.</span></li><li><span class="tid">R3</span><span class="tag tag-change-modified">modified</span><span>Join album via invite link (albums): Anyone with a valid, unexpired invite link SHALL be able to join the album as a member and upload photos.</span></li><li><span class="tid">R4</span><span class="tag tag-change-removed">removed</span><span>Permanent invite link (albums): Reason: Permanent links cannot be revoked and are the main privacy risk of the product. · Migration: Existing links expire 30 days after release; owners can issue a new one at any time.</span></li><li><span class="tid">R5</span><span class="tag tag-change-renamed">renamed</span><span>Album invite → Album invite link (albums)</span></li><li><span class="tid">R6</span><span class="tag tag-change-added">added</span><span>Warn before a link expires (notifications): The system SHALL email the album owner 3 days before the invite link expires.</span></li>
+    </ul>
+  </details>
+  
+</main>
+
+<div class="bar"><div class="in">
+  <span class="progress" id="progress"></span>
+  <span class="bar-actions">
+    <button class="secondary" id="copy" title="Copy the review to paste into your coding agent">Copy for your agent</button>
+    <button class="primary" id="export">Export review.md</button>
+  </span>
+</div></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><span id="drawer-title"></span><button class="x" id="drawer-close" aria-label="Close">×</button></header>
+  <pre id="drawer-body"></pre>
+</aside>
+
+<script id="data" type="application/json">{"feature": "Add invite link revocation", "documents": {"proposal.md": "# Proposal\n\n## Why\n\nAlbum invite links never expire and cannot be revoked. A link forwarded to the wrong group chat exposes a family's photos and lets strangers upload, and the owner has no way to stop it.\n\n## What Changes\n\n- Owners can revoke an album's invite link; a new link is issued at once.\n- Invite links expire after a configurable period.\n- Owners can delete photos uploaded by any member.\n- **BREAKING**: permanent invite links are removed. Links created before this change expire 30 days after release.\n\n## Capabilities\n\n### New Capabilities\n- `notifications`: notify owners when a link is revoked or about to expire.\n\n### Modified Capabilities\n- `albums`: invite links become revocable and expiring; owners can moderate photos.\n\n## Impact\n\nAlbum API (`/albums/{id}/invite`), the join flow, the web join page, and the weekly digest job.\n", "design.md": "# Design\n\n## Context\n\nToday each album has one permanent invite token stored on the album row. Joining checks only that the token matches.\n\n## Goals / Non-Goals\n\n**Goals:**\n- Revoke a leaked link in one click.\n- Keep joining as easy as today for relatives.\n\n**Non-Goals:**\n- Per-person invitations.\n\n## Decisions\n\n### Rotate the token instead of keeping a denylist\n\nRevoking replaces the album's token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.\n\n### Store an expiry next to the token\n\nEach token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.\n\n### Owners moderate photos, members do not\n\nOnly the album owner can delete photos uploaded by others. Members can still delete their own.\n\n## Risks / Trade-offs\n\n- [Risk] Relatives with an old link are locked out after rotation → The join page explains the link expired and who to ask for a new one.\n- [Risk] Expiry silently breaks links shared in printed invitations → Owners get an email 3 days before a link expires.\n- [Trade-off] Rotation invalidates every outstanding link, including legitimate ones → Acceptable: rotation is a deliberate owner action.\n\n## Open Questions\n\n- What should the default link lifetime be: 7, 30 or 90 days?\n- Should members who joined through a revoked link stay in the album?\n", "specs/albums/spec.md": "# Spec Delta\n\n## ADDED Requirements\n\n### Requirement: Revoke invite link\nThe album owner SHALL be able to revoke the album's invite link, which issues a new link immediately.\n\n#### Scenario: Owner revokes a leaked link\n- **WHEN** the owner revokes the invite link\n- **THEN** the previous link SHALL stop working\n- **AND** a new link SHALL be shown to the owner\n\n### Requirement: Owner deletes any photo\nThe album owner SHALL be able to delete any photo in the album, whoever uploaded it.\n\n#### Scenario: Remove an unwanted upload\n- **WHEN** the owner deletes a photo uploaded by another member\n- **THEN** the photo SHALL disappear for every member\n\n## MODIFIED Requirements\n\n### Requirement: Join album via invite link\nAnyone with a valid, unexpired invite link SHALL be able to join the album as a member and upload photos.\n\n#### Scenario: Expired link\n- **WHEN** someone opens an expired link\n- **THEN** the join page SHALL explain that the link expired and who can issue a new one\n\n## REMOVED Requirements\n\n### Requirement: Permanent invite link\n**Reason**: Permanent links cannot be revoked and are the main privacy risk of the product.\n**Migration**: Existing links expire 30 days after release; owners can issue a new one at any time.\n\n## RENAMED Requirements\n\n- FROM: `### Requirement: Album invite`\n- TO: `### Requirement: Album invite link`\n", "specs/notifications/spec.md": "# Spec Delta\n\n## Purpose\nTell album owners about events on their invite links so a revoked or expiring link never surprises them.\n\n## ADDED Requirements\n\n### Requirement: Warn before a link expires\nThe system SHALL email the album owner 3 days before the invite link expires.\n\n#### Scenario: Link about to expire\n- **WHEN** an invite link expires in 3 days\n- **THEN** the owner SHALL receive an email with a button to extend it\n", "tasks.md": "# Tasks\n\n## 1. Data model\n\n- [x] 1.1 Add `expires_at` to the album invite token\n- [ ] 1.2 Migration: set existing tokens to expire 30 days after release\n\n## 2. API\n\n- [ ] 2.1 POST /albums/{id}/invite/rotate rotates the token\n- [ ] 2.2 Reject expired tokens on join with a dedicated error\n- [ ] 2.3 Allow owners to delete any photo\n\n## 3. Web\n\n- [ ] 3.1 Revoke button and confirmation on the album settings page\n- [ ] 3.2 Expired-link message on the join page\n\n## 4. Notifications\n\n- [ ] 4.1 Daily job that emails owners 3 days before expiry\n"}, "version": "d30b4e9aea2b", "decisions": [{"id": "D1", "key": "d-3ba542d217df", "title": "Remove permanent links, expire existing ones after 30 days", "choice": "Breaking change: permanent invite links go away; links created before release expire 30 days after it.", "cite": "proposal.md:12"}, {"id": "D2", "key": "d-9dbb53ae414e", "title": "Revoke by rotating the token", "choice": "Revoking replaces the album's token with a new random one instead of keeping a denylist.", "cite": "design.md:20"}, {"id": "D3", "key": "d-867df132af0b", "title": "Expiry stored next to the token, lifetime from configuration", "choice": "Each token has an expires_at; the default lifetime is a configuration value.", "cite": "design.md:24"}, {"id": "D4", "key": "d-fd763c15bc53", "title": "Only owners moderate photos", "choice": "The owner can delete any photo; members can delete only their own.", "cite": "design.md:28"}], "questions": [{"id": "Q1", "key": "q-953112d3e0de", "question": "What should the default link lifetime be: 7, 30 or 90 days?", "cite": "design.md:38"}, {"id": "Q2", "key": "q-bc2eec841ad9", "question": "Should members who joined through a revoked link stay in the album?", "cite": "design.md:39"}, {"id": "Q3", "key": "q-9195ba166b2b", "question": "Can a deleted photo be restored, and is the deletion logged?", "cite": "specs/albums/spec.md:18"}], "apply_hint": "Apply this review with OpenSpec's own commands (/opsx:update add-invite-link-revocation), not by editing the spec; `unboring feedback` prints the exact steps.", "carried": {}}</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("data").textContent);
+  // Marks are saved per item identity (data-key), never per position (D1, Q2...), which is
+  // reassigned on every render (#29). Old position-based marks cannot be mapped safely, so the
+  // previous storage entry is dropped instead of being applied to whatever now sits in that slot.
+  const key = "unboringspec:v2:" + data.feature;
+  let state = {};
+  try {
+    localStorage.removeItem("unboringspec:" + data.feature);
+    state = JSON.parse(localStorage.getItem(key) || "{}");
+  } catch (e) {}
+  // Marks carried over from the last saved review fill the gaps; what the reader did in this
+  // browser wins. A carried mark stops being "carried" as soon as the reader touches it.
+  Object.entries(data.carried || {}).forEach(([k, mark]) => {
+    if (!state[k]) state[k] = Object.assign({ carried: true }, mark);
+  });
+  const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} updateProgress(); };
+
+  // Verdicts on decision cards
+  document.querySelectorAll(".decision").forEach(card => {
+    const id = card.dataset.key, note = card.querySelector(".note");
+    const apply = () => {
+      const s = state[id] || {};
+      card.classList.toggle("is-approve", s.v === "approve");
+      card.classList.toggle("is-question", s.v === "question");
+      card.querySelectorAll(".v").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === s.v)));
+      note.hidden = s.v !== "question";
+      note.value = s.note || "";
+      let badge = card.querySelector(".carried-badge");
+      if (s.carried && s.v) {
+        if (!badge) { badge = document.createElement("span"); badge.className = "carried-badge"; card.querySelector("header").appendChild(badge); }
+        badge.textContent = "from your last review";
+      } else if (badge) badge.remove();
+    };
+    card.querySelectorAll(".v").forEach(b => b.addEventListener("click", () => {
+      const s = state[id] || {};
+      s.v = s.v === b.dataset.v ? undefined : b.dataset.v;
+      delete s.carried;
+      state[id] = s; save(); apply();
+      if (s.v === "question") note.focus();
+    }));
+    note.addEventListener("input", () => { (state[id] = state[id] || {}).note = note.value; delete state[id].carried; save(); });
+    apply();
+  });
+
+  // Answers to open questions
+  document.querySelectorAll(".question").forEach(card => {
+    const id = card.dataset.key, ta = card.querySelector(".answer");
+    ta.value = (state[id] || {}).answer || "";
+    ta.addEventListener("input", () => { (state[id] = state[id] || {}).answer = ta.value; delete state[id].carried; save(); });
+  });
+
+  function updateProgress() {
+    const ids = data.decisions.map(d => d.key).concat(data.questions.map(q => q.key));
+    const marked = id => state[id] && (state[id].v || (state[id].answer || "").trim());
+    const done = ids.filter(marked).length;
+    const carried = ids.filter(id => marked(id) && state[id].carried).length;
+    document.getElementById("progress").textContent =
+      `${done} of ${ids.length} items reviewed` + (carried ? ` (${carried} from your last review)` : "");
+  }
+  updateProgress();
+
+  // Source drawer: every claim links back to the exact line
+  const drawer = document.getElementById("drawer");
+  document.querySelectorAll(".src").forEach(b => b.addEventListener("click", () => {
+    const file = b.dataset.file, line = +b.dataset.line;
+    const lines = (data.documents[file] || "").split("\n");
+    const pre = document.getElementById("drawer-body");
+    pre.replaceChildren(...lines.map((t, i) => {
+      const el = document.createElement("span");
+      el.className = "ln" + (i + 1 === line ? " hl" : "");
+      const n = document.createElement("span"); n.textContent = i + 1;
+      el.append(n, t);
+      return el;
+    }));
+    document.getElementById("drawer-title").textContent = `${file}:${line}`;
+    drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false");
+    const target = pre.children[line - 1];
+    if (target) target.scrollIntoView({ block: "center" });
+  }));
+  const close = () => { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); };
+  document.getElementById("drawer-close").addEventListener("click", close);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+
+  // Diagrams: Mermaid loads on the first open, so closed diagrams cost nothing. Spec-built
+  // diagrams need no LLM; drawing them needs Mermaid from the CDN, and without it the source shows.
+  const MERMAID = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  let mermaidReady;
+  const loadMermaid = () => mermaidReady || (mermaidReady = import(MERMAID).then(m => {
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    m.default.initialize({
+      startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default",
+      flowchart: { subGraphTitleMargin: { top: 6, bottom: 10 } },
+    });
+    return m.default;
+  }));
+  const draw = async (d, i) => {
+    if (!d.open || d.dataset.drawn) return;
+    d.dataset.drawn = "1";
+    const canvas = d.querySelector(".diagram-canvas");
+    const src = d.querySelector(".diagram-src").textContent;
+    const fallback = msg => {
+      canvas.textContent = msg;
+      const pre = document.createElement("pre");
+      pre.className = "diagram-fallback";
+      pre.textContent = src;
+      canvas.appendChild(pre);
+    };
+    canvas.textContent = "Drawing…";
+    let mermaid;
+    try { mermaid = await loadMermaid(); } catch (e) { mermaidReady = null; return fallback("Mermaid could not be loaded (offline?). Diagram source:"); }
+    try {
+      await mermaid.parse(src);
+      const { svg } = await mermaid.render("diagram-" + i, src);
+      canvas.innerHTML = svg;
+      canvas.classList.add("drawn");
+      canvas.title = "Click to enlarge";
+      const hint = document.createElement("p");
+      hint.className = "diagram-hint";
+      hint.textContent = "Click the diagram to see it full size.";
+      canvas.after(hint);
+      d.dataset.rendered = "1";
+    } catch (e) {
+      fallback("This diagram could not be drawn. Source:");
+      d.dataset.failed = "1";
+    }
+  };
+  document.querySelectorAll("details.diagram").forEach((d, i) => {
+    d.addEventListener("toggle", () => draw(d, i));
+    draw(d, i);  // diagrams that start open
+    const canvas = d.querySelector(".diagram-canvas");
+    canvas.addEventListener("click", () => {
+      if (!canvas.classList.contains("drawn")) return;
+      const zoomed = canvas.classList.toggle("zoomed");
+      // Mermaid sizes the SVG to its container; full size means its own viewBox width.
+      const svg = canvas.querySelector("svg");
+      svg.style.width = zoomed && svg.viewBox.baseVal ? svg.viewBox.baseVal.width + "px" : "";
+    });
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    document.querySelectorAll(".diagram-canvas.zoomed").forEach(c => {
+      c.classList.remove("zoomed");
+      c.querySelector("svg").style.width = "";
+    });
+  });
+
+  // Export: structured feedback the agent can consume (e.g. in /speckit.clarify), plus a hidden
+  // machine-readable block so the next render can follow it up (unboring feedback, #28).
+  function buildReview() {
+    const out = [`# Review: ${data.feature}`, "", `_Generated with unboringspec on ${new Date().toISOString().slice(0, 10)}_`, ""];
+    if (data.apply_hint) out.push(`> ${data.apply_hint}`, "");
+    const answered = data.questions.filter(q => ((state[q.key] || {}).answer || "").trim());
+    if (answered.length) {
+      out.push("## Answers to open questions", "");
+      answered.forEach(q => out.push(`- **${q.id}** ${q.question}`, `  - Answer: ${state[q.key].answer.trim()}`));
+      out.push("");
+    }
+    const qd = data.decisions.filter(d => (state[d.key] || {}).v === "question");
+    if (qd.length) {
+      out.push("## Decisions to revisit", "");
+      qd.forEach(d => out.push(`- **${d.id} ${d.title}**: ${d.choice}`, `  - Reviewer: ${(state[d.key].note || "(no comment)").trim()}`));
+      out.push("");
+    }
+    const ok = data.decisions.filter(d => (state[d.key] || {}).v === "approve");
+    if (ok.length) {
+      out.push("## Approved", "");
+      ok.forEach(d => out.push(`- ${d.id} ${d.title}: ${d.choice}`));
+      out.push("");
+    }
+    const items = [];
+    answered.forEach(q => items.push({ id: q.id, key: q.key, kind: "answer", text: q.question, cite: q.cite, answer: state[q.key].answer.trim() }));
+    qd.forEach(d => items.push({ id: d.id, key: d.key, kind: "question", text: d.title, choice: d.choice, cite: d.cite, note: (state[d.key].note || "").trim() }));
+    ok.forEach(d => items.push({ id: d.id, key: d.key, kind: "approve", text: d.title, choice: d.choice, cite: d.cite }));
+    // "--" cannot appear inside an HTML comment; inside JSON strings it is written as -\u002d.
+    const block = JSON.stringify({ version: data.version, feature: data.feature, created: new Date().toISOString(), items })
+      .replace(/--/g, "-\\u002d");
+    out.push(`<!-- unboring:review ${block} -->`, "");
+    return out.join("\n");
+  }
+
+  document.getElementById("export").addEventListener("click", () => {
+    const blob = new Blob([buildReview()], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "review.md"; a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("copy").addEventListener("click", async e => {
+    const text = buildReview();
+    const button = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {  // file:// pages and older browsers
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+    }
+    const label = button.textContent;
+    button.textContent = "Copied: paste it to your agent";
+    setTimeout(() => { button.textContent = label; }, 2500);
+  });
+})();
+</script>
+</body>
+</html>

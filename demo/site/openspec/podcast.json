@@ -1,0 +1,43 @@
+{
+  "title": "Roasting the change that finally locks the front door",
+  "language": "en",
+  "tone": "roast",
+  "hosts": [
+    {"id": "A", "name": "Maya", "role": "guide"},
+    {"id": "B", "name": "Leo", "role": "skeptic"}
+  ],
+  "turns": [
+    {"speaker": "A", "text": "Welcome back to the spec roast. Today's change has a noble mission: stop family photo albums from being open to the whole internet."},
+    {"speaker": "B", "text": "Noble. Overdue. Today, an album link never expires and can't be revoked. Forward it to the wrong group chat and your cousin's coworkers are uploading memes into grandma's birthday album.", "sources": [{"file": "proposal.md", "line": 5}]},
+    {"speaker": "A", "text": "Which is exactly what this fixes. Owners can revoke the link, and a new one is issued straight away.", "sources": [{"file": "proposal.md", "line": 9}]},
+    {"speaker": "B", "text": "I'll give it that. One click and the leak is closed. Applause, genuinely."},
+    {"speaker": "A", "text": "And the clever bit: revoking doesn't keep a list of banned links. It just swaps the album's token for a new random one.", "sources": [{"file": "design.md", "line": 20}]},
+    {"speaker": "B", "text": "Clever, and also a nuclear option. Rotate the token and every link dies, including the one aunt Carmen printed and stuck on her fridge.", "sources": [{"file": "design.md", "line": 34}]},
+    {"speaker": "A", "text": "The design calls that acceptable, because rotating is a deliberate owner action."},
+    {"speaker": "B", "text": "Deliberate, sure. Until the owner realises the whole family is now locked out and the group chat lights up."},
+    {"speaker": "A", "text": "Fair. Next: links also expire. Each token gets an expiry date, and the lifetime comes from configuration.", "sources": [{"file": "design.md", "line": 24}]},
+    {"speaker": "B", "text": "Lovely. And what is that lifetime?"},
+    {"speaker": "A", "text": "That's… an open question. Seven, thirty or ninety days.", "sources": [{"file": "design.md", "line": 38}]},
+    {"speaker": "B", "text": "Undecided. And yet the migration already decided: existing links expire thirty days after release. The task list picked a number the design is still debating.", "sources": [{"file": "tasks.md", "line": 6}]},
+    {"speaker": "A", "text": "Okay, that one lands. Pick the default first, or derive the migration from it."},
+    {"speaker": "B", "text": "Now my favourite line. Owners get an email three days before a link expires, with a button to extend it.", "sources": [{"file": "specs/notifications/spec.md", "line": 13}]},
+    {"speaker": "A", "text": "That's thoughtful."},
+    {"speaker": "B", "text": "It is a button to nowhere. No requirement says links can be extended, and no task builds it. We are emailing people a promise.", "sources": [{"file": "tasks.md", "line": 21}]},
+    {"speaker": "A", "text": "Point taken. Either add the requirement and the task, or drop the button."},
+    {"speaker": "B", "text": "Then there's the breaking change. Permanent links are removed outright.", "sources": [{"file": "proposal.md", "line": 12}]},
+    {"speaker": "A", "text": "With a migration: old links expire thirty days after release, and owners can issue new ones any time.", "sources": [{"file": "specs/albums/spec.md", "line": 33}]},
+    {"speaker": "B", "text": "Right. Thirty days for every family to notice, in an app whose main channel to them is… an email we haven't built the button for."},
+    {"speaker": "A", "text": "Moderation, then. Owners can now delete any photo, whoever uploaded it.", "sources": [{"file": "specs/albums/spec.md", "line": 14}]},
+    {"speaker": "B", "text": "Good. Also permanent. No undo, no record of who deleted what. One tired thumb at midnight and the wedding photos are gone for everyone."},
+    {"speaker": "A", "text": "And one more open question: should people who joined through a revoked link stay in the album?", "sources": [{"file": "design.md", "line": 39}]},
+    {"speaker": "B", "text": "Because if they stay, revoking the link closes the door after the burglar is already on the sofa."},
+    {"speaker": "A", "text": "Last roast, I promise. Rotation, expiry and a data migration all touch who can see what…"},
+    {"speaker": "B", "text": "And the task list has zero tests. Not one. Access control on vibes.", "sources": [{"file": "tasks.md", "line": 1}]},
+    {"speaker": "A", "text": "Alright, serious minute. If you're reviewing this change, here's what's on you."},
+    {"speaker": "A", "text": "One: pick the default link lifetime, and make the migration use it."},
+    {"speaker": "A", "text": "Two: decide whether members who came in through a revoked link keep their access."},
+    {"speaker": "A", "text": "Three: build the extend button, or stop promising it. And add tests while you're at it."},
+    {"speaker": "B", "text": "And say nice things too. Revoking a leaked link in one click is a real improvement. It just needs the rest of the house finished."},
+    {"speaker": "A", "text": "Thanks for listening. Go lock your front doors."}
+  ]
+}
