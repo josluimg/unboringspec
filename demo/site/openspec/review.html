@@ -63,6 +63,15 @@ html:not(.js) .player { display: none; }
   padding: 4px 10px; border-radius: 999px; cursor: pointer; }
 .pl-speeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .pl-play:focus-visible, .pl-speeds button:focus-visible, .pl-seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+html:not(.js) .chapters { display: none; }
+.chapters button { font: 500 .82rem var(--font); background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chapters button:hover { border-color: var(--accent); }
+.chapters button[aria-current="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chapters .ch-time { font-family: var(--mono); font-size: .76rem; color: var(--muted); margin-right: 2px; }
+.chapters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapter-title { margin: 16px 0 4px; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 @media (max-width: 560px) { .player { gap: 10px 8px; } .pl-seek { flex-basis: calc(100% - 52px); } .pl-speeds { margin-left: auto; } .pl-speeds button { padding: 4px 7px; } }
 .listen details { background: var(--surface); margin: 12px 0 0; }
 .turn { margin: 8px 0; font-size: .95rem; }
@@ -295,101 +304,138 @@ h3 { font-weight: 600; }
       </div>
     </div>
     <audio controls preload="metadata" src="podcast.mp3"></audio>
+    
+    <nav class="chapters" aria-label="Chapters">
+      <button type="button" data-start="0.0"><span class="ch-time">0:00</span> Intro</button><button type="button" data-start="18.86"><span class="ch-time">0:18</span> What it is</button><button type="button" data-start="28.86"><span class="ch-time">0:28</span> Key decisions</button><button type="button" data-start="154.16"><span class="ch-time">2:34</span> What you must decide</button><button type="button" data-start="171.12"><span class="ch-time">2:51</span> Wrap-up</button>
+    </nav>
+    
     <details>
       <summary>Transcript</summary>
       
+      <p class="chapter-title">Intro</p>
       
       <p class="turn turn-guide"><strong>Maya</strong> Welcome back to the spec roast. Today&#39;s change has a noble mission: stop family photo albums from being open to the whole internet. </p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Leo</strong> Noble. Overdue. Today, an album link never expires and can&#39;t be revoked. Forward it to the wrong group chat and your cousin&#39;s coworkers are uploading memes into grandma&#39;s birthday album. <button class="src" data-file="proposal.md" data-line="5" title="Album invite links never expire and cannot be revoked. A link forwarded to the wrong group chat exposes a family&#39;s photos and lets strangers upload, and the owner has no way to stop it.">proposal.md:5</button></p>
       
+      <p class="chapter-title">What it is</p>
       
       <p class="turn turn-guide"><strong>Maya</strong> Which is exactly what this fixes. Owners can revoke the link, and a new one is issued straight away. <button class="src" data-file="proposal.md" data-line="9" title="- Owners can revoke an album&#39;s invite link; a new link is issued at once.">proposal.md:9</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Leo</strong> I&#39;ll give it that. One click and the leak is closed. Applause, genuinely. </p>
       
+      <p class="chapter-title">Key decisions</p>
       
       <p class="turn turn-guide"><strong>Maya</strong> And the clever bit: revoking doesn&#39;t keep a list of banned links. It just swaps the album&#39;s token for a new random one. <button class="src" data-file="design.md" data-line="20" title="Revoking replaces the album&#39;s token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.">design.md:20</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Clever, and also a nuclear option. Rotate the token and every link dies, including the one aunt Carmen printed and stuck on her fridge. <button class="src" data-file="design.md" data-line="34" title="- [Trade-off] Rotation invalidates every outstanding link, including legitimate ones → Acceptable: rotation is a deliberate owner action.">design.md:34</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> The design calls that acceptable, because rotating is a deliberate owner action. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Deliberate, sure. Until the owner realises the whole family is now locked out and the group chat lights up. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> Fair. Next: links also expire. Each token gets an expiry date, and the lifetime comes from configuration. <button class="src" data-file="design.md" data-line="24" title="Each token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.">design.md:24</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Lovely. And what is that lifetime? </p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> That&#39;s… an open question. Seven, thirty or ninety days. <button class="src" data-file="design.md" data-line="38" title="- What should the default link lifetime be: 7, 30 or 90 days?">design.md:38</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Undecided. And yet the migration already decided: existing links expire thirty days after release. The task list picked a number the design is still debating. <button class="src" data-file="tasks.md" data-line="6" title="- [ ] 1.2 Migration: set existing tokens to expire 30 days after release">tasks.md:6</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> Okay, that one lands. Pick the default first, or derive the migration from it. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Now my favourite line. Owners get an email three days before a link expires, with a button to extend it. <button class="src" data-file="specs/notifications/spec.md" data-line="13" title="- **THEN** the owner SHALL receive an email with a button to extend it">specs/notifications/spec.md:13</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> That&#39;s thoughtful. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> It is a button to nowhere. No requirement says links can be extended, and no task builds it. We are emailing people a promise. <button class="src" data-file="tasks.md" data-line="21" title="- [ ] 4.1 Daily job that emails owners 3 days before expiry">tasks.md:21</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> Point taken. Either add the requirement and the task, or drop the button. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Then there&#39;s the breaking change. Permanent links are removed outright. <button class="src" data-file="proposal.md" data-line="12" title="- **BREAKING**: permanent invite links are removed. Links created before this change expire 30 days after release.">proposal.md:12</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> With a migration: old links expire thirty days after release, and owners can issue new ones any time. <button class="src" data-file="specs/albums/spec.md" data-line="33" title="**Migration**: Existing links expire 30 days after release; owners can issue a new one at any time.">specs/albums/spec.md:33</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Right. Thirty days for every family to notice, in an app whose main channel to them is… an email we haven&#39;t built the button for. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> Moderation, then. Owners can now delete any photo, whoever uploaded it. <button class="src" data-file="specs/albums/spec.md" data-line="14" title="The album owner SHALL be able to delete any photo in the album, whoever uploaded it.">specs/albums/spec.md:14</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Good. Also permanent. No undo, no record of who deleted what. One tired thumb at midnight and the wedding photos are gone for everyone. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> And one more open question: should people who joined through a revoked link stay in the album? <button class="src" data-file="design.md" data-line="39" title="- Should members who joined through a revoked link stay in the album?">design.md:39</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> Because if they stay, revoking the link closes the door after the burglar is already on the sofa. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> Last roast, I promise. Rotation, expiry and a data migration all touch who can see what… </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Leo</strong> And the task list has zero tests. Not one. Access control on vibes. <button class="src" data-file="tasks.md" data-line="1" title="# Tasks">tasks.md:1</button></p>
       
+      <p class="chapter-title">What you must decide</p>
       
       <p class="turn turn-guide"><strong>Maya</strong> Alright, serious minute. If you&#39;re reviewing this change, here&#39;s what&#39;s on you. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Maya</strong> One: pick the default link lifetime, and make the migration use it. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Maya</strong> Two: decide whether members who came in through a revoked link keep their access. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Maya</strong> Three: build the extend button, or stop promising it. And add tests while you&#39;re at it. </p>
       
+      <p class="chapter-title">Wrap-up</p>
       
       <p class="turn turn-skeptic"><strong>Leo</strong> And say nice things too. Revoking a leaked link in one click is a real improvement. It just needs the rest of the house finished. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Maya</strong> Thanks for listening. Go lock your front doors. </p>
@@ -1032,7 +1078,22 @@ h3 { font-weight: 600; }
       if (!dragging) seekTo(Number(seek.value));
     });
     seek.addEventListener("change", () => { dragging = false; seekTo(Number(seek.value)); });
+    // Chapters (#4): jump to one and play; the current one is marked while listening.
+    const chapterButtons = [...player.parentElement.querySelectorAll(".chapters button")];
+    chapterButtons.forEach(b => b.addEventListener("click", () => {
+      const at = Number(b.dataset.start);
+      seek.value = String(Math.floor(at));
+      seekTo(at);
+      time.textContent = clock(at);
+      if (audio.paused) { watch(); audio.play().catch(err => { if (err && err.name !== "NotAllowedError") recover(); else calm(); }); }
+    }));
+    const markChapter = () => {
+      let current = null;
+      chapterButtons.forEach(b => { if (audio.currentTime + 0.25 >= Number(b.dataset.start)) current = b; });
+      chapterButtons.forEach(b => b.setAttribute("aria-current", String(b === current && (audio.currentTime > 0 || !audio.paused))));
+    };
     audio.addEventListener("timeupdate", () => {
+      markChapter();
       if (!dragging) {
         seek.value = String(Math.floor(audio.currentTime));
         time.textContent = clock(audio.currentTime);

@@ -493,3 +493,87 @@ def test_render_records_the_voices_it_used(tmp_path, monkeypatch):
     assert r.exit_code == 0, r.output
     meta = json.loads((wd / "podcast.meta.json").read_text())
     assert meta["voices"] == {"guide": "g", "skeptic": "x_y"}
+
+
+# --- #4: chapters ---------------------------------------------------------------------
+
+
+def turn(chapter=None):
+    from unboringspec.podcast import ResolvedTurn
+
+    return ResolvedTurn(speaker="A", name="Lucía", role="guide", text="x", chapter=chapter)
+
+
+def test_chapter_marks_from_turn_lengths():
+    from unboringspec.podcast import chapter_marks
+
+    turns = [turn("hook"), turn(), turn("decisions"), turn("to_decide"), turn("decisions"), turn("close")]
+    marks = chapter_marks(turns, [2.0, 3.0, 4.0, 5.0, 1.0, 2.0], pause_ms=500)
+    assert marks == [
+        {"id": "hook", "start": 0.0, "end": 6.0},
+        {"id": "decisions", "start": 6.0, "end": 10.5},  # the second "decisions" mark is ignored
+        {"id": "to_decide", "start": 10.5, "end": 17.5},
+        {"id": "close", "start": 17.5, "end": 19.5},  # turns 2+3+4+5+1, five pauses of 0.5
+    ]
+    assert chapter_marks([turn(), turn()], [1.0, 1.0], 0) == []
+
+
+def test_chapters_are_optional_in_the_contract_and_the_prompt_asks_for_them():
+    data = script()
+    data["turns"][0]["chapter"] = "hook"
+    assert parse_script(json.dumps(data)).turns[0].chapter == "hook"
+    jsonschema.validate(data, json.loads(PUBLISHED.read_text()))
+    data["turns"][0]["chapter"] = "intermission"
+    with pytest.raises(Exception):
+        parse_script(json.dumps(data))
+    prompt = build_podcast_prompt(get_adapter(EXAMPLE_SPEC).load(EXAMPLE_SPEC), None, "es", None)
+    assert '"to_decide" (what the listener must decide)' in prompt
+
+
+def test_render_times_chapters_into_the_mp3_the_meta_and_the_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(tts.ENGINES, "fake", FakeEngine)
+    seen = {}
+    real = tts.assemble
+
+    def spy(parts, out_stem, pause_ms=tts.PAUSE_MS, chapters=()):
+        seen["chapters"] = list(chapters)
+        return real(parts, out_stem, pause_ms)
+
+    monkeypatch.setattr(tts, "assemble", spy)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    data = json.loads(EXAMPLE_SCRIPT.read_text())  # Spanish
+    for t in data["turns"]:
+        t.pop("chapter", None)
+    data["turns"][0]["chapter"] = "hook"
+    data["turns"][3]["chapter"] = "to_decide"
+    (wd / "podcast.json").write_text(json.dumps(data))
+    r = runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "fake"])
+    assert r.exit_code == 0, r.output
+    # Each fake turn lasts 0.1 s, plus the pause between turns.
+    step = 0.1 + tts.PAUSE_MS / 1000
+    assert [(t, round(s, 2)) for t, s, _ in seen["chapters"]] == [("Intro", 0.0), ("Lo que te toca decidir", round(3 * step, 2))]
+    meta = json.loads((wd / "podcast.meta.json").read_text())
+    assert [c["id"] for c in meta["chapters"]] == ["hook", "to_decide"]
+    html = (wd / "review.html").read_text()
+    nav = html.split('<nav class="chapters"')[1].split("</nav>")[0]
+    assert "Intro" in nav and "Lo que te toca decidir" in nav and 'data-start="0.0"' in nav
+    assert '<p class="chapter-title">Lo que te toca decidir</p>' in html
+    assert "## Lo que te toca decidir" in (wd / "podcast.md").read_text()
+
+
+def test_page_ignores_chapters_it_does_not_know(tmp_path, monkeypatch):
+    from unboringspec.render import find_podcast
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(tts.ENGINES, "fake", FakeEngine)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    shutil.copy(EXAMPLE_SCRIPT, wd / "podcast.json")
+    assert runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "fake"]).exit_code == 0
+    meta = json.loads((wd / "podcast.meta.json").read_text())
+    meta["chapters"] = [{"id": "hook", "start": 0}, {"id": "<script>", "start": 1}, {"id": "close", "start": "x"}]
+    (wd / "podcast.meta.json").write_text(json.dumps(meta))
+    ir = get_adapter(EXAMPLE_SPEC).load(EXAMPLE_SPEC)
+    assert find_podcast(wd, ir)["chapters"] == [{"id": "hook", "start": 0.0}]

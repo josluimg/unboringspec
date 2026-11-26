@@ -33,7 +33,7 @@ def write_podcast_meta(folder: Path, documents: dict[str, str], **extra) -> Path
 def find_podcast(folder: Path, ir: SpecIR) -> dict | None:
     """If a rendered podcast sits next to the page, embed a player and the transcript, and say
     whether the episode describes this version of the spec or an earlier one."""
-    from .podcast import TONES, parse_script, validate_script
+    from .podcast import CHAPTERS, TONES, parse_script, validate_script
 
     audio = next((folder / n for n in ("podcast.mp3", "podcast.wav") if (folder / n).exists()), None)
     script = folder / "podcast.json"
@@ -46,10 +46,17 @@ def find_podcast(folder: Path, ir: SpecIR) -> dict | None:
         return None
 
     version = None
+    chapters: list[dict] = []
     meta = folder / PODCAST_META
     if meta.is_file():
         try:
-            version = json.loads(meta.read_text(encoding="utf-8")).get("version")
+            meta_data = json.loads(meta.read_text(encoding="utf-8"))
+            version = meta_data.get("version")
+            chapters = [
+                {"id": c["id"], "start": float(c["start"])}
+                for c in meta_data.get("chapters") or []
+                if isinstance(c, dict) and c.get("id") in CHAPTERS and isinstance(c.get("start"), (int, float))
+            ]
         except (json.JSONDecodeError, OSError):
             version = None
     stale = version != documents_hash(ir.documents)  # episodes without a version are treated as stale
@@ -66,6 +73,7 @@ def find_podcast(folder: Path, ir: SpecIR) -> dict | None:
     return {
         "audio": audio.name, "title": parsed.title, "tone": tone, "tone_id": parsed.tone, "turns": turns,
         "stale": stale, "known_version": version is not None, "changes": changes,
+        "chapters": chapters,
     }
 
 

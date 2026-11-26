@@ -1,12 +1,18 @@
 # Roasting the change that finally locks the front door
 
+## Intro
+
 **Maya:** Welcome back to the spec roast. Today's change has a noble mission: stop family photo albums from being open to the whole internet.
 
 **Leo:** Noble. Overdue. Today, an album link never expires and can't be revoked. Forward it to the wrong group chat and your cousin's coworkers are uploading memes into grandma's birthday album. `proposal.md:5`
 
+## What it is
+
 **Maya:** Which is exactly what this fixes. Owners can revoke the link, and a new one is issued straight away. `proposal.md:9`
 
 **Leo:** I'll give it that. One click and the leak is closed. Applause, genuinely.
+
+## Key decisions
 
 **Maya:** And the clever bit: revoking doesn't keep a list of banned links. It just swaps the album's token for a new random one. `design.md:20`
 
@@ -52,6 +58,8 @@
 
 **Leo:** And the task list has zero tests. Not one. Access control on vibes. `tasks.md:1`
 
+## What you must decide
+
 **Maya:** Alright, serious minute. If you're reviewing this change, here's what's on you.
 
 **Maya:** One: pick the default link lifetime, and make the migration use it.
@@ -59,6 +67,8 @@
 **Maya:** Two: decide whether members who came in through a revoked link keep their access.
 
 **Maya:** Three: build the extend button, or stop promising it. And add tests while you're at it.
+
+## Wrap-up
 
 **Leo:** And say nice things too. Revoking a leaked link in one click is a real improvement. It just needs the rest of the house finished.
 

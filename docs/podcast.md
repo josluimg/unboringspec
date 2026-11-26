@@ -173,6 +173,12 @@ Natural voices sound slow at their nominal speed, so episodes are recorded at **
 keeps its own pace on top of that (sports commentary a little faster, the noir detective a little slower), and
 `--speed` replaces the result for one recording.
 
+Episodes are split into **chapters**: the hook, what it is, the key decisions, what you must decide, and the
+wrap-up. The script marks the first turn of each; the recording measures where each one starts. On the review page
+they are buttons under the player (the current one is highlighted while you listen) and headings in the
+transcript, and the MP3 carries them as ID3 chapters, so podcast apps show them too. The most useful one is
+*what you must decide*: one click and you are there.
+
 On the review page the player shows the speed at all times: **1×, 1.25×, 1.5×, 2×**, on top of the recorded
 pace. The choice is remembered in that browser. Without JavaScript, the browser's own player shows instead.
 
