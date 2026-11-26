@@ -6,6 +6,8 @@
 
 ▶️ **[Míralo en directo](https://unboringspec.vercel.app)**: tres specs antes y después, cada una con su podcast. Sin instalar nada.
 
+[![Una spec como ficheros Markdown y después como revisión de unboringspec: resumen, el podcast y su transcripción, preguntas abiertas, tarjetas de decisión, la fuente de una afirmación, un diagrama, modo claro y oscuro](docs/images/review-es.gif)](https://unboringspec.vercel.app)
+
 El Spec-Driven Development ha movido el cuello de botella: los agentes escriben el código y tú te pasas el día
 leyendo specs, planes, notas de investigación y listas de tareas. Muros de texto donde las tres decisiones que de
 verdad te necesitan se esconden en algún punto de la página cuatro.
