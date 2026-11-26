@@ -7,10 +7,10 @@ A static site that shows unboringspec's output without installing anything: for 
 | Demo | Spec | Language | Podcast |
 |---|---|---|---|
 | `site/speckit/` | [spec-kit example in Spanish](../examples/speckit-es/specs/001-albumes-compartidos/) | Spanish: spec, review page, podcast and the demo's own texts | casual tone |
-| `site/openspec/` | [OpenSpec example](../examples/openspec/openspec/changes/add-invite-link-revocation/) | English | roast tone |
+| `site/openspec/` | [OpenSpec example](../examples/openspec/openspec/changes/add-invite-link-revocation/), with the [corporate theme](../examples/themes/corporate.css) | English | roast tone |
 | `site/themed/` | [spec-kit example](../examples/speckit/specs/001-photo-albums/), with the [brutalist theme](../examples/themes/brutalist.css) | English | sports tone |
 
-The third demo shows how far a project theme (`unboring.css`, see [Customise the look](../docs/setup.md#customise-the-look))
+The OpenSpec and third demos show how far a project theme (`unboring.css`, see [Customise the look](../docs/setup.md#customise-the-look))
 can take the page: `build.py` passes the stylesheet as `unboring review` would find it.
 
 Every page has a light / dark switch. It starts from the system setting, remembers the reader's choice in
