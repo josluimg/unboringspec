@@ -102,6 +102,19 @@ def review_keys(ir: SpecIR) -> dict[str, str]:
     return keys
 
 
+def calls_to_make(ir: SpecIR) -> list[str]:
+    """The analysis's 'you must decide' list (#55), minus what the page already shows as a card.
+
+    Offline, the list is built from the open questions and the decisions that need a call, so
+    it repeats the cards and nothing is left; an agent's list says what those cards do not.
+    """
+    if not ir.summary:
+        return []
+    shown = {_norm(q.question) for q in ir.questions}
+    shown |= {_norm(f"{d.title}: {d.choice}") for d in ir.decisions}
+    return [m for m in ir.summary.you_must_decide if m.strip() and _norm(m) not in shown]
+
+
 def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en", theme: Theme | None = None) -> str:
     t = table(lang)
     env = Environment(loader=PackageLoader("unboringspec", "templates"), autoescape=True)
@@ -115,6 +128,7 @@ def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en", theme
     # Embedded as JSON for the source drawer and the review export. Escape "</" so a spec
     # containing "</script>" cannot break out of the script tag.
     keys = review_keys(ir)
+    must_decide = calls_to_make(ir)
     payload = json.dumps(
         {
             "feature": ir.feature,
@@ -125,6 +139,7 @@ def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en", theme
             ],
             "questions": [{"id": q.id, "key": keys[q.id], "question": q.question, "cite": _cite(q)} for q in ir.questions],
             "apply_hint": _apply_hint(ir, lang),
+            "must_decide": must_decide,
             "ui": {k: v for k, v in t.items() if k.startswith("js_")},
             # Marks from the reader's last review that still hold (#28): they work in any browser.
             "carried": ir.follow_up.carried if ir.follow_up else {},
@@ -153,6 +168,7 @@ def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en", theme
         tasks_by_story=tasks_by_story,
         payload=payload,
         keys=keys,
+        must_decide=must_decide,
         podcast=podcast,
         # From understanding to planning: the agent's map and flows first, then the data model
         # and the task graph built from the spec.

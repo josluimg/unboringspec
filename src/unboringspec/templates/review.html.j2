@@ -107,6 +107,8 @@ h3 { font-size: 1rem; margin: 0; }
 .flag { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--review-soft); color: var(--review); font-size: .88rem; }
 .carried-badge { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-left: auto; }
 .callout ol { margin: 8px 0 0; padding-left: 20px; }
+.must-lead { margin: 12px 0 0; font-weight: 600; }
+.must-decide li { margin: 4px 0; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
 .card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
@@ -260,9 +262,15 @@ details[open] > summary { margin-bottom: 8px; }
   {% endif %}
 
   <h2>1 · {{ t.h_judgment }}</h2>
-  {% if ir.questions or decide %}
+  {% if ir.questions or decide or must_decide %}
   <div class="callout">
     {{ t.judgment_callout }}
+    {% if must_decide %}
+    <p class="must-lead">{{ t.must_decide_lead }}</p>
+    <ol class="must-decide">
+      {% for m in must_decide %}<li>{{ m }}</li>{% endfor %}
+    </ol>
+    {% endif %}
   </div>
   {% for q in ir.questions %}
   <article class="card question" data-qid="{{ q.id }}" data-key="{{ keys[q.id] }}">
@@ -551,6 +559,11 @@ details[open] > summary { margin-bottom: 8px; }
     const out = [`# ${fill(ui.js_review_title, { feature: data.feature })}`, "",
       `_${fill(ui.js_generated_with, { date: new Date().toISOString().slice(0, 10) })}_`, ""];
     if (data.apply_hint) out.push(`> ${data.apply_hint}`, "");
+    if (data.must_decide.length) {
+      out.push(`## ${ui.js_must_h}`, "");
+      data.must_decide.forEach((m, i) => out.push(`${i + 1}. ${m}`));
+      out.push("");
+    }
     const answered = data.questions.filter(q => ((state[q.key] || {}).answer || "").trim());
     if (answered.length) {
       out.push(`## ${ui.js_answers_h}`, "");
