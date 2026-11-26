@@ -81,7 +81,8 @@ La documentación detallada está en inglés.
 
 ## Qué soporta
 
-**Frameworks de SDD**, mediante adapters. Cada uno indica con qué versión del framework está probado y avisa si un
+#### Frameworks de SDD
+Mediante adapters. Cada uno indica con qué versión del framework está probado y avisa si un
 documento deja de reconocerse (señal de que la plantilla ha cambiado) en vez de mostrar una revisión vacía.
 
 | Framework | Estado |
@@ -91,18 +92,21 @@ documento deja de reconocerse (señal de que la plantilla ha cambiado) en vez de
 | Cualquier carpeta de Markdown | ✅ adapter genérico; el análisis lo hace el LLM |
 | Kiro, BMAD | 🛣️ buscamos ayuda: [añade un adapter](CONTRIBUTING.md#add-an-sdd-framework-adapter) |
 
-**Agentes de código**, mediante [Agent Skills](https://agentskills.io): tu agente hace el análisis.
+#### Agentes de código
+Mediante [Agent Skills](https://agentskills.io): tu agente hace el análisis.
 
 | Agente | Estado |
 |---|---|
 | Claude Code | ✅ probado de principio a fin |
-| GitHub Copilot (VS Code), OpenAI Codex, Cursor, Gemini CLI | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
+| GitHub Copilot (VS Code)| 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
+| OpenAI Codex | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
+| Cursor | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
+| Gemini CLI | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
+| Sin agente (CI) | 🧪 : cualquier modelo compatible con [LiteLLM](https://docs.litellm.ai/docs/providers), con tu API key. Consulta [In CI](docs/setup.md#in-ci). |
 
-**Sin agente** (CI): cualquier modelo compatible con [LiteLLM](https://docs.litellm.ai/docs/providers), con tu API key.
-Consulta [In CI](docs/setup.md#in-ci).
-
-**Voces del podcast**, todas generadas en local: las voces del sistema en macOS, Windows y Linux, o voces naturales
-con [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) en 8 idiomas. Consulta [Voices](docs/podcast.md#voices).
+#### Voces del podcast
+- Todas generadas en local: las voces del sistema en macOS, Windows y Linux,
+- voces naturales con [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) en 8 idiomas. Consulta [Voices](docs/podcast.md#voices).
 
 ## Cómo funciona
 
