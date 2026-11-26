@@ -2,15 +2,15 @@
 
 [English](README.md) · **Español**
 
-**Specs que tu cerebro sí quiere revisar.**
-
-▶️ **[Míralo en directo](https://unboringspec.vercel.app)**: tres specs antes y después, cada una con su podcast. Sin instalar nada.
-
-[![Una spec como ficheros Markdown y después como revisión de unboringspec: resumen, el podcast y su transcripción, preguntas abiertas, tarjetas de decisión, la fuente de una afirmación, un diagrama, modo claro y oscuro](docs/images/review-es.gif)](https://unboringspec.vercel.app)
+**Specs que tu cabeza sí quiere revisar.**
 
 El Spec-Driven Development ha movido el cuello de botella: los agentes escriben el código y tú te pasas el día
 leyendo specs, planes, notas de investigación y listas de tareas. Muros de texto donde las tres decisiones que de
 verdad te necesitan se esconden en algún punto de la página cuatro.
+
+▶️ **[Míralo en directo](https://unboringspec.vercel.app)**: Antes y después. Sin instalar nada.
+
+[![Una spec como ficheros Markdown y después como revisión de unboringspec: resumen, el podcast y su transcripción, preguntas abiertas, tarjetas de decisión, la fuente de una afirmación, un diagrama, modo claro y oscuro](docs/images/review-es.gif)](https://unboringspec.vercel.app)
 
 unboringspec convierte esos muros de texto en dos cosas que sí te apetecerá revisar:
 
@@ -21,9 +21,9 @@ el café**. Uno hace de guía; el otro es el escéptico que hace las preguntas i
 
 Elige el tono: una charla entre compañeros en el bar, una presentación formal ante el comité de arquitectura, un
 **roast** sin piedad, una retransmisión de fútbol en directo, un detective de novela negra… o descríbelo tú:
-*"dos piratas discutiendo por un mapa del tesoro"*. Cambian las bromas, no los hechos. Todo lo que se dice es
+*"dos piratas adolescentes discutiendo por un mapa del tesoro"*. Cambian las bromas, no los hechos. Todo lo que se dice es
 cierto y va citado, y todas las preguntas abiertas salen a la luz. Con voces generadas en tu máquina, en español,
-inglés y seis idiomas más.
+inglés y seis idiomas más. Sin extra coste*
 
 ### 🗺️ Una revisión visual en lugar de un muro de texto
 
@@ -36,8 +36,6 @@ Una sola página, pensada para tu atención:
 - **Diagramas en lugar de prosa**: un mapa del sistema, el flujo principal, el modelo de datos y el grafo de tareas.
 - **Cada afirmación enlaza con la línea exacta** de la que sale, a un clic.
 - **La siguiente iteración empieza por lo que ha cambiado**, y por lo que pasó con cada punto que señalaste.
-
-<!-- Aquí va el GIF de demostración de la página de revisión y del reproductor del podcast: https://github.com/josluimg/unboringspec/issues/8 -->
 
 Funciona con el framework de SDD que ya usas (spec-kit, OpenSpec…) y con el agente de código que ya tienes
 (Claude Code, Copilot, Codex, Cursor, Gemini).
