@@ -22,21 +22,22 @@ MAX_BYTES = 100_000
 # name: (light, dark, what it is). The template builds its defaults from this table, and
 # `unboring theme init` writes it out, so the two never disagree.
 TOKENS: dict[str, tuple[str, str, str]] = {
-    "bg": ("#f7f6f3", "#131315", "page background"),
-    "surface": ("#ffffff", "#1c1c1f", "cards and panels"),
-    "ink": ("#1d1d1f", "#ececef", "main text"),
-    "muted": ("#5f6368", "#a0a0a8", "secondary text"),
-    "line": ("#e4e2dc", "#2e2e33", "borders"),
-    "accent": ("#4f46e5", "#8b87ff", "links, buttons, highlights"),
-    "accent-ink": ("#ffffff", "#131315", "text on accent buttons"),
-    "accent-soft": ("#eef0ff", "#24234a", "accent backgrounds (source chips, podcast box)"),
+    "bg": ("#f5f7f8", "#0f151b", "page background"),
+    "surface": ("#ffffff", "#17202a", "cards and panels"),
+    "ink": ("#16222c", "#e8eef3", "main text"),
+    "muted": ("#56626e", "#9eacb8", "secondary text"),
+    "line": ("#dde3e8", "#26323e", "borders"),
+    "accent": ("#2d618a", "#86b4da", "links, buttons, highlights"),
+    "accent-ink": ("#ffffff", "#0d1a26", "text on accent buttons"),
+    "accent-soft": ("#e6eef5", "#1a2c3c", "accent backgrounds (source chips, podcast box)"),
+    "marker": ("#c5d500", "#5c6300", "highlighter: under section titles, and selected text"),
     "decide": ("#b42318", "#ff8a80", "\"needs your judgment\": text"),
     "decide-soft": ("#fdecea", "#3a1f1d", "\"needs your judgment\": background"),
-    "review": ("#9a6700", "#f5c451", "\"worth a look\" and warnings: text"),
+    "review": ("#8a5d00", "#f5c451", "\"worth a look\" and warnings: text"),
     "review-soft": ("#fff6db", "#352c14", "\"worth a look\" and warnings: background"),
     "routine": ("#3f6b4e", "#8fd0a6", "routine decisions: text"),
     "routine-soft": ("#e8f3ec", "#1b2e22", "routine decisions: background"),
-    "hl": ("#fff3b0", "#4a4220", "highlighted line in the source viewer"),
+    "hl": ("#ecf09a", "#3e4200", "highlighted line in the source viewer"),
     "font": ('-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif', "", "text font"),
     "mono": ("ui-monospace, SFMono-Regular, Menlo, monospace", "", "code font"),
     "radius": ("12px", "", "corner radius of cards"),
@@ -203,7 +204,8 @@ def contrast(a: str, b: str) -> float | None:
 
 
 PAIRS = [("ink", "bg"), ("ink", "surface"), ("muted", "bg"), ("muted", "surface"), ("accent", "surface"),
-         ("accent-ink", "accent"), ("decide", "decide-soft"), ("review", "review-soft"), ("routine", "routine-soft")]
+         ("accent-ink", "accent"), ("decide", "decide-soft"), ("review", "review-soft"), ("routine", "routine-soft"),
+         ("ink", "marker"), ("ink", "hl")]
 
 
 def contrast_warnings(css: str) -> list[str]:

@@ -24,6 +24,7 @@
   --routine: #006b3c;
   --routine-soft: #c9f5d9;
   --hl: #ffe066;
+  --marker: #ffe066;
   --font: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
   --mono: "Space Mono", ui-monospace, Menlo, monospace;
   --radius: 0;
@@ -49,6 +50,7 @@
     --routine: #5ff0a0;
     --routine-soft: #0f2e1d;
     --hl: #4d4300;
+    --marker: #4d4300;
     --edge: #f7f7f7;
   }
 }

@@ -199,7 +199,7 @@ def card_html(c: dict) -> str:
         f'      <span class="pill">{FLAGS[c["lang"]]} {escape(c["podcast"])}</span>\n'
         + (f'      <p class="themed">🎨 Same page, your look: this review uses <code>{escape(c["theme"])}</code>, '
            f'one CSS file in the project.</p>\n' if c["theme"] else "")
-        + f'      <p>{c["files"]} files, {c["lines"]} lines of Markdown → one review page.</p>\n'
+        + f'      <p class="stats">{c["files"]} files, {c["lines"]} lines of Markdown → one review page.</p>\n'
         f'      <span class="go">Open the demo →</span>\n'
         f"    </a>"
     )

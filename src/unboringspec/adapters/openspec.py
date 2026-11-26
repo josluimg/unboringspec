@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from ..i18n import STRINGS
 from ..ir import Attention, Decision, OpenQuestion, Requirement, Risk, SpecIR, Task
 from .base import Adapter, ApplyStep, find_clarifications, read_documents, ref
 
@@ -350,7 +351,7 @@ class OpenSpecAdapter(Adapter):
             OpenQuestion(
                 id="",
                 question=text,
-                why_it_matters="The design lists this as an open question.",
+                why_it_matters=STRINGS["en"]["note_design_open"],
                 sources=[ref("design.md", i, line)],
             )
             for i, line, text in self._bullets(design, {"open questions"})
