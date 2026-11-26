@@ -4,7 +4,7 @@
   - [How is the voice generated?](#how-is-the-voice-generated)
   - [What is Kokoro, and are there alternatives?](#what-is-kokoro-and-are-there-alternatives)
   - [Does the podcast cost money or consume tokens?](#does-the-podcast-cost-money-or-consume-tokens)
-  - [Does anything leave my machine?](#does-anything-leave-my-machine)
+  - [Privacy: does anything leave my machine?](#privacy-does-anything-leave-my-machine)
 - [Requirements](#requirements)
   - [What do I need to install?](#what-do-i-need-to-install)
   - [What do I need for the podcast?](#what-do-i-need-for-the-podcast)
@@ -77,7 +77,7 @@ with the size of your spec.
 **The voice costs nothing**: no tokens, no subscription, no per-character fee. Once the Kokoro model is
 downloaded, generating audio works offline.
 
-### Does anything leave my machine?
+### Privacy: does anything leave my machine?
 
 - **The spec** goes to the model your coding agent already uses, exactly as when you ask it anything else
   about your code. unboringspec adds no other service.
