@@ -17,12 +17,12 @@ html:not(.js) .diagram-src[hidden] { display: block; font: .78rem/1.5 ui-monospa
 <title>Shared Photo Albums · unboringspec</title>
 <style>
 /* Default tokens (unboringspec.theme.TOKENS). A project's unboring.css overrides them. */
-:root { --bg: #f5f7f8; --surface: #ffffff; --ink: #16222c; --muted: #56626e; --line: #dde3e8; --accent: #2d618a; --accent-ink: #ffffff; --accent-soft: #e6eef5; --marker: #bbd524; --decide: #b42318; --decide-soft: #fdecea; --review: #8a5d00; --review-soft: #fff6db; --routine: #3f6b4e; --routine-soft: #e8f3ec; --hl: #e6f0a3; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --radius: 12px; }
+:root { --bg: #f5f7f8; --surface: #ffffff; --ink: #16222c; --muted: #56626e; --line: #dde3e8; --accent: #2d618a; --accent-ink: #ffffff; --accent-soft: #e6eef5; --marker: #c5d500; --decide: #b42318; --decide-soft: #fdecea; --review: #8a5d00; --review-soft: #fff6db; --routine: #3f6b4e; --routine-soft: #e8f3ec; --hl: #ecf09a; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --radius: 12px; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #0f151b; --surface: #17202a; --ink: #e8eef3; --muted: #9eacb8; --line: #26323e; --accent: #86b4da; --accent-ink: #0d1a26; --accent-soft: #1a2c3c; --marker: #5d6b12; --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14; --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #3d4510; }
+  :root:not([data-theme="light"]) { --bg: #0f151b; --surface: #17202a; --ink: #e8eef3; --muted: #9eacb8; --line: #26323e; --accent: #86b4da; --accent-ink: #0d1a26; --accent-soft: #1a2c3c; --marker: #5c6300; --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14; --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #3e4200; }
 }
 /* A page that embeds the review (like the demo) can force a theme with data-theme on <html>. */
-:root[data-theme="dark"] { --bg: #0f151b; --surface: #17202a; --ink: #e8eef3; --muted: #9eacb8; --line: #26323e; --accent: #86b4da; --accent-ink: #0d1a26; --accent-soft: #1a2c3c; --marker: #5d6b12; --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14; --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #3d4510; }
+:root[data-theme="dark"] { --bg: #0f151b; --surface: #17202a; --ink: #e8eef3; --muted: #9eacb8; --line: #26323e; --accent: #86b4da; --accent-ink: #0d1a26; --accent-soft: #1a2c3c; --marker: #5c6300; --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14; --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #3e4200; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink);
   font: 16px/1.6 var(--font); }

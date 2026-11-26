@@ -51,7 +51,7 @@ def test_default_colours_meet_aa():
 
 
 def test_default_look_is_sober_blue_and_highlighter_green():
-    assert TOKENS["accent"][0] == "#2d618a" and TOKENS["marker"][0] == "#bbd524"
+    assert TOKENS["accent"][0] == "#2d618a" and TOKENS["marker"][0] == "#c5d500"
     html = page()
     assert "var(--marker) 58%" in html and "::selection { background: var(--marker)" in html
 

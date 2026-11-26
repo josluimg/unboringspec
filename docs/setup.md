@@ -250,14 +250,14 @@ unboring review specs/001-my-feature --offline --theme examples/themes/editorial
 | `--accent` | Links, buttons, highlights | `#2d618a` | `#86b4da` |
 | `--accent-ink` | Text on accent buttons | `#ffffff` | `#0d1a26` |
 | `--accent-soft` | Accent backgrounds (source chips, podcast box) | `#e6eef5` | `#1a2c3c` |
-| `--marker` | Highlighter: under section titles, and selected text | `#bbd524` | `#5d6b12` |
+| `--marker` | Highlighter: under section titles, and selected text | `#c5d500` | `#5c6300` |
 | `--decide` | "needs your judgment": text | `#b42318` | `#ff8a80` |
 | `--decide-soft` | "needs your judgment": background | `#fdecea` | `#3a1f1d` |
 | `--review` | "worth a look" and warnings: text | `#8a5d00` | `#f5c451` |
 | `--review-soft` | "worth a look" and warnings: background | `#fff6db` | `#352c14` |
 | `--routine` | Routine decisions: text | `#3f6b4e` | `#8fd0a6` |
 | `--routine-soft` | Routine decisions: background | `#e8f3ec` | `#1b2e22` |
-| `--hl` | Highlighted line in the source viewer | `#e6f0a3` | `#3d4510` |
+| `--hl` | Highlighted line in the source viewer | `#ecf09a` | `#3e4200` |
 | `--font` | Text font | `-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif` | same |
 | `--mono` | Code font | `ui-monospace, SFMono-Regular, Menlo, monospace` | same |
 | `--radius` | Corner radius of cards | `12px` | same |
