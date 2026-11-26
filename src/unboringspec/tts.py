@@ -20,6 +20,7 @@ Adding an engine: subclass Engine, register it in ENGINES. See CONTRIBUTING.md.
 from __future__ import annotations
 
 import base64
+import random
 import os
 import re
 import shutil
@@ -148,6 +149,10 @@ class Engine(ABC):
     def voices(self, lang: str) -> dict[Role, str]:
         """Default voices for the guide and the skeptic in this language."""
 
+    def cast(self, lang: str, rng: random.Random | None = None) -> dict[Role, str]:
+        """The voices for one recording. Engines with a cast for this language pick from it (#61)."""
+        return dict(self.voices(lang))
+
     @abstractmethod
     def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
         """Write one turn as a 24 kHz mono 16-bit WAV. `terms` are (word, language) pairs to say in
@@ -186,6 +191,62 @@ KOKORO_VOICES = {
     "ja": {"guide": "jf_alpha", "skeptic": "jm_kumo"},
     "zh": {"guide": "zf_xiaobei", "skeptic": "zm_yunjian"},
 }
+
+# More than one pair per language (#61): each recording picks a guide and a skeptic at random.
+# Roles keep their lists (the script names the hosts before voices are picked, and a female guide
+# with a male skeptic is easy to tell apart). Specs: a voice, a blend "a*0.6+b*0.4", and "@-2" to
+# shift the pitch two semitones (needs ffmpeg). Each list below was chosen by ear.
+KOKORO_CAST = {
+    "es": {
+        "guide": ["ef_dora", "ef_dora*0.5+af_bella*0.5", "ef_dora*0.6+em_alex*0.4"],
+        "skeptic": ["em_alex", "em_santa", "em_alex*0.6+em_santa*0.4", "em_alex@-2"],
+    },
+}
+VOICE_NAME = re.compile(r"[a-z]{2}_[a-z0-9]+")
+MAX_SHIFT = 6  # semitones; beyond that a voice sounds processed
+
+
+def parse_voice(spec: str) -> tuple[list[tuple[str, float]], float]:
+    """'em_alex*0.6+em_santa*0.4@-2' -> ([('em_alex', 0.6), ('em_santa', 0.4)], -2.0).
+
+    Weights are normalised to add up to 1; a voice without a weight counts 1.
+    """
+    m = re.fullmatch(r"\s*(.+?)\s*(?:@\s*([+-]?\d+(?:\.\d+)?))?\s*", spec or "")
+    if not m:
+        raise ValueError(f"Not a voice: {spec!r}")
+    blend = []
+    for part in m.group(1).split("+"):
+        name, _, weight = part.partition("*")
+        name = name.strip()
+        if not VOICE_NAME.fullmatch(name):
+            raise ValueError(f"Not a voice name: {name!r} (in {spec!r})")
+        try:
+            w = float(weight) if weight.strip() else 1.0
+        except ValueError:
+            raise ValueError(f"Not a weight: {weight!r} (in {spec!r})") from None
+        if w <= 0:
+            raise ValueError(f"Weights must be positive (in {spec!r})")
+        blend.append((name, w))
+    total = sum(w for _, w in blend)
+    shift = float(m.group(2) or 0)
+    if abs(shift) > MAX_SHIFT:
+        raise ValueError(f"Pitch shifts go up to {MAX_SHIFT} semitones (in {spec!r})")
+    return [(n, w / total) for n, w in blend], shift
+
+
+def shift_pitch(path: Path, semitones: float) -> None:
+    """Lower or raise a WAV's pitch without changing its speed (ffmpeg)."""
+    if not semitones:
+        return
+    factor = 2 ** (semitones / 12)
+    tmp = path.with_name(path.stem + ".pitch.wav")
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
+         "-af", f"asetrate={SAMPLE_RATE}*{factor:.6f},aresample={SAMPLE_RATE},atempo={1 / factor:.6f}",
+         "-ac", "1", "-sample_fmt", "s16", str(tmp)],
+        check=True,
+    )
+    tmp.replace(path)
 
 
 def kokoro_dir() -> Path:
@@ -255,6 +316,31 @@ class KokoroEngine(Engine):
     def voices(self, lang: str) -> dict[Role, str]:
         return KOKORO_VOICES.get(_lang(lang), KOKORO_VOICES["en"])
 
+    def cast(self, lang: str, rng: random.Random | None = None) -> dict[Role, str]:
+        pool = KOKORO_CAST.get(_lang(lang))
+        if not pool:
+            return dict(self.voices(lang))
+        rng = rng or random.Random()
+        can_shift = bool(shutil.which("ffmpeg"))
+        pick = {}
+        for role in ("guide", "skeptic"):
+            options = [v for v in pool[role] if can_shift or "@" not in v]
+            pick[role] = rng.choice(options)
+        return pick
+
+    def _style(self, voice: str):
+        """A voice name for Kokoro, or the blended style vector for a blend."""
+        blend, _ = parse_voice(voice)
+        known = set(self._model.get_voices())
+        unknown = [n for n, _ in blend if n not in known]
+        if unknown:
+            raise EngineUnavailable(
+                f"Kokoro has no voice {', '.join(unknown)}.", "unboring podcast engines --lang <code> lists them"
+            )
+        if len(blend) == 1:
+            return blend[0][0]
+        return sum(w * self._model.get_voice_style(n) for n, w in blend)
+
     def _phonemes(self, piece: str, lang: str) -> str:
         # Hyphens and underscores in names ("Control-M") are read as spaces, not as "minus".
         return self._model.tokenizer.phonemize(re.sub(r"[-_]", " ", piece), lang).strip()
@@ -272,6 +358,11 @@ class KokoroEngine(Engine):
                     f"Kokoro could not load {model.name}: {e}.",
                     f"delete {kokoro_dir()} and run `unboring podcast setup` again, or use --engine system",
                 ) from e
+        try:
+            _, shift = parse_voice(voice)
+        except ValueError as e:
+            raise EngineUnavailable(str(e), "a voice is a name, a blend like a*0.6+b*0.4, plus @-2 for pitch") from e
+        style = self._style(voice)
         base = KOKORO_LANGS.get(_lang(lang), "en-us")
         pieces = split_by_language(text, terms)
         if any(piece_lang for _, piece_lang in pieces):
@@ -283,12 +374,14 @@ class KokoroEngine(Engine):
                     for piece, piece_lang in pieces
                 ) if p
             )
-            samples, rate = self._model.create(phonemes, voice=voice, speed=speed, lang=base, is_phonemes=True)
+            samples, rate = self._model.create(phonemes, voice=style, speed=speed, lang=base, is_phonemes=True)
         else:
-            samples, rate = self._model.create(text, voice=voice, speed=speed, lang=base)
+            samples, rate = self._model.create(text, voice=style, speed=speed, lang=base)
         pcm = (np.clip(samples, -1.0, 1.0) * 32767).astype("<i2").tobytes()
         write_wav(out, pcm, rate)
         normalize_wav(out)
+        if shift and shutil.which("ffmpeg"):
+            shift_pitch(out, shift)
 
 
 # --- macOS: say ------------------------------------------------------------------

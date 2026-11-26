@@ -107,7 +107,7 @@ def theme(page: str, lang: str) -> str:
     return page.replace("__THEME_HEAD__", THEME_HEAD).replace("__THEME_BUTTON__", THEME_BUTTON.format(label=UI[lang]["theme"]))
 
 
-def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_name: str) -> str:
+def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_name: str) -> tuple[str, dict]:
     from unboringspec.tts import assemble, pick_engine
 
     parsed = parse_script(script_path.read_text(encoding="utf-8"))
@@ -115,7 +115,7 @@ def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_nam
     if problems:
         raise SystemExit(f"{script_path}: {problems}")
     engine = pick_engine(engine_name)
-    voices = engine.voices(parsed.language)
+    voices = engine.cast(parsed.language)
     speed = tone_speed(parsed.tone)
     with tempfile.TemporaryDirectory() as tmp:
         parts = []
@@ -129,8 +129,8 @@ def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_nam
             old.unlink(missing_ok=True)
         audio = assemble(parts, folder / "podcast")
     (folder / "podcast.md").write_text(transcript_markdown(parsed, turns), encoding="utf-8")
-    print(f"  {folder.name}: {audio.name} recorded with {engine.name}")
-    return engine.name
+    print(f"  {folder.name}: {audio.name} recorded with {engine.name} ({voices['guide']} / {voices['skeptic']})")
+    return engine.name, voices
 
 
 def build(demo: Demo, record: bool, engine: str) -> dict:
@@ -145,13 +145,13 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
 
     script = folder / "podcast.json"
     if record or not any((folder / n).exists() for n in ("podcast.mp3", "podcast.wav")):
-        used = voice(folder, script, ir.documents, engine)
-        kept = {}
+        used, voices = voice(folder, script, ir.documents, engine)
+        kept = {"voices": voices}
     else:
         meta = folder / "podcast.meta.json"
         old = json.loads(meta.read_text()) if meta.exists() else {}
         used = old.get("engine", "kokoro")
-        kept = {"recorded": old["recorded"]} if "recorded" in old else {}  # the audio did not change
+        kept = {k: old[k] for k in ("recorded", "voices") if k in old}  # the audio did not change
     tone = parse_script(script.read_text(encoding="utf-8")).tone
     write_podcast_meta(folder, ir.documents, engine=used, tone=tone, **kept)
     style = load_theme(ROOT / demo.theme) if demo.theme else None

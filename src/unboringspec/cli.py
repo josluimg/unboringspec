@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import webbrowser
 from pathlib import Path
 from typing import List, Optional
@@ -388,8 +389,8 @@ def podcast_render(
     spec: Path = SPEC_ARG,
     script: Optional[Path] = typer.Option(None, "--script", help="Script JSON. Default: .unboring/<feature>/podcast.json"),
     engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto (Kokoro if ready, else system), system, kokoro, say, sapi or espeak."),
-    voice_guide: Optional[str] = typer.Option(None, "--voice-guide", help="Override the guide's voice."),
-    voice_skeptic: Optional[str] = typer.Option(None, "--voice-skeptic", help="Override the skeptic's voice."),
+    voice_guide: Optional[str] = typer.Option(None, "--voice-guide", help="Pin the guide's voice. With Kokoro also a blend (ef_dora*0.6+em_alex*0.4) and a pitch shift (@-2)."),
+    voice_skeptic: Optional[str] = typer.Option(None, "--voice-skeptic", help="Pin the skeptic's voice (same syntax). Default: a pair picked at random from the language's cast."),
     speed: Optional[float] = typer.Option(
         None, "--speed", min=0.5, max=2.0, help="Speech speed (default: the tone's, e.g. faster for sports)."
     ),
@@ -424,7 +425,7 @@ def podcast_render(
 
     try:
         tts = pick_engine(engine)
-        voices = tts.voices(parsed.language)
+        voices = tts.cast(parsed.language)  # a pair picked at random where the engine has a cast (#61)
     except EngineUnavailable as e:
         console.print(f"[red]{escape(str(e))}[/]")
         raise typer.Exit(1)
@@ -432,6 +433,8 @@ def podcast_render(
         voices["guide"] = voice_guide
     if voice_skeptic:
         voices["skeptic"] = voice_skeptic
+    if any("@" in v for v in voices.values()) and not shutil.which("ffmpeg"):
+        console.print("[yellow]⚠ Pitch shifts (@) need ffmpeg; those voices keep their own pitch.[/]")
     console.print(
         f"Voicing {len(turns)} turns, {word_count(turns)} words with [cyan]{tts.name}[/] "
         f"(guide: {escape(voices['guide'])}, skeptic: {escape(voices['skeptic'])})"
@@ -467,7 +470,7 @@ def podcast_render(
     (wd / "podcast.md").write_text(transcript_markdown(parsed, turns), encoding="utf-8")
     from .render import write_podcast_meta
 
-    write_podcast_meta(wd, ir.documents, engine=tts.name, tone=parsed.tone)
+    write_podcast_meta(wd, ir.documents, engine=tts.name, tone=parsed.tone, voices=voices)
     console.print(f"[green]✓[/] {audio}  ({int(seconds // 60)}:{int(seconds % 60):02d} min)")
     console.print(f"[green]✓[/] {wd / 'podcast.md'}  (transcript)")
 
