@@ -1,6 +1,7 @@
 # Setup and usage
 
 Pick the section that matches where you are. The podcast has its own guide: [podcast.md](podcast.md).
+Questions about costs, tokens or requirements: [faq.md](faq.md).
 
 - [Install](#install)
 - [In your IDE with a coding agent](#in-your-ide-with-a-coding-agent) (recommended)

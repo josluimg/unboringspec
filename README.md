@@ -52,6 +52,7 @@ The review opens in your browser; once the episode is recorded, it plays at the 
 
 - 📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, the review loop, CI, all commands.
 - 🎧 **[Podcast guide](docs/podcast.md)**: tones, custom styles, and voices on macOS, Windows and Linux.
+- ❓ **[FAQ](docs/faq.md)**: how the voices are made, what costs tokens and what doesn't, requirements.
 
 ## Everything in the review
 
