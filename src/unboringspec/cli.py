@@ -438,6 +438,12 @@ def podcast_render(
     )
     if engine == "auto" and tts.tier == "system":
         console.print("[dim]Using system voices. For natural voices: unboring podcast setup[/]")
+    terms = [(term.text, term.lang) for term in parsed.terms]
+    if terms and tts.tier == "system":
+        console.print(
+            f"[dim]{len(terms)} terms in another language (e.g. {escape(terms[0][0])}) are read with "
+            f"{escape(parsed.language)} rules by system voices; natural voices say them right.[/]"
+        )
 
     with tempfile.TemporaryDirectory(prefix="unboring-") as tmp:
         parts = []
@@ -446,7 +452,7 @@ def podcast_render(
                 status.update(f"Recording turn {i}/{len(turns)} · {t.name}")
                 part = Path(tmp) / f"{i:04d}.wav"
                 try:
-                    tts.synth(t.text, voices[t.role], parsed.language, speed, part)
+                    tts.synth(t.text, voices[t.role], parsed.language, speed, part, terms=terms)
                 except EngineUnavailable as e:
                     status.stop()
                     console.print(f"[red]{escape(str(e))}[/]")

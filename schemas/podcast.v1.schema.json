@@ -59,6 +59,28 @@
       "title": "Host",
       "type": "object"
     },
+    "Term": {
+      "description": "A word the voices must say in another language: a product name or team jargon.",
+      "properties": {
+        "text": {
+          "description": "The word or name exactly as written in the turns, e.g. 'Snowflake'.",
+          "maxLength": 60,
+          "title": "Text",
+          "type": "string"
+        },
+        "lang": {
+          "description": "BCP 47 code of the language it is pronounced in, e.g. 'en'.",
+          "title": "Lang",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "lang"
+      ],
+      "title": "Term",
+      "type": "object"
+    },
     "Turn": {
       "description": "One spoken turn. Written for the ear: no Markdown, no lists, no file paths, no IDs like FR-006.",
       "properties": {
@@ -124,6 +146,15 @@
         "$ref": "#/$defs/Turn"
       },
       "title": "Turns",
+      "type": "array"
+    },
+    "terms": {
+      "description": "Words in the turns that are pronounced in another language than the script's: product names and technical jargon the team says in English. Natural voices say them in that language.",
+      "items": {
+        "$ref": "#/$defs/Term"
+      },
+      "maxItems": 80,
+      "title": "Terms",
       "type": "array"
     }
   },

@@ -100,7 +100,7 @@ class FakeEngine(tts.Engine):
     def voices(self, lang):
         return {"guide": "g", "skeptic": "s"}
 
-    def synth(self, text, voice, lang, speed, out):
+    def synth(self, text, voice, lang, speed, out, terms=()):
         tts.write_wav(out, b"\x01\x00" * (tts.SAMPLE_RATE // 10))  # 0.1 s per turn
 
 
@@ -213,7 +213,7 @@ def test_schema_command_podcast():
 
 # --- tones -----------------------------------------------------------------------
 
-from unboringspec.podcast import DEFAULT_TONE, TONES, resolve_tone, tone_speed  # noqa: E402
+from unboringspec.podcast import BASE_SPEED, DEFAULT_TONE, TONES, resolve_tone, tone_speed  # noqa: E402
 
 
 def test_every_preset_tone_is_complete():
@@ -226,7 +226,7 @@ def test_resolve_tone_preset_custom_and_default():
     assert resolve_tone(None)[0] == "casual"
     assert resolve_tone("ROAST")[0] == "roast"
     tone_id, style, speed = resolve_tone("como dos piratas discutiendo un mapa")
-    assert tone_id == "custom" and "piratas" in style and speed == 1.0
+    assert tone_id == "custom" and "piratas" in style and speed == BASE_SPEED == 1.2
     with pytest.raises(ValueError):
         resolve_tone("x" * 400)
 
@@ -246,7 +246,7 @@ def test_render_uses_tone_speed_and_shows_label(tmp_path, monkeypatch):
     speeds = []
 
     class SpeedSpy(FakeEngine):
-        def synth(self, text, voice, lang, speed, out):
+        def synth(self, text, voice, lang, speed, out, terms=()):
             speeds.append(speed)
             super().synth(text, voice, lang, speed, out)
 
@@ -258,7 +258,7 @@ def test_render_uses_tone_speed_and_shows_label(tmp_path, monkeypatch):
     (wd / "podcast.json").write_text(json.dumps(data))
     r = runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "spy"])
     assert r.exit_code == 0, r.output
-    assert set(speeds) == {tone_speed("sports")} == {1.1}
+    assert set(speeds) == {tone_speed("sports")} == {1.32}  # 1.2 base x sports pace 1.1
     assert "Retransmisión deportiva" in (wd / "review.html").read_text()  # Spanish script → Spanish page
 
     speeds.clear()
@@ -279,3 +279,108 @@ def test_tones_command_lists_presets():
     assert r.exit_code == 0
     for t in TONES:
         assert t in r.output
+
+
+# --- #57: terms said in their own language, base speed, the player ------------------
+
+
+def test_split_by_language_whole_words_case_and_longest_first():
+    split = tts.split_by_language
+    terms = [("Snowflake", "en"), ("Control-M", "en"), ("Control", "en")]
+    assert split("Borra los ficheros de snowflake y lo lanza Control-M.", terms) == [
+        ("Borra los ficheros de ", None), ("snowflake", "en"), (" y lo lanza ", None), ("Control-M", "en"), (".", None),
+    ]
+    assert split("Snowflakes no es un término", terms) == [("Snowflakes no es un término", None)]  # whole words only
+    assert split("Sin términos", []) == [("Sin términos", None)]
+
+
+class FakeTokenizer:
+    def __init__(self):
+        self.calls = []
+
+    def phonemize(self, text, lang="en-us", norm=True):
+        self.calls.append((text, lang))
+        return f"[{lang}:{text.strip()}]" if text.strip(" ,.") else text.strip()
+
+
+class FakeKokoro:
+    def __init__(self):
+        self.tokenizer = FakeTokenizer()
+        self.created = []
+
+    def create(self, text, voice, speed=1.0, lang="en-us", is_phonemes=False):
+        self.created.append((text, lang, is_phonemes))
+        import numpy as np
+
+        return np.zeros(240, dtype="float32"), tts.SAMPLE_RATE
+
+
+def test_kokoro_says_listed_terms_with_their_own_language(tmp_path):
+    pytest.importorskip("numpy")
+    engine = tts.KokoroEngine()
+    engine._model = FakeKokoro()
+    engine.synth("Los ficheros de Snowflake los lanza Control-M.", "ef_dora", "es", 1.2, tmp_path / "a.wav",
+                 terms=[("Snowflake", "en"), ("Control-M", "en")])
+    assert ("Snowflake", "en-us") in engine._model.tokenizer.calls
+    assert ("Control M", "en-us") in engine._model.tokenizer.calls  # hyphen read as a space, not "minus"
+    assert ("Los ficheros de ", "es") in engine._model.tokenizer.calls
+    text, lang, is_phonemes = engine._model.created[0]
+    assert is_phonemes and lang == "es" and "[en-us:Snowflake]" in text
+
+    engine._model = FakeKokoro()  # no terms in the turn: plain text, as before
+    engine.synth("Nada en inglés.", "ef_dora", "es", 1.2, tmp_path / "b.wav", terms=[("Snowflake", "en")])
+    assert engine._model.created[0] == ("Nada en inglés.", "es", False)
+
+
+def test_terms_are_optional_in_the_contract():
+    assert parse_script(json.dumps(script())).terms == []
+    parsed = parse_script(json.dumps(script(terms=[{"text": "Snowflake", "lang": "en"}])))
+    assert parsed.terms[0].text == "Snowflake"
+    jsonschema.validate(script(terms=[{"text": "endpoint", "lang": "en"}]), json.loads(PUBLISHED.read_text()))
+
+
+def test_prompt_keeps_jargon_and_says_especificacion():
+    prompt = build_podcast_prompt(get_adapter(EXAMPLE_SPEC).load(EXAMPLE_SPEC), None, "es", None)
+    assert "la especificación" in prompt and 'never say "spec" outside English' in prompt
+    assert "Keep technical jargon" in prompt and 'List in "terms"' in prompt
+
+
+def test_render_passes_terms_to_the_engine(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    seen = []
+
+    class TermsSpy(FakeEngine):
+        def synth(self, text, voice, lang, speed, out, terms=()):
+            seen.append(list(terms))
+            super().synth(text, voice, lang, speed, out)
+
+    monkeypatch.setitem(tts.ENGINES, "spy", TermsSpy)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    data = json.loads(EXAMPLE_SCRIPT.read_text())
+    data["terms"] = [{"text": "HEIC", "lang": "en"}]
+    (wd / "podcast.json").write_text(json.dumps(data))
+    r = runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "spy"])
+    assert r.exit_code == 0, r.output
+    assert seen and all(t == [("HEIC", "en")] for t in seen)
+
+
+def test_every_tone_is_relative_to_the_base_speed():
+    assert TONES["casual"].speed == BASE_SPEED == 1.2
+    assert TONES["noir"].speed < BASE_SPEED < TONES["sports"].speed
+
+
+def test_player_with_visible_speed_and_native_fallback(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(tts.ENGINES, "fake", FakeEngine)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    shutil.copy(EXAMPLE_SCRIPT, wd / "podcast.json")  # a Spanish script
+    assert runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "fake"]).exit_code == 0
+    html = (wd / "review.html").read_text()
+    player = html.split('<div class="player"')[1].split("<audio")[0]
+    assert 'aria-label="Reproductor del episodio"' in html
+    assert [b for b in ("1×", "1,25×", "1,5×", "2×") if b in player] == ["1×", "1,25×", "1,5×", "2×"]
+    assert '<audio controls preload="metadata"' in html  # the native player stays, for pages without JavaScript
+    assert "html:not(.js) .player { display: none; }" in html and "html.js .listen audio { display: none; }" in html
+    assert 'localStorage.setItem("unboring-speed"' in html

@@ -76,6 +76,24 @@ h3 { font-size: 1rem; margin: 0; }
 .listen { background: var(--accent-soft); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; }
 .listen-title { font-weight: 600; margin: 0 0 8px; }
 .listen audio { width: 100%; }
+/* The player: drawn with the page's tokens, so it follows the theme. */
+html.js .listen audio { display: none; }
+html:not(.js) .player { display: none; }
+.player { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.pl-play { flex: none; width: 40px; height: 40px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; padding: 0; }
+.pl-play svg { width: 20px; height: 20px; fill: currentColor; }
+.pl-play .i-pause, .player.playing .pl-play .i-play { display: none; }
+.player.playing .pl-play .i-pause { display: block; }
+.pl-clock { font: .82rem var(--mono); color: var(--muted); white-space: nowrap; }
+.pl-seek { flex: 1 1 160px; min-width: 0; accent-color: var(--accent); cursor: pointer; }
+.pl-speeds { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.pl-speeds button { font: 600 .8rem var(--font); border: 0; background: transparent; color: var(--muted);
+  padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+.pl-speeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.pl-play:focus-visible, .pl-speeds button:focus-visible, .pl-seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 560px) { .player { gap: 10px 8px; } .pl-seek { flex-basis: calc(100% - 52px); } .pl-speeds { margin-left: auto; } .pl-speeds button { padding: 4px 7px; } }
 .listen details { background: var(--surface); margin: 12px 0 0; }
 .turn { margin: 8px 0; font-size: .95rem; }
 .turn strong { display: inline-block; min-width: 4.5em; }
@@ -250,6 +268,18 @@ details[open] > summary { margin-bottom: 8px; }
       {% endif %}{{ t.record_new.format(cmd="<code>/unboring-podcast</code>") | safe }}
     </p>
     {% endif %}
+    {# Our own controls, so the speed is always in sight (#57). Without JavaScript the native ones show. #}
+    <div class="player" role="group" aria-label="{{ t.player_label }}">
+      <button type="button" class="pl-play" aria-label="{{ t.player_play }}">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+      </button>
+      <input class="pl-seek" type="range" min="0" max="0" step="1" value="0" aria-label="{{ t.player_seek }}">
+      <span class="pl-clock" aria-hidden="true"><span class="pl-time">0:00</span> / <span class="pl-dur">0:00</span></span>
+      <div class="pl-speeds" role="group" aria-label="{{ t.player_speed }}">
+        {% for r in [1, 1.25, 1.5, 2] %}<button type="button" data-rate="{{ r }}" aria-pressed="{{ 'true' if r == 1 else 'false' }}">{{ ("%g" % r).replace(".", ",") if lang == "es" else "%g" % r }}×</button>{% endfor %}
+      </div>
+    </div>
     <audio controls preload="metadata" src="{{ podcast.audio }}"></audio>
     <details>
       <summary>{{ t.transcript }}</summary>
@@ -599,6 +629,49 @@ details[open] > summary { margin-bottom: 8px; }
     a.href = URL.createObjectURL(blob); a.download = "review.md"; a.click();
     URL.revokeObjectURL(a.href);
   });
+
+  // Podcast player (#57): play / pause, seek, time, and the speed always in sight, remembered here.
+  const player = document.querySelector(".player");
+  if (player) {
+    const audio = player.parentElement.querySelector("audio");
+    const play = player.querySelector(".pl-play"), seek = player.querySelector(".pl-seek");
+    const time = player.querySelector(".pl-time"), dur = player.querySelector(".pl-dur");
+    const clock = s => { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+    const setRate = r => {
+      audio.playbackRate = r;
+      player.querySelectorAll(".pl-speeds button").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.rate) === r)));
+    };
+    let saved = 1;
+    try { saved = Number(localStorage.getItem("unboring-speed")) || 1; } catch (e) {}
+    setRate(saved);
+    player.querySelectorAll(".pl-speeds button").forEach(b => b.addEventListener("click", () => {
+      const r = Number(b.dataset.rate);
+      setRate(r);
+      try { localStorage.setItem("unboring-speed", String(r)); } catch (e) {}
+    }));
+    play.addEventListener("click", () => { audio.paused ? audio.play() : audio.pause(); });
+    const sync = () => {
+      const playing = !audio.paused;
+      player.classList.toggle("playing", playing);
+      play.setAttribute("aria-label", playing ? ui.js_player_pause : ui.js_player_play);
+    };
+    audio.addEventListener("play", sync);
+    audio.addEventListener("pause", sync);
+    audio.addEventListener("ended", sync);
+    const ready = () => {
+      seek.max = String(Math.floor(audio.duration || 0));
+      dur.textContent = clock(audio.duration);
+      audio.playbackRate = Number(player.querySelector('.pl-speeds [aria-pressed="true"]').dataset.rate);
+    };
+    audio.addEventListener("loadedmetadata", ready);
+    if (audio.readyState >= 1) ready();  // metadata already in (cached audio)
+    audio.addEventListener("timeupdate", () => {
+      if (!seek.matches(":active")) seek.value = String(Math.floor(audio.currentTime));
+      time.textContent = clock(audio.currentTime);
+      seek.setAttribute("aria-valuetext", `${clock(audio.currentTime)} / ${clock(audio.duration)}`);
+    });
+    seek.addEventListener("input", () => { audio.currentTime = Number(seek.value); time.textContent = clock(audio.currentTime); });
+  }
 
   document.getElementById("copy").addEventListener("click", async e => {
     const text = buildReview();

@@ -30,7 +30,7 @@ class FakeEngine(tts.Engine):
     def voices(self, lang):
         return {"guide": "g", "skeptic": "s"}
 
-    def synth(self, text, voice, lang, speed, out):
+    def synth(self, text, voice, lang, speed, out, terms=()):
         tts.write_wav(out, b"\x01\x00" * (tts.SAMPLE_RATE // 20))
 
 

@@ -28,6 +28,7 @@ import sys
 import tempfile
 import urllib.request
 import wave
+from collections.abc import Sequence
 from abc import ABC, abstractmethod
 from array import array
 from pathlib import Path
@@ -108,6 +109,31 @@ def normalize_wav(path: Path) -> None:
 
 # --- engine contract -------------------------------------------------------------
 
+Terms = Sequence[tuple[str, str]]  # (word, BCP 47 language), e.g. ("Snowflake", "en")
+
+
+def split_by_language(text: str, terms) -> list[tuple[str, str | None]]:
+    """Cut a turn into pieces: (piece, language) for the listed terms, (piece, None) for the rest.
+
+    Terms match whole words, case-insensitively, longest first, so "Control-M" wins over "Control".
+    """
+    terms = [(w.strip(), lang) for w, lang in terms if w.strip()]
+    if not terms:
+        return [(text, None)] if text else []
+    by_word = {w.lower(): lang for w, lang in terms}
+    words = sorted(by_word, key=len, reverse=True)
+    pattern = re.compile(r"(?<!\w)(" + "|".join(re.escape(w) for w in words) + r")(?!\w)", re.IGNORECASE)
+    pieces: list[tuple[str, str | None]] = []
+    pos = 0
+    for m in pattern.finditer(text):
+        if m.start() > pos:
+            pieces.append((text[pos:m.start()], None))
+        pieces.append((m.group(0), by_word[m.group(0).lower()]))
+        pos = m.end()
+    if pos < len(text):
+        pieces.append((text[pos:], None))
+    return pieces
+
 
 class Engine(ABC):
     name: str = ""
@@ -123,8 +149,9 @@ class Engine(ABC):
         """Default voices for the guide and the skeptic in this language."""
 
     @abstractmethod
-    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path) -> None:
-        """Write one turn as a 24 kHz mono 16-bit WAV."""
+    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
+        """Write one turn as a 24 kHz mono 16-bit WAV. `terms` are (word, language) pairs to say in
+        that language (#57); engines that cannot switch language mid-sentence ignore them."""
 
 
 def _pick_two(candidates: list[tuple[str, str]]) -> dict[Role, str]:
@@ -228,7 +255,11 @@ class KokoroEngine(Engine):
     def voices(self, lang: str) -> dict[Role, str]:
         return KOKORO_VOICES.get(_lang(lang), KOKORO_VOICES["en"])
 
-    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path) -> None:
+    def _phonemes(self, piece: str, lang: str) -> str:
+        # Hyphens and underscores in names ("Control-M") are read as spaces, not as "minus".
+        return self._model.tokenizer.phonemize(re.sub(r"[-_]", " ", piece), lang).strip()
+
+    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
         import numpy as np
         from kokoro_onnx import Kokoro
 
@@ -241,7 +272,20 @@ class KokoroEngine(Engine):
                     f"Kokoro could not load {model.name}: {e}.",
                     f"delete {kokoro_dir()} and run `unboring podcast setup` again, or use --engine system",
                 ) from e
-        samples, rate = self._model.create(text, voice=voice, speed=speed, lang=KOKORO_LANGS.get(_lang(lang), "en-us"))
+        base = KOKORO_LANGS.get(_lang(lang), "en-us")
+        pieces = split_by_language(text, terms)
+        if any(piece_lang for _, piece_lang in pieces):
+            # Each piece phonemized with its own language's rules, so "Snowflake" in a Spanish turn
+            # is said /snˈoʊfleɪk/ and not /snowflˈake/; Kokoro then speaks the phonemes.
+            phonemes = " ".join(
+                p for p in (
+                    self._phonemes(piece, KOKORO_LANGS.get(_lang(piece_lang), base) if piece_lang else base)
+                    for piece, piece_lang in pieces
+                ) if p
+            )
+            samples, rate = self._model.create(phonemes, voice=voice, speed=speed, lang=base, is_phonemes=True)
+        else:
+            samples, rate = self._model.create(text, voice=voice, speed=speed, lang=base)
         pcm = (np.clip(samples, -1.0, 1.0) * 32767).astype("<i2").tobytes()
         write_wav(out, pcm, rate)
         normalize_wav(out)
@@ -284,7 +328,7 @@ class SayEngine(Engine):
         ranked = sorted(installed, key=lambda v: order.index(v) if v in order else len(order))
         return _pick_two([(v, SAY_GENDER.get(v, "")) for v in ranked])
 
-    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path) -> None:
+    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
         subprocess.run(
             ["say", "-v", voice, "-r", str(int(180 * speed)), "-o", str(out), "--file-format=WAVE",
              f"--data-format=LEI16@{SAMPLE_RATE}", text],
@@ -344,7 +388,7 @@ class SapiEngine(Engine):
             )
         return _pick_two(installed)
 
-    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path) -> None:
+    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
         rate = max(-10, min(10, round((speed - 1.0) * 10)))
         with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8", delete=False) as f:
             f.write(text)
@@ -387,7 +431,7 @@ class EspeakEngine(Engine):
         lang = _lang(lang)
         return {"guide": f"{lang}+f3", "skeptic": f"{lang}+m3"}
 
-    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path) -> None:
+    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
         subprocess.run(
             [self._binary(), "-v", voice, "-s", str(int(165 * speed)), "-w", str(out), "--stdin"],
             input=text,
