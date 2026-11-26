@@ -60,6 +60,7 @@ STRINGS: dict[str, dict[str, str]] = {
         # sections
         "h_judgment": "Needs your judgment",
         "judgment_callout": "Only these need a human call. Everything below is optional depth.",
+        "must_decide_lead": "The calls this spec leaves to you:",
         "answer_placeholder": "Your answer for the agent",
         "nothing_blocked": "Nothing is blocked on you. Skim the decisions and you are done.",
         "h_decisions": "Decisions worth a look", "no_debatable": "No debatable decisions found.",
@@ -92,7 +93,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "js_review_title": "Review: {feature}", "js_generated_with": "Generated with unboringspec on {date}",
         "js_answers_h": "Answers to open questions", "js_answer": "Answer",
         "js_revisit_h": "Decisions to revisit", "js_reviewer": "Reviewer", "js_no_comment": "(no comment)",
-        "js_approved_h": "Approved",
+        "js_approved_h": "Approved", "js_must_h": "Still to decide",
     },
     "es": {
         "generated_by": "generado por {who}", "who_agent": "el agente", "who_heuristic": "análisis sin agente",
@@ -138,6 +139,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "tone_custom": "Tono personalizado",
         "h_judgment": "Necesita tu decisión",
         "judgment_callout": "Solo esto necesita una decisión humana. Todo lo demás es profundidad opcional.",
+        "must_decide_lead": "Lo que esta spec deja en tus manos:",
         "answer_placeholder": "Tu respuesta para el agente",
         "nothing_blocked": "Nada depende de ti. Echa un vistazo a las decisiones y listo.",
         "h_decisions": "Decisiones que merece la pena mirar", "no_debatable": "No hay decisiones discutibles.",
@@ -167,7 +169,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "js_review_title": "Revisión: {feature}", "js_generated_with": "Generado con unboringspec el {date}",
         "js_answers_h": "Respuestas a las preguntas abiertas", "js_answer": "Respuesta",
         "js_revisit_h": "Decisiones a revisar", "js_reviewer": "Revisor", "js_no_comment": "(sin comentario)",
-        "js_approved_h": "Aprobadas",
+        "js_approved_h": "Aprobadas", "js_must_h": "Pendiente de decidir",
     },
 }
 
