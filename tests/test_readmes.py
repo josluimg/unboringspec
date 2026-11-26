@@ -21,7 +21,12 @@ def heading_levels(text: str) -> list[int]:
 
 
 def link_targets(text: str) -> Counter:
-    return Counter(t for t in re.findall(r"\]\(([^)]+)\)", without_code(text)) if t not in SWITCHER)
+    """Per-language assets (docs/images/review-en.gif, review-es.gif) count as the same link."""
+    return Counter(
+        re.sub(r"-(en|es)(\.\w+)$", r"-<lang>\2", t)
+        for t in re.findall(r"\]\(([^)]+)\)", without_code(text))
+        if t not in SWITCHER
+    )
 
 
 def code_blocks(text: str) -> list[tuple[str, list[str]]]:
