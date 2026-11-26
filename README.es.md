@@ -1,6 +1,6 @@
 # unboringspec
 
-[English](README.md) · **Español**
+[🇬🇧 English](README.md) · **🇪🇸 Español**
 
 **Specs que tu cabeza sí quiere revisar.**
 

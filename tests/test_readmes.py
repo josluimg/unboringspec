@@ -52,8 +52,11 @@ def table_rows(text: str) -> int:
 
 
 def test_both_link_to_each_other_at_the_top():
-    assert "[Español](README.es.md)" in "\n".join(EN.splitlines()[:5])
-    assert "[English](README.md)" in "\n".join(ES.splitlines()[:5])
+    """The language switcher, with or without flags, and the same in both."""
+    en_top, es_top = "\n".join(EN.splitlines()[:5]), "\n".join(ES.splitlines()[:5])
+    assert re.search(r"\[(🇪🇸 )?Español\]\(README\.es\.md\)", en_top)
+    assert re.search(r"\[(🇬🇧 )?English\]\(README\.md\)", es_top)
+    assert ("🇬🇧" in en_top) == ("🇬🇧" in es_top), "add the flags to both language switchers"
 
 
 def test_same_sections():
