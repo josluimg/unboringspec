@@ -47,7 +47,7 @@ DEMOS = [
     Demo("speckit", "examples/speckit-es/specs/001-albumes-compartidos", "spec-kit",
          "All in Spanish · casual podcast", "es"),
     Demo("openspec", "examples/openspec/openspec/changes/add-invite-link-revocation", "OpenSpec · custom theme",
-         "Podcast in English · roast tone", "en", theme="examples/themes/roast.css"),
+         "Podcast in English · roast tone", "en", theme="examples/themes/corporate.css"),
     Demo("themed", "examples/speckit/specs/001-photo-albums", "spec-kit · custom theme",
          "Podcast in English · sports tone", "en", theme="examples/themes/brutalist.css"),
 ]

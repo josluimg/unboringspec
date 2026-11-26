@@ -1,0 +1,73 @@
+/* Example theme for unboringspec: "corporate".
+ * Sober red and white, like a company's internal tools: IBM Plex, a single deep red
+ * for emphasis, flat surfaces, thin rules and small corners.
+ * Copy it to your project as unboring.css, or try it once with:
+ *   unboring review specs/001-my-feature --offline --theme examples/themes/corporate.css
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --ink: #1b1c1f;
+  --muted: #5a5e66;
+  --line: #e1e2e5;
+  --accent: #a50e26;
+  --accent-ink: #ffffff;
+  --accent-soft: #f9ebed;
+  --marker: #f4d6db;
+  --decide: #a50e26;
+  --decide-soft: #fbeef0;
+  --review: #865400;
+  --review-soft: #fbf3e2;
+  --routine: #2f6a47;
+  --routine-soft: #eaf4ee;
+  --hl: #fbe4e8;
+  --font: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121315;
+    --surface: #1a1b1e;
+    --ink: #ececee;
+    --muted: #a4a7ae;
+    --line: #2c2e33;
+    --accent: #ef6b7b;
+    --accent-ink: #1a0508;
+    --accent-soft: #2d171b;
+    --marker: #4a1c24;
+    --decide: #ef6b7b;
+    --decide-soft: #2d171b;
+    --review: #e9b95c;
+    --review-soft: #2c2412;
+    --routine: #7fcf9f;
+    --routine-soft: #16271d;
+    --hl: #3a1a20;
+  }
+}
+
+/* Flat and quiet: thin rules instead of fills, one red line to lead the eye. */
+h1 { font-weight: 600; letter-spacing: -0.02em; padding-top: 14px; border-top: 3px solid var(--accent); width: fit-content; }
+h2 {
+  background: none; padding: 0 0 0 12px; margin-left: 0;
+  border-left: 3px solid var(--accent);
+  font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--muted);
+}
+h3 { font-weight: 600; }
+
+.tldr { border-top: 3px solid var(--accent); }
+.tldr .one { font-weight: 600; }
+.card, details, .changes, .followup, .listen, .tldr { box-shadow: none; }
+.listen { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); }
+.callout { border-left: 3px solid var(--decide); }
+
+.tag { border-radius: 2px; letter-spacing: .08em; }
+.pill { border-radius: 2px; }
+.pill b { color: var(--ink); }
+.src, .v, .primary, .secondary, textarea { border-radius: 2px; }
+.primary { font-weight: 500; }
+.secondary { font-weight: 500; }
