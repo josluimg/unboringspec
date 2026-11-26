@@ -486,6 +486,12 @@ def wav_seconds(path: Path) -> float:
         return w.getnframes() / w.getframerate()
 
 
+# Constant bitrate, not VBR: time maps exactly to bytes, so every browser can seek the episode over
+# HTTP ranges. With VBR, WebKit estimates the offset and can stall after a seek (#59). 64 kb/s mono
+# is plenty for speech at 24 kHz.
+MP3_ENCODING = ("-c:a", "libmp3lame", "-b:a", "64k")
+
+
 def assemble(parts: list[Path], out_stem: Path, pause_ms: int = PAUSE_MS) -> Path:
     """Join turn WAVs with pauses. MP3 when ffmpeg is available, WAV otherwise."""
     work = parts[0].parent
@@ -502,7 +508,7 @@ def assemble(parts: list[Path], out_stem: Path, pause_ms: int = PAUSE_MS) -> Pat
         out = out_stem.with_suffix(".mp3")
         subprocess.run(
             ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
-             "-ar", str(SAMPLE_RATE), "-ac", "1", "-c:a", "libmp3lame", "-q:a", "4", str(out)],
+             "-ar", str(SAMPLE_RATE), "-ac", "1", *MP3_ENCODING, str(out)],
             check=True,
         )
         return out

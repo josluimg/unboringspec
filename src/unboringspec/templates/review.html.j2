@@ -649,7 +649,31 @@ details[open] > summary { margin-bottom: 8px; }
       setRate(r);
       try { localStorage.setItem("unboring-speed", String(r)); } catch (e) {}
     }));
-    play.addEventListener("click", () => { audio.paused ? audio.play() : audio.pause(); });
+    // Playback that gets stuck waiting (after a seek, on a flaky connection) is reloaded at the same
+    // position instead of leaving the reader with a dead player (#59).
+    let stall = null;
+    const recover = () => {
+      if (audio.readyState >= 3 && !audio.seeking) return;  // it has data to go on: not stuck
+      const at = audio.currentTime, resume = !audio.paused;
+      audio.load();
+      audio.addEventListener("loadedmetadata", () => {
+        audio.currentTime = at;
+        if (resume) audio.play().catch(() => {});
+      }, { once: true });
+    };
+    const watch = () => { clearTimeout(stall); stall = setTimeout(recover, 5000); };
+    const calm = () => { clearTimeout(stall); };
+    audio.addEventListener("waiting", () => { if (!audio.paused) watch(); });
+    ["playing", "pause", "ended", "canplaythrough"].forEach(ev => audio.addEventListener(ev, calm));
+
+    play.addEventListener("click", () => {
+      if (audio.paused || audio.ended) {
+        watch();
+        audio.play().catch(err => { if (err && err.name !== "NotAllowedError") recover(); else calm(); });
+      } else {
+        audio.pause();
+      }
+    });
     const sync = () => {
       const playing = !audio.paused;
       player.classList.toggle("playing", playing);
@@ -665,12 +689,36 @@ details[open] > summary { margin-bottom: 8px; }
     };
     audio.addEventListener("loadedmetadata", ready);
     if (audio.readyState >= 1) ready();  // metadata already in (cached audio)
+
+    // Seek once, when the bar is let go: dragging only moves the thumb and the time label.
+    // Keyboard steps (no pointer involved) seek right away.
+    let dragging = false;
+    const seekTo = target => {
+      if (Math.abs(audio.currentTime - target) < 0.5) return;
+      audio.currentTime = target;
+      if (!audio.paused) watch();
+    };
+    seek.addEventListener("pointerdown", () => { dragging = true; });
+    const release = () => {
+      if (!dragging) return;
+      dragging = false;
+      seekTo(Number(seek.value));
+    };
+    seek.addEventListener("pointerup", release);
+    seek.addEventListener("pointercancel", release);
+    window.addEventListener("pointerup", release);
+    seek.addEventListener("input", () => {
+      time.textContent = clock(Number(seek.value));
+      if (!dragging) seekTo(Number(seek.value));
+    });
+    seek.addEventListener("change", () => { dragging = false; seekTo(Number(seek.value)); });
     audio.addEventListener("timeupdate", () => {
-      if (!seek.matches(":active")) seek.value = String(Math.floor(audio.currentTime));
-      time.textContent = clock(audio.currentTime);
+      if (!dragging) {
+        seek.value = String(Math.floor(audio.currentTime));
+        time.textContent = clock(audio.currentTime);
+      }
       seek.setAttribute("aria-valuetext", `${clock(audio.currentTime)} / ${clock(audio.duration)}`);
     });
-    seek.addEventListener("input", () => { audio.currentTime = Number(seek.value); time.textContent = clock(audio.currentTime); });
   }
 
   document.getElementById("copy").addEventListener("click", async e => {
