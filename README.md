@@ -52,7 +52,7 @@ Then, in your agent's chat, run these two in this order: first the review, then 
 
 The review opens in your browser; once the episode is recorded, it plays at the top of the same page.
 
-- 📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, the review loop, CI, all commands.
+- 📘 **[Setup and usage guide](docs/setup.md)**: install options, every agent, the review loop, CI, your own colours and fonts, all commands.
 - 🎧 **[Podcast guide](docs/podcast.md)**: tones, custom styles, and voices on macOS, Windows and Linux.
 - ❓ **[FAQ](docs/faq.md)**: how the voices are made, what costs tokens and what doesn't, requirements.
 

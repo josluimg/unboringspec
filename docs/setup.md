@@ -6,6 +6,7 @@ Questions about costs, tokens or requirements: [faq.md](faq.md).
 - [Install](#install)
 - [In your IDE with a coding agent](#in-your-ide-with-a-coding-agent) (recommended)
 - [In CI](#in-ci)
+- [Customise the look](#customise-the-look)
 - [Quick try, no LLM](#quick-try-no-llm)
 - [Command reference](#command-reference)
 
@@ -197,6 +198,76 @@ jobs:
 A ready-made GitHub Action that comments the summary on the PR is planned: [#15](https://github.com/josluimg/unboringspec/issues/15).
 </details>
 
+## Customise the look
+
+Give the review page your team's colours and fonts with a stylesheet in your project: **`unboring.css`**.
+`unboring review`, `render` and `podcast render` find it on their own, in the folder you run them from or a parent
+(up to the repository root), so there is nothing to pass on each run. Commit it and the whole team gets the same
+look. The stylesheet is copied into the page, which stays a single file.
+
+```bash
+unboring theme init     # writes unboring.css with every token, commented out at its default
+unboring theme check    # is it safe to inline, and is the text readable?
+```
+
+The page is built on CSS custom properties, so a theme is mostly new values for them. Write light first and dark
+in the usual media query; anything you leave out keeps the default, and dark keeps the default dark values for
+whatever you only set in light:
+
+```css
+:root {
+  --accent: #0b5fff;
+  --font: "Inter", system-ui, sans-serif;
+  --radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { --accent: #7aa7ff; }
+}
+
+/* Any other CSS works too. */
+h2 { font-variant: small-caps; }
+```
+
+The dark block also applies when a page that embeds the review forces dark mode, as the live demo does.
+Diagrams take their colours and font from the same tokens. For a complete example, try
+[`examples/themes/editorial.css`](../examples/themes/editorial.css) once without copying it:
+
+```bash
+unboring review specs/001-my-feature --offline --theme examples/themes/editorial.css --open
+```
+
+<details>
+<summary>All tokens</summary>
+
+| Token | What it styles | Light | Dark |
+|---|---|---|---|
+| `--bg` | Page background | `#f7f6f3` | `#131315` |
+| `--surface` | Cards and panels | `#ffffff` | `#1c1c1f` |
+| `--ink` | Main text | `#1d1d1f` | `#ececef` |
+| `--muted` | Secondary text | `#5f6368` | `#a0a0a8` |
+| `--line` | Borders | `#e4e2dc` | `#2e2e33` |
+| `--accent` | Links, buttons, highlights | `#4f46e5` | `#8b87ff` |
+| `--accent-ink` | Text on accent buttons | `#ffffff` | `#131315` |
+| `--accent-soft` | Accent backgrounds (source chips, podcast box) | `#eef0ff` | `#24234a` |
+| `--decide` | "needs your judgment": text | `#b42318` | `#ff8a80` |
+| `--decide-soft` | "needs your judgment": background | `#fdecea` | `#3a1f1d` |
+| `--review` | "worth a look" and warnings: text | `#9a6700` | `#f5c451` |
+| `--review-soft` | "worth a look" and warnings: background | `#fff6db` | `#352c14` |
+| `--routine` | Routine decisions: text | `#3f6b4e` | `#8fd0a6` |
+| `--routine-soft` | Routine decisions: background | `#e8f3ec` | `#1b2e22` |
+| `--hl` | Highlighted line in the source viewer | `#fff3b0` | `#4a4220` |
+| `--font` | Text font | `-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif` | same |
+| `--mono` | Code font | `ui-monospace, SFMono-Regular, Menlo, monospace` | same |
+| `--radius` | Corner radius of cards | `12px` | same |
+
+</details>
+
+**Rules.** The theme is CSS only, and it is refused (with the reason, and no page written) if it contains `<`,
+`@import` or `url()` of anything but `https://` or `data:`, script-like CSS, or more than 100 KB. Fonts must be
+installed on the reader's machine or loaded with an `https://` `@import` (Google Fonts, for example), and images
+must be `https://` or embedded as `data:`. Each run also warns when text falls below WCAG AA contrast (4.5:1).
+
 ## Quick try, no LLM
 
 ```bash
@@ -223,6 +294,8 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 | `unboring podcast tones` | List the tone presets. |
 | `unboring podcast setup` | Guided voice setup: what works here, how to add Kokoro, model download. |
 | `unboring podcast engines` | Same report as setup, without downloading anything. |
+| `unboring theme init` | Write a starter `unboring.css` (see [Customise the look](#customise-the-look)). |
+| `unboring theme check [file]` | Check a theme: safe to inline, readable contrast. |
 | `unboring schema [insights\|podcast]` | Print a contract (JSON Schema). |
 | `unboring adapters` / `agents` | List supported frameworks and agents. |
 | `unboring version` | Show the version. |
@@ -230,4 +303,5 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 Common options: `--lang` (`en` or `es`: the page's own labels; for `review` and `prompt` also the analysis
 language, which otherwise follows the spec), `--adapter` (force one), `--out`
 (HTML path), `--open` (open in the browser), `--since <git ref>` (compare with that version; `render` and
-`review`). Working files go to `.unboring/<feature>/` in the current folder.
+`review`), `--theme <file.css>` (use this stylesheet instead of `unboring.css`; `render`, `review`
+and `podcast render`). Working files go to `.unboring/<feature>/` in the current folder.

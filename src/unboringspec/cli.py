@@ -44,6 +44,30 @@ SPEC_ARG = typer.Argument(..., exists=True, file_okay=False, help="Feature spec 
 ADAPTER_OPT = typer.Option(None, "--adapter", help="Force an adapter instead of auto-detecting.")
 
 
+THEME_OPT = typer.Option(
+    None, "--theme", exists=True, dir_okay=False,
+    help="Stylesheet for the page. Default: unboring.css in this folder or a parent, if there is one.",
+)
+
+
+def _theme(path: Path | None):
+    """The project's theme (#26): --theme, else unboring.css found from here up to the repository root."""
+    from .theme import ThemeError, find, load
+
+    path = path or find()
+    if path is None:
+        return None
+    try:
+        theme = load(path)
+    except ThemeError as e:
+        console.print(f"[red]Theme {escape(str(path))} not used: {escape(str(e))}.[/]")
+        raise typer.Exit(2)
+    console.print(f"Theme: {escape(str(path))}")
+    for w in theme.warnings:
+        console.print(f"[yellow]⚠ Low contrast in the theme, {escape(w)}[/]")
+    return theme
+
+
 def _workdir(spec: Path) -> Path:
     """Working files live in .unboring/<feature>/ under the current directory (gitignored)."""
     return Path(".unboring") / spec.resolve().name
@@ -180,8 +204,10 @@ def render(
     open_browser: bool = typer.Option(False, "--open", help="Open the result in your browser."),
     since: Optional[str] = SINCE_OPT,
     lang: Optional[str] = typer.Option(None, "--lang", help="Language of the page itself: en (default) or es."),
+    theme: Optional[Path] = THEME_OPT,
 ) -> None:
     """Agent mode, step 2: validate the agent's insights and build the review page."""
+    style = _theme(theme)
     ir = _load(spec, adapter)
     wd = _workdir(spec)
     src = insights or wd / "insights.json"
@@ -197,7 +223,7 @@ def render(
     if dropped:
         console.print(f"[yellow]⚠ Dropped {dropped} item(s) whose citations point to lines that do not exist.[/]")
     ir = _with_changes(ir, spec, since, adapter)
-    _done(ir, write_html(ir, out or wd / "review.html", lang or "en"), open_browser)
+    _done(ir, write_html(ir, out or wd / "review.html", lang or "en", style), open_browser)
 
 
 @app.command()
@@ -286,8 +312,10 @@ def review(
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the result in your browser."),
     since: Optional[str] = SINCE_OPT,
+    theme: Optional[Path] = THEME_OPT,
 ) -> None:
     """One-shot review: calls an LLM API directly (for CI), or --offline."""
+    style = _theme(theme)
     ir = _load(spec, adapter)
     if offline:
         ir = heuristic_insights(ir)
@@ -306,7 +334,7 @@ def review(
         if dropped:
             console.print(f"[yellow]⚠ Dropped {dropped} item(s) with invented citations.[/]")
     ir = _with_changes(ir, spec, since, adapter)
-    _done(ir, write_html(ir, out or _workdir(spec) / "review.html", lang or "en"), open_browser)
+    _done(ir, write_html(ir, out or _workdir(spec) / "review.html", lang or "en", style), open_browser)
 
 
 # --- podcast ---------------------------------------------------------------------
@@ -367,9 +395,12 @@ def podcast_render(
     ),
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the review page with the player."),
+    theme: Optional[Path] = THEME_OPT,
 ) -> None:
     """Step 2: validate the script, voice it and add a player to the review page."""
     import tempfile
+
+    style = _theme(theme)
 
     from .podcast import parse_script, tone_speed, transcript_markdown, validate_script, word_count
     from .tts import PAUSE_MS, EngineUnavailable, assemble, pick_engine, wav_seconds
@@ -444,7 +475,7 @@ def podcast_render(
     else:
         ir = heuristic_insights(ir)
     ir = _with_changes(ir, spec, adapter=adapter)
-    page = write_html(ir, wd / "review.html", parsed.language)  # the page speaks the episode's language
+    page = write_html(ir, wd / "review.html", parsed.language, style)  # the page speaks the episode's language
     console.print(f"[green]✓[/] {page}  (review page with player)")
     if open_browser:
         webbrowser.open(page.resolve().as_uri())
@@ -524,6 +555,38 @@ def podcast_engines(lang: str = typer.Option("es", "--lang", help="Language to c
 
 
 # --- info ------------------------------------------------------------------------
+
+
+# --- theme -----------------------------------------------------------------------
+
+theme_app = typer.Typer(help="Custom styles for the review page: unboring.css in your project.", no_args_is_help=True)
+app.add_typer(theme_app, name="theme")
+
+
+@theme_app.command("init")
+def theme_init(
+    path: Path = typer.Argument(Path("unboring.css"), help="Where to write it. Default: unboring.css here."),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing file."),
+) -> None:
+    """Write a starter unboring.css with every token, commented out at its default value."""
+    from .theme import starter
+
+    if path.exists() and not force:
+        console.print(f"[yellow]{escape(str(path))} already exists.[/] Use --force to overwrite it.")
+        raise typer.Exit(1)
+    path.write_text(starter(), encoding="utf-8")
+    console.print(f"[green]✓[/] {escape(str(path))}  Uncomment what you want to change; the next review uses it.")
+
+
+@theme_app.command("check")
+def theme_check(path: Optional[Path] = typer.Argument(None, help="Default: the unboring.css that review would use.")) -> None:
+    """Check a theme: safe to inline, and readable (WCAG AA contrast)."""
+    style = _theme(path)
+    if style is None:
+        console.print("No unboring.css found here or in a parent folder. Create one with `unboring theme init`.")
+        raise typer.Exit(1)
+    if not style.warnings:
+        console.print("[green]✓[/] Safe to inline, and every text colour meets AA contrast.")
 
 
 @app.command()

@@ -14,6 +14,7 @@
   - [Will unboringspec change my spec?](#will-unboringspec-change-my-spec)
   - [The buttons on the page do nothing. Why?](#the-buttons-on-the-page-do-nothing-why)
   - [Can I use it without a coding agent?](#can-i-use-it-without-a-coding-agent)
+  - [Can the page use my company's colours and fonts?](#can-the-page-use-my-companys-colours-and-fonts)
 
 ## Podcast
 
@@ -155,3 +156,11 @@ Yes, two ways:
 - **To look around**, with no model at all: `unboring review specs/001-x --offline` shows what the framework's
   structure gives (stories, requirements, tasks, open markers), without the analysis. See
   [Quick try, no LLM](setup.md#quick-try-no-llm).
+
+### Can the page use my company's colours and fonts?
+
+Yes. Put an `unboring.css` at the root of your project, and every review uses it with no extra option; commit it so
+the whole team gets the same look. `unboring theme init` writes one with every setting commented out, so you only
+uncomment what you want to change: colours for light and dark, fonts, corner radius, or any other CSS. Diagrams
+follow the same colours. See [Customise the look](setup.md#customise-the-look) for the list of tokens and the rules.
+
