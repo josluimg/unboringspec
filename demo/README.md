@@ -7,7 +7,7 @@ A static site that shows unboringspec's output without installing anything: for 
 | Demo | Spec | Language | Podcast |
 |---|---|---|---|
 | `site/speckit/` | [spec-kit example in Spanish](../examples/speckit-es/specs/001-albumes-compartidos/) | Spanish: spec, review page, podcast and the demo's own texts | casual tone |
-| `site/openspec/` | [OpenSpec example](../examples/openspec/openspec/changes/add-invite-link-revocation/), with the [roast theme](../examples/themes/roast.css) | English | roast tone |
+| `site/openspec/` | [OpenSpec example](../examples/openspec/openspec/changes/add-invite-link-revocation/), with the [corporate theme](../examples/themes/corporate.css) | English | roast tone |
 | `site/themed/` | [spec-kit example](../examples/speckit/specs/001-photo-albums/), with the [brutalist theme](../examples/themes/brutalist.css) | English | sports tone |
 
 The OpenSpec and third demos show how far a project theme (`unboring.css`, see [Customise the look](../docs/setup.md#customise-the-look))
