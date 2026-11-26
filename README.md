@@ -1,5 +1,7 @@
 # unboringspec
 
+**English** · [Español](README.es.md)
+
 **Specs your brain actually wants to review.**
 
 Spec-Driven Development moved the bottleneck: agents write the code, and you spend your day reading specs,
