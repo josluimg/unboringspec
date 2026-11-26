@@ -41,6 +41,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "you_said": "You said:",
         "still_hold_one": "✓ 1 approval still holds: {list}.", "still_hold_many": "✓ {n} approvals still hold: {list}.",
         "note_no_snapshot": "The reviewed version is no longer in the history, so changed items are matched by title only.",
+        "note_marked_unresolved": "The spec explicitly marks this as unresolved.",
+        "note_design_open": "The design lists this as an open question.",
         "flag_pending": "Still open: you answered it in your last review.",
         "flag_not-addressed": "Not changed since you questioned it.",
         "flag_changed": "Changed since you questioned it. Your note: {note}",
@@ -119,6 +121,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "you_said": "Dijiste:",
         "still_hold_one": "✓ 1 aprobación sigue en pie: {list}.", "still_hold_many": "✓ {n} aprobaciones siguen en pie: {list}.",
         "note_no_snapshot": "La versión revisada ya no está en el historial, así que los cambios se emparejan solo por el título.",
+        "note_marked_unresolved": "La propia spec lo marca como pendiente de aclarar.",
+        "note_design_open": "El diseño lo recoge como pregunta abierta.",
         "flag_pending": "Sigue abierta: la respondiste en tu última revisión.",
         "flag_not-addressed": "Sin cambios desde que la cuestionaste.",
         "flag_changed": "Ha cambiado desde que la cuestionaste. Tu nota: {note}",
@@ -171,6 +175,8 @@ STRINGS: dict[str, dict[str, str]] = {
 KNOWN_NOTES = {
     STRINGS["en"]["note_mixed"]: "note_mixed",
     STRINGS["en"]["note_no_snapshot"]: "note_no_snapshot",
+    STRINGS["en"]["note_marked_unresolved"]: "note_marked_unresolved",
+    STRINGS["en"]["note_design_open"]: "note_design_open",
 }
 
 

@@ -50,6 +50,12 @@ def test_default_colours_meet_aa():
     assert contrast_warnings("") == []
 
 
+def test_default_look_is_sober_blue_and_highlighter_green():
+    assert TOKENS["accent"][0] == "#2d618a" and TOKENS["marker"][0] == "#bbd524"
+    html = page()
+    assert "var(--marker) 58%" in html and "::selection { background: var(--marker)" in html
+
+
 def test_starter_lists_every_token_and_changes_nothing():
     css = starter()
     for name in TOKENS:
@@ -65,7 +71,7 @@ def test_theme_is_inlined_after_the_defaults():
     html = page(load(EXAMPLE))
     assert html.index("/* Default tokens") < html.index('<style id="unboring-theme">')
     assert "--accent: #0f766e;" in html and "Iowan Old Style" in html
-    assert 'themed ? { theme: "base", themeVariables' in html  # diagrams follow the tokens
+    assert 'theme: "base", themeVariables: themeVariables()' in html  # diagrams follow the tokens
 
 
 def test_dark_block_follows_system_and_forced_theme():

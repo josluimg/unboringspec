@@ -59,6 +59,10 @@ body { margin: 0; background: var(--bg); color: var(--ink);
 main { max-width: 860px; margin: 0 auto; padding: 32px 16px 120px; }
 h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
 h2 { font-size: 1.15rem; margin: 48px 0 12px; letter-spacing: -0.01em; }
+/* The highlighter: a marker stroke under section titles, and selected text. */
+h2 { width: fit-content; max-width: 100%; padding: 0 4px; margin-left: -4px;
+  background: linear-gradient(transparent 58%, var(--marker) 58%, var(--marker) 92%, transparent 92%); }
+::selection { background: var(--marker); color: var(--ink); }
 h3 { font-size: 1rem; margin: 0; }
 .meta { color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
@@ -264,7 +268,7 @@ details[open] > summary { margin-bottom: 8px; }
   <article class="card question" data-qid="{{ q.id }}" data-key="{{ keys[q.id] }}">
     {{ flag(keys[q.id]) }}
     <header><span class="tag tag-decide">{{ q.id }}</span><h3>{{ q.question }}</h3></header>
-    {% if q.why_it_matters %}<p class="muted">{{ q.why_it_matters }}</p>{% endif %}
+    {% if q.why_it_matters %}<p class="muted">{{ note(q.why_it_matters) }}</p>{% endif %}
     <div class="sources">{{ chips(q.sources) }}</div>
     <textarea class="answer" placeholder="{{ t.answer_placeholder }}"></textarea>
   </article>
@@ -447,8 +451,7 @@ details[open] > summary { margin-bottom: 8px; }
     const forced = document.documentElement.dataset.theme;
     return forced ? forced === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   };
-  // With a project theme, diagrams take their colours and font from the page's tokens.
-  const themed = !!document.getElementById("unboring-theme");
+  // Diagrams take their colours and font from the page's tokens (and so from a project theme).
   const token = name => getComputedStyle(document.documentElement).getPropertyValue("--" + name).trim();
   const themeVariables = () => ({
     darkMode: isDark(), fontFamily: token("font"), background: token("surface"),
@@ -462,7 +465,7 @@ details[open] > summary { margin-bottom: 8px; }
   });
   const setup = mermaid => mermaid.initialize({
     startOnLoad: false, securityLevel: "strict",
-    ...(themed ? { theme: "base", themeVariables: themeVariables() } : { theme: isDark() ? "dark" : "default" }),
+    theme: "base", themeVariables: themeVariables(),
     flowchart: { subGraphTitleMargin: { top: 6, bottom: 10 } },
   });
   const loadMermaid = () => mermaidReady || (mermaidReady = import(MERMAID).then(m => {

@@ -24,6 +24,7 @@
   --routine: #1f6b3a;
   --routine-soft: #dcf3e3;
   --hl: #ffd166;
+  --marker: #ffd166;
   --font: "DM Sans", "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius: 18px;
@@ -51,6 +52,7 @@
     --routine: #6ee7a8;
     --routine-soft: #0f2a1b;
     --hl: #5a4410;
+    --marker: #5a4410;
     --spotlight: radial-gradient(ellipse 70% 460px at 50% 0, rgba(255, 209, 102, .16) 0, rgba(255, 209, 102, 0) 100%);
     --glow: 0 0 6px rgba(255, 77, 109, .75), 0 0 22px rgba(255, 77, 109, .45);
     --lift: 0 0 0 1px rgba(255, 77, 109, .18), 0 10px 30px rgba(0, 0, 0, .5);

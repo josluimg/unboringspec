@@ -131,3 +131,9 @@ def test_spec_diagram_titles_and_generated_by_follow_the_language():
     html = render_html(heuristic_insights(get_adapter(ES).load(ES)), lang="es")
     assert "Grafo de tareas · 18 tareas en 6 fases" in html and "Modelo de datos · 3 entidades" in html
     assert "generado por análisis sin agente" in html
+
+
+def test_fixed_sentences_from_the_adapters_are_translated():
+    html = render_html(heuristic_insights(get_adapter(ES).load(ES)), lang="es")
+    assert "La propia spec lo marca como pendiente de aclarar." in html
+    assert "The spec explicitly marks this as unresolved." not in html

@@ -242,21 +242,22 @@ unboring review specs/001-my-feature --offline --theme examples/themes/editorial
 
 | Token | What it styles | Light | Dark |
 |---|---|---|---|
-| `--bg` | Page background | `#f7f6f3` | `#131315` |
-| `--surface` | Cards and panels | `#ffffff` | `#1c1c1f` |
-| `--ink` | Main text | `#1d1d1f` | `#ececef` |
-| `--muted` | Secondary text | `#5f6368` | `#a0a0a8` |
-| `--line` | Borders | `#e4e2dc` | `#2e2e33` |
-| `--accent` | Links, buttons, highlights | `#4f46e5` | `#8b87ff` |
-| `--accent-ink` | Text on accent buttons | `#ffffff` | `#131315` |
-| `--accent-soft` | Accent backgrounds (source chips, podcast box) | `#eef0ff` | `#24234a` |
+| `--bg` | Page background | `#f5f7f8` | `#0f151b` |
+| `--surface` | Cards and panels | `#ffffff` | `#17202a` |
+| `--ink` | Main text | `#16222c` | `#e8eef3` |
+| `--muted` | Secondary text | `#56626e` | `#9eacb8` |
+| `--line` | Borders | `#dde3e8` | `#26323e` |
+| `--accent` | Links, buttons, highlights | `#2d618a` | `#86b4da` |
+| `--accent-ink` | Text on accent buttons | `#ffffff` | `#0d1a26` |
+| `--accent-soft` | Accent backgrounds (source chips, podcast box) | `#e6eef5` | `#1a2c3c` |
+| `--marker` | Highlighter: under section titles, and selected text | `#bbd524` | `#5d6b12` |
 | `--decide` | "needs your judgment": text | `#b42318` | `#ff8a80` |
 | `--decide-soft` | "needs your judgment": background | `#fdecea` | `#3a1f1d` |
-| `--review` | "worth a look" and warnings: text | `#9a6700` | `#f5c451` |
+| `--review` | "worth a look" and warnings: text | `#8a5d00` | `#f5c451` |
 | `--review-soft` | "worth a look" and warnings: background | `#fff6db` | `#352c14` |
 | `--routine` | Routine decisions: text | `#3f6b4e` | `#8fd0a6` |
 | `--routine-soft` | Routine decisions: background | `#e8f3ec` | `#1b2e22` |
-| `--hl` | Highlighted line in the source viewer | `#fff3b0` | `#4a4220` |
+| `--hl` | Highlighted line in the source viewer | `#e6f0a3` | `#3d4510` |
 | `--font` | Text font | `-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif` | same |
 | `--mono` | Code font | `ui-monospace, SFMono-Regular, Menlo, monospace` | same |
 | `--radius` | Corner radius of cards | `12px` | same |

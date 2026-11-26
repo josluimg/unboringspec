@@ -13,6 +13,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from ..i18n import STRINGS
 from ..ir import Entity, OpenQuestion, SourceRef, SpecIR
 
 CLARIFICATION_RE = re.compile(r"\[NEEDS CLARIFICATION:?\s*([^\]]+)\]", re.IGNORECASE)
@@ -94,7 +95,7 @@ def find_clarifications(docs: dict[str, str]) -> list[OpenQuestion]:
                     OpenQuestion(
                         id=f"Q{len(out) + 1}",
                         question=m.group(1).strip(),
-                        why_it_matters="The spec explicitly marks this as unresolved.",
+                        why_it_matters=STRINGS["en"]["note_marked_unresolved"],
                         sources=[ref(name, i, line)],
                     )
                 )
