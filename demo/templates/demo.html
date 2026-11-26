@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__DEMO_TITLE__ · unboringspec demo</title>
+<meta name="description" content="Before: the spec as raw files. After: the same spec as an unboringspec review, with its podcast.">
+<style>
+:root {
+  --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6;
+  --accent: #7c74ff; --accent-ink: #ffffff;
+  --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+  --ed-num: #565965; --ed-sel: #2b2e3b;
+  --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bar); }
+body { display: flex; flex-direction: column; font: 15px/1.5 var(--sans); color: var(--bar-ink); }
+
+header.bar { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 16px;
+  border-bottom: 1px solid var(--bar-line); }
+.brand { font-weight: 700; color: #fff; text-decoration: none; letter-spacing: -0.01em; }
+.title { flex: 1; min-width: 0; color: var(--bar-muted); font-size: .92rem; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+.title b { color: var(--bar-ink); font-weight: 600; }
+.toggle { display: inline-flex; background: #1b1c23; border: 1px solid #2f3039; border-radius: 999px; padding: 3px; }
+.toggle button { font: 600 .9rem var(--sans); border: 0; background: transparent; color: #b7b8c3; padding: 6px 16px;
+  border-radius: 999px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.toggle button:focus-visible, .cta:focus-visible, .file:focus-visible, .tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.gh { color: var(--bar-muted); font-size: .85rem; text-decoration: none; }
+.gh:hover { color: #fff; }
+
+main { flex: 1; min-height: 0; position: relative; }
+.view { position: absolute; inset: 0; }
+.view[hidden] { display: none; }
+
+/* Before: the spec as it really is, a pile of Markdown files. */
+.editor { display: grid; grid-template-columns: 250px minmax(0, 1fr); height: 100%; background: var(--ed-bg); color: var(--ed-ink); }
+.side { background: var(--ed-side); border-right: 1px solid var(--ed-line); overflow: auto; padding: 10px 0; display: flex; flex-direction: column; }
+.folder { padding: 6px 16px; color: var(--ed-muted); font: 600 .72rem var(--sans); text-transform: uppercase; letter-spacing: .08em; }
+.file { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ed-ink); cursor: pointer;
+  font: 13px/1.4 var(--mono); padding: 5px 16px 5px 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file:hover { background: #20222a; }
+.file[aria-current="true"] { background: var(--ed-sel); color: #fff; }
+.stats { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--ed-line); color: var(--ed-muted); font-size: .8rem; line-height: 1.6; }
+.stats b { color: var(--ed-ink); }
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.tabs { display: flex; overflow-x: auto; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); scrollbar-width: thin; }
+.tab { flex: none; font: 13px var(--mono); color: var(--ed-muted); background: transparent; border: 0; border-right: 1px solid var(--ed-line);
+  padding: 9px 16px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ed-bg); color: #fff; box-shadow: inset 0 2px 0 var(--accent); }
+.picker { display: none; padding: 8px 12px; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); }
+.picker select { width: 100%; font: 14px var(--mono); color: var(--ed-ink); background: var(--ed-bg); border: 1px solid var(--ed-line);
+  border-radius: 8px; padding: 8px 10px; }
+.code { flex: 1; min-height: 0; overflow: auto; font: 13px/1.65 var(--mono); padding: 10px 0 96px; }
+.ln { display: flex; }
+.ln .n { flex: 0 0 3.6em; text-align: right; padding-right: 1.3em; color: var(--ed-num); user-select: none; }
+.ln .t { white-space: pre; padding-right: 32px; }
+.md-h { color: var(--md-h); font-weight: 600; }
+.md-b { color: var(--md-b); }
+.md-c { color: var(--md-c); }
+.md-m { color: var(--md-m); }
+.md-q { color: var(--md-q); }
+
+.cta { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 13px 22px;
+  font: 700 15px var(--sans); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); cursor: pointer; }
+.cta:hover { filter: brightness(1.08); }
+
+/* After: the real review page. */
+iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+
+@media (max-width: 760px) {
+  header.bar { padding: 8px 12px; }
+  .title { order: 3; flex-basis: 100%; font-size: .85rem; }
+  .toggle { margin-left: auto; }
+  .gh { display: none; }
+  .editor { grid-template-columns: minmax(0, 1fr); }
+  .side, .tabs { display: none; }
+  .picker { display: block; }
+  .code { font-size: 12.5px; }
+  .ln .n { flex-basis: 2.8em; padding-right: .8em; }
+  .ln .t { white-space: pre-wrap; overflow-wrap: anywhere; padding-right: 12px; }
+  .cta { left: 12px; right: 12px; bottom: 16px; justify-content: center; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="../">unboringspec</a>
+  <span class="title" id="title"></span>
+  <div class="toggle" role="group" aria-label="View">
+    <button id="show-before" aria-pressed="true">Before</button>
+    <button id="show-after" aria-pressed="false">After</button>
+  </div>
+  <a class="gh" id="gh" href="#">GitHub ↗</a>
+</header>
+
+<main>
+  <section class="view" id="before" aria-label="Before: the spec as raw files">
+    <div class="editor">
+      <nav class="side" aria-label="Files">
+        <div class="folder" id="folder"></div>
+        <div id="tree"></div>
+        <div class="stats" id="stats"></div>
+      </nav>
+      <div class="pane">
+        <div class="picker"><select id="pick" aria-label="File"></select></div>
+        <div class="tabs" id="tabs" role="tablist"></div>
+        <div class="code" id="code" tabindex="0" aria-live="polite"></div>
+      </div>
+    </div>
+    <button class="cta" id="cta">Make it unboring →</button>
+  </section>
+
+  <section class="view" id="after" aria-label="After: the unboringspec review" hidden>
+    <iframe id="review" title="unboringspec review, with its podcast"></iframe>
+  </section>
+</main>
+
+<script id="data" type="application/json">__DEMO_DATA__</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("data").textContent);
+  const paths = Object.keys(data.files);
+  const folder = paths[0].split("/").slice(0, -1).join("/");
+  const short = p => p.slice(folder.length + 1);
+
+  document.getElementById("title").innerHTML = "";
+  const t = document.getElementById("title");
+  const b = document.createElement("b"); b.textContent = data.feature;
+  t.append(data.framework + " · ", b);
+  document.getElementById("gh").href = data.source;
+  document.getElementById("folder").textContent = folder;
+
+  // Numbers that make the point: this is a lot to read.
+  const lineCount = text => text.replace(/\n$/, "").split("\n").length;  // same count as the build script
+  const lines = paths.reduce((n, p) => n + lineCount(data.files[p]), 0);
+  const words = paths.reduce((n, p) => n + data.files[p].split(/\s+/).filter(Boolean).length, 0);
+  document.getElementById("stats").innerHTML =
+    `<b>${paths.length}</b> files · <b>${lines}</b> lines · <b>${words.toLocaleString("en")}</b> words<br>to read before you can approve anything.`;
+
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const paint = line => {
+    let h = esc(line);
+    if (/^#{1,6}\s/.test(line)) return `<span class="md-h">${h}</span>`;
+    if (/^\s*>/.test(line)) return `<span class="md-q">${h}</span>`;
+    h = h.replace(/\[NEEDS CLARIFICATION[^\]]*\]/g, m => `<span class="md-m">${m}</span>`);
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<span class="md-b">**$1**</span>');
+    h = h.replace(/`([^`]+)`/g, '<span class="md-c">`$1`</span>');
+    return h;
+  };
+
+  const tree = document.getElementById("tree"), tabs = document.getElementById("tabs");
+  const pick = document.getElementById("pick"), code = document.getElementById("code");
+  const open = path => {
+    code.innerHTML = data.files[path].replace(/\n$/, "").split("\n")
+      .map((l, i) => `<div class="ln"><span class="n">${i + 1}</span><span class="t">${paint(l) || " "}</span></div>`).join("");
+    code.scrollTop = 0;
+    tree.querySelectorAll(".file").forEach(f => f.setAttribute("aria-current", String(f.dataset.path === path)));
+    tabs.querySelectorAll(".tab").forEach(f => f.setAttribute("aria-selected", String(f.dataset.path === path)));
+    pick.value = path;
+  };
+  paths.forEach(p => {
+    const f = document.createElement("button");
+    f.className = "file"; f.dataset.path = p; f.textContent = short(p); f.title = p;
+    f.addEventListener("click", () => open(p));
+    tree.appendChild(f);
+    const tab = document.createElement("button");
+    tab.className = "tab"; tab.setAttribute("role", "tab"); tab.dataset.path = p; tab.textContent = short(p).split("/").pop();
+    tab.addEventListener("click", () => open(p));
+    tabs.appendChild(tab);
+    const o = document.createElement("option"); o.value = p; o.textContent = short(p);
+    pick.appendChild(o);
+  });
+  pick.addEventListener("change", () => open(pick.value));
+  open(paths[0]);
+
+  // Before / After
+  const views = { before: document.getElementById("before"), after: document.getElementById("after") };
+  const buttons = { before: document.getElementById("show-before"), after: document.getElementById("show-after") };
+  const frame = document.getElementById("review");
+  const show = (which, push = true) => {
+    for (const k of ["before", "after"]) {
+      views[k].hidden = k !== which;
+      buttons[k].setAttribute("aria-pressed", String(k === which));
+    }
+    if (which === "after" && !frame.getAttribute("src")) frame.src = "review.html";  // load it only when asked
+    if (push) history.replaceState(null, "", "#" + which);
+  };
+  buttons.before.addEventListener("click", () => show("before"));
+  buttons.after.addEventListener("click", () => show("after"));
+  document.getElementById("cta").addEventListener("click", () => show("after"));
+  show(location.hash === "#after" ? "after" : "before", false);
+})();
+</script>
+</body>
+</html>

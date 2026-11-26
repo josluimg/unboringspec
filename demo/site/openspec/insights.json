@@ -1,0 +1,97 @@
+{
+  "one_liner": "Album owners can revoke and expire invite links and remove any photo, replacing today's permanent links.",
+  "bullets": [
+    "Revoking rotates the album token: every outstanding link dies at once and a new one is issued.",
+    "Links get an expiry; the default lifetime is still undecided.",
+    "Breaking: permanent links are removed and existing ones expire 30 days after release.",
+    "Owners can delete any member's photo; members only their own.",
+    "Owners are emailed 3 days before a link expires."
+  ],
+  "you_must_decide": [
+    "Default link lifetime (7, 30 or 90 days), which the migration already assumes is 30.",
+    "Whether members who joined through a revoked link keep their access.",
+    "Whether the expiry email's 'extend' button is in scope: no requirement or task covers extending a link."
+  ],
+  "decisions": [
+    {
+      "title": "Remove permanent links, expire existing ones after 30 days",
+      "choice": "Breaking change: permanent invite links go away; links created before release expire 30 days after it.",
+      "rationale": "Permanent links cannot be revoked and are the product's main privacy risk.",
+      "alternatives": ["Keep permanent links but allow revocation"],
+      "risk": "Families relying on an old link lose access without noticing; the 30-day grace period is fixed before the default lifetime is decided.",
+      "attention": "decide",
+      "sources": [{"file": "proposal.md", "line": 12}, {"file": "specs/albums/spec.md", "line": 31}, {"file": "tasks.md", "line": 6}]
+    },
+    {
+      "title": "Revoke by rotating the token",
+      "choice": "Revoking replaces the album's token with a new random one instead of keeping a denylist.",
+      "rationale": "A denylist grows forever and must be checked on every join.",
+      "alternatives": ["Denylist of revoked tokens"],
+      "risk": "Rotation also kills legitimate links already shared with relatives.",
+      "attention": "review",
+      "sources": [{"file": "design.md", "line": 20}, {"file": "design.md", "line": 34}]
+    },
+    {
+      "title": "Expiry stored next to the token, lifetime from configuration",
+      "choice": "Each token has an expires_at; the default lifetime is a configuration value.",
+      "rationale": "The lifetime can change without a migration.",
+      "alternatives": [],
+      "risk": "",
+      "attention": "routine",
+      "sources": [{"file": "design.md", "line": 24}]
+    },
+    {
+      "title": "Only owners moderate photos",
+      "choice": "The owner can delete any photo; members can delete only their own.",
+      "rationale": "Closes the abuse path of open upload links.",
+      "alternatives": [],
+      "risk": "Deleted photos disappear for everyone, with no undo or audit trail specified.",
+      "attention": "review",
+      "sources": [{"file": "design.md", "line": 28}, {"file": "specs/albums/spec.md", "line": 14}]
+    }
+  ],
+  "risks": [
+    {
+      "title": "Migration hard-codes 30 days while the default lifetime is open",
+      "impact": "If the team picks 7 or 90 days, existing and new links follow different rules.",
+      "mitigation": "Derive the migration expiry from the configured default, or decide the default first.",
+      "severity": "medium",
+      "sources": [{"file": "tasks.md", "line": 6}, {"file": "design.md", "line": 38}]
+    },
+    {
+      "title": "The expiry email promises an action nobody builds",
+      "impact": "The notification offers a button to extend the link, but no requirement or task covers extending.",
+      "mitigation": "Add an 'Extend invite link' requirement and task, or drop the button from the scenario.",
+      "severity": "medium",
+      "sources": [{"file": "specs/notifications/spec.md", "line": 13}, {"file": "tasks.md", "line": 21}]
+    },
+    {
+      "title": "No tasks for tests",
+      "impact": "Rotation, expiry and the migration change access control with no planned verification.",
+      "mitigation": "Add contract tests for rotate and expired join, and a migration test.",
+      "severity": "low",
+      "sources": [{"file": "tasks.md", "line": 1}]
+    }
+  ],
+  "questions": [
+    {
+      "question": "Can a deleted photo be restored, and is the deletion logged?",
+      "why_it_matters": "Owner moderation is irreversible as written, across every member's view.",
+      "sources": [{"file": "specs/albums/spec.md", "line": 18}]
+    }
+  ],
+  "diagrams": [
+    {
+      "kind": "system",
+      "title": "What the change touches",
+      "mermaid": "flowchart LR\n  owner([Album owner])\n  relative([Relative with a link])\n  subgraph change[\"This change\"]\n    settings[Album settings<br/>revoke button]\n    join[Join page<br/>expired-link message]\n    api[Album API<br/>/albums/id/invite]\n    job[Daily job<br/>expiry emails]\n  end\n  token[(Invite token<br/>+ expires_at)]\n  mail[[Email]]\n  owner --> settings --> api\n  relative --> join --> api\n  api -->|rotate, check expiry| token\n  job -->|3 days before expiry| mail --> owner",
+      "sources": [{"file": "proposal.md", "line": 24}, {"file": "design.md", "line": 20}, {"file": "design.md", "line": 24}, {"file": "tasks.md", "line": 21}]
+    },
+    {
+      "kind": "sequence",
+      "title": "Revoking a leaked link",
+      "mermaid": "sequenceDiagram\n  actor O as Owner\n  participant W as Web app\n  participant A as Album API\n  participant T as Token store\n  actor R as Relative (old link)\n  O->>W: Revoke invite link\n  W->>A: POST /albums/id/invite/rotate\n  A->>T: Replace token with a new random one\n  A-->>W: New link\n  W-->>O: Show the new link\n  R->>A: Open the old link\n  A->>T: Look up token\n  T-->>A: Not found\n  A-->>R: Link expired, ask the owner for a new one",
+      "sources": [{"file": "specs/albums/spec.md", "line": 6}, {"file": "tasks.md", "line": 10}, {"file": "specs/albums/spec.md", "line": 27}]
+    }
+  ]
+}

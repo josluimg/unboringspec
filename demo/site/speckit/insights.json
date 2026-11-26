@@ -1,0 +1,277 @@
+{
+  "one_liner": "Families share photo albums through an invite link and get a weekly email digest of new photos.",
+  "bullets": [
+    "Anyone holding the album link can view AND upload, with no per-person identity.",
+    "Uploads go browser-to-storage via presigned URLs; a worker does thumbnails, HEIC and GPS stripping.",
+    "Weekly digest is sent Monday 08:00 local time by an hourly scheduler job.",
+    "Three privacy-relevant gaps are open: link revocation, leaving members' photos, file retention.",
+    "MVP scope: P1 is albums, uploads and invites; the digest (P2) can ship later."
+  ],
+  "you_must_decide": [
+    "Do invite links expire or become revocable, given they grant upload rights?",
+    "What happens to a member's photos when they leave the album?",
+    "How long are original files retained, and what is the storage budget per family?"
+  ],
+  "decisions": [
+    {
+      "title": "Permanent invite link with full member rights",
+      "choice": "One permanent token per album; anyone with the link can view and upload.",
+      "rationale": "Lowest friction for non-technical relatives.",
+      "alternatives": [
+        "Per-person email invites",
+        "Expiring links",
+        "View-only links plus upload approval"
+      ],
+      "risk": "A leaked link exposes family photos and lets strangers upload; there is no way to revoke it.",
+      "attention": "decide",
+      "sources": [
+        {
+          "file": "research.md",
+          "line": 11
+        },
+        {
+          "file": "spec.md",
+          "line": 56
+        },
+        {
+          "file": "spec.md",
+          "line": 45
+        }
+      ]
+    },
+    {
+      "title": "Direct-to-storage uploads",
+      "choice": "Browser uploads to object storage with presigned URLs.",
+      "rationale": "Keeps 25 MB files off the API and meets the 30 s upload goal.",
+      "alternatives": [
+        "Upload through the API",
+        "tus resumable uploads"
+      ],
+      "risk": "No resumable uploads: large HEIC files on weak mobile connections may fail and restart.",
+      "attention": "review",
+      "sources": [
+        {
+          "file": "research.md",
+          "line": 5
+        },
+        {
+          "file": "spec.md",
+          "line": 70
+        }
+      ]
+    },
+    {
+      "title": "GPS stripped only before other members see the photo",
+      "choice": "Originals are kept with EXIF; GPS is removed in the worker before photos are visible.",
+      "rationale": "Privacy for shared photos while keeping the original file.",
+      "alternatives": [],
+      "risk": "Originals with location data are stored indefinitely while retention is undefined.",
+      "attention": "review",
+      "sources": [
+        {
+          "file": "spec.md",
+          "line": 58
+        },
+        {
+          "file": "research.md",
+          "line": 17
+        },
+        {
+          "file": "spec.md",
+          "line": 59
+        }
+      ]
+    },
+    {
+      "title": "HEIC converted to JPEG in the worker",
+      "choice": "Convert server-side and keep the original.",
+      "rationale": "Most browsers cannot render HEIC.",
+      "alternatives": [
+        "Reject HEIC",
+        "Convert in the browser"
+      ],
+      "risk": "",
+      "attention": "routine",
+      "sources": [
+        {
+          "file": "research.md",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "title": "Timezone-aware digest via hourly job",
+      "choice": "Celery beat runs hourly and sends to members whose local time is Monday 08:00.",
+      "rationale": "Respects timezones without one scheduled job per user.",
+      "alternatives": [
+        "One job per user",
+        "Everyone at 08:00 UTC"
+      ],
+      "risk": "Members with half-hour offsets (e.g. India) never match an exact hour boundary.",
+      "attention": "review",
+      "sources": [
+        {
+          "file": "research.md",
+          "line": 23
+        },
+        {
+          "file": "spec.md",
+          "line": 57
+        }
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "title": "Abuse through open upload links",
+      "impact": "Anyone with the link can upload arbitrary content to a family album; no moderation or removal flow is specified.",
+      "mitigation": "Add link revocation and owner-side photo deletion to P1.",
+      "severity": "high",
+      "sources": [
+        {
+          "file": "spec.md",
+          "line": 56
+        },
+        {
+          "file": "tasks.md",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "title": "Storage cost is unbounded",
+      "impact": "Originals plus converted copies, 25 MB each, with no retention period or budget.",
+      "mitigation": "Decide retention and a per-family quota before launch.",
+      "severity": "medium",
+      "sources": [
+        {
+          "file": "plan.md",
+          "line": 19
+        },
+        {
+          "file": "spec.md",
+          "line": 59
+        }
+      ]
+    },
+    {
+      "title": "Success metric SC-002 is only tested at the end",
+      "impact": "The 30 s upload goal drives the architecture but is verified only in the final polish phase.",
+      "mitigation": "Run a throttled upload spike right after T009.",
+      "severity": "low",
+      "sources": [
+        {
+          "file": "tasks.md",
+          "line": 37
+        },
+        {
+          "file": "spec.md",
+          "line": 70
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "question": "How are duplicate uploads detected and handled?",
+      "why_it_matters": "Listed as an edge case but no requirement or task covers it; families often upload the same photo twice.",
+      "sources": [
+        {
+          "file": "spec.md",
+          "line": 46
+        }
+      ]
+    },
+    {
+      "question": "Can the owner delete photos uploaded by others?",
+      "why_it_matters": "With open upload links, the owner needs a way to remove unwanted content; no requirement says so.",
+      "sources": [
+        {
+          "file": "spec.md",
+          "line": 65
+        },
+        {
+          "file": "spec.md",
+          "line": 56
+        }
+      ]
+    },
+    {
+      "question": "Can members opt out of the weekly digest?",
+      "why_it_matters": "FR-005 makes it mandatory; unsubscribe is usually a legal requirement for recurring email.",
+      "sources": [
+        {
+          "file": "spec.md",
+          "line": 57
+        }
+      ]
+    }
+  ],
+  "diagrams": [
+    {
+      "kind": "system",
+      "title": "What is involved and how it connects",
+      "mermaid": "flowchart LR\n  owner([Album owner])\n  relative([Relative with the invite link])\n  subgraph product[\"Shared Photo Albums\"]\n    web[Web app<br/>React]\n    api[REST API<br/>FastAPI]\n    worker[Background worker<br/>Celery]\n  end\n  subgraph data[\"Data\"]\n    db[(PostgreSQL<br/>albums, photos, members)]\n    store[(Object storage<br/>photo files)]\n  end\n  mail[[Email provider<br/>not specified]]\n  owner --> web\n  relative -->|invite link| web\n  web --> api\n  web -->|presigned upload| store\n  api --> db\n  store -->|new file| worker\n  worker -->|thumbnails, GPS stripped| store\n  worker --> db\n  worker -->|weekly digest| mail\n  mail --> owner\n  mail --> relative",
+      "sources": [
+        {
+          "file": "plan.md",
+          "line": 7
+        },
+        {
+          "file": "plan.md",
+          "line": 13
+        },
+        {
+          "file": "plan.md",
+          "line": 14
+        },
+        {
+          "file": "spec.md",
+          "line": 57
+        }
+      ]
+    },
+    {
+      "kind": "journey",
+      "title": "From new album to weekly digest",
+      "mermaid": "flowchart LR\n  A[Owner creates album] --> B[Uploads photos]\n  B --> C[Worker makes thumbnails<br/>strips GPS]\n  A --> D[Owner shares invite link]\n  D --> E{Relative opens link}\n  E --> F[Joins as member]\n  F --> G[Views and uploads photos]\n  G --> C\n  C --> H[Monday 08:00 local time]\n  H --> I[Weekly digest email]",
+      "sources": [
+        {
+          "file": "spec.md",
+          "line": 10
+        },
+        {
+          "file": "spec.md",
+          "line": 25
+        },
+        {
+          "file": "spec.md",
+          "line": 35
+        },
+        {
+          "file": "plan.md",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "kind": "sequence",
+      "title": "Uploading a photo",
+      "mermaid": "sequenceDiagram\n  actor U as Member\n  participant W as Web app\n  participant API as API\n  participant S as Object storage\n  participant K as Worker\n  U->>W: Pick photos\n  W->>API: Request presigned upload URL\n  API-->>W: Presigned URL\n  W->>S: Upload file directly\n  S-->>K: New file event\n  K->>K: Thumbnail, HEIC to JPEG, strip GPS\n  K-->>API: Photo ready\n  API-->>W: Photo appears in album grid",
+      "sources": [
+        {
+          "file": "research.md",
+          "line": 5
+        },
+        {
+          "file": "plan.md",
+          "line": 7
+        },
+        {
+          "file": "spec.md",
+          "line": 58
+        }
+      ]
+    }
+  ]
+}

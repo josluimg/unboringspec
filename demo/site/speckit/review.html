@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+/* Without JavaScript (e.g. a static HTML preview) the interactive parts cannot work:
+   hide them instead of showing dead buttons, and show diagram sources as text. */
+html:not(.js) .verdict, html:not(.js) .note, html:not(.js) .answer, html:not(.js) .bar { display: none !important; }
+html:not(.js) .src { cursor: default; }
+html:not(.js) .diagram-src[hidden] { display: block; font: .78rem/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+.nojs { margin: 0 0 20px; padding: 12px 16px; border-radius: 12px; background: #fff6db; color: #7a5200; font-size: .92rem; }
+@media (prefers-color-scheme: dark) { .nojs { background: #352c14; color: #f5c451; } }
+</style>
+<title>Shared Photo Albums · unboringspec</title>
+<style>
+:root {
+  --bg: #f7f6f3; --surface: #ffffff; --ink: #1d1d1f; --muted: #5f6368; --line: #e4e2dc;
+  --accent: #4f46e5; --accent-soft: #eef0ff;
+  --decide: #b42318; --decide-soft: #fdecea; --review: #9a6700; --review-soft: #fff6db;
+  --routine: #3f6b4e; --routine-soft: #e8f3ec; --hl: #fff3b0;
+  --radius: 12px; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131315; --surface: #1c1c1f; --ink: #ececef; --muted: #a0a0a8; --line: #2e2e33;
+    --accent: #8b87ff; --accent-soft: #24234a;
+    --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14;
+    --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #4a4220;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 120px; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+h2 { font-size: 1.15rem; margin: 48px 0 12px; letter-spacing: -0.01em; }
+h3 { font-size: 1rem; margin: 0; }
+.meta { color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pill { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; font-size: .85rem; }
+.pill b { color: var(--accent); }
+.tldr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; margin-top: 24px; }
+.tldr .one { font-size: 1.2rem; font-weight: 600; margin: 0 0 12px; }
+.tldr ul { margin: 0; padding-left: 20px; }
+.callout { background: var(--decide-soft); border-radius: var(--radius); padding: 16px 20px; }
+.callout.warn { background: var(--review-soft); color: var(--review); margin: 16px 0 0; font-size: .9rem; }
+.listen { background: var(--accent-soft); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; }
+.listen-title { font-weight: 600; margin: 0 0 8px; }
+.listen audio { width: 100%; }
+.listen details { background: var(--surface); margin: 12px 0 0; }
+.turn { margin: 8px 0; font-size: .95rem; }
+.turn strong { display: inline-block; min-width: 4.5em; }
+.turn-guide strong { color: var(--accent); }
+.turn-skeptic strong { color: var(--review); }
+.diagram-canvas { overflow-x: auto; margin-top: 10px; }
+.diagram-canvas svg { max-width: 100%; height: auto; }
+.diagram-canvas.drawn { cursor: zoom-in; }
+.diagram-hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
+.diagram-canvas.zoomed { position: fixed; inset: 0; z-index: 30; margin: 0; padding: 24px; overflow: auto;
+  background: var(--surface); cursor: zoom-out; }
+.diagram-canvas.zoomed svg { max-width: none !important; width: auto; height: auto; }
+.diagram-fallback { font: .78rem/1.5 var(--mono); white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 10px; }
+.changes { border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px 20px; margin-top: 20px; background: var(--surface); }
+.changes-title { font-weight: 700; font-size: 1.05rem; margin: 0 0 4px; }
+.change-area { font-weight: 600; margin: 14px 0 4px; }
+.change-list { list-style: none; padding: 0; margin: 0; }
+.change-list li { padding: 6px 0; border-top: 1px solid var(--line); font-size: .93rem; }
+.change-list li:first-child { border-top: 0; }
+.delta { margin: 4px 0 2px; font-size: .88rem; }
+.delta del { display: block; color: var(--decide); }
+.delta ins { display: block; color: var(--routine); text-decoration: none; }
+.was { font: .75rem var(--mono); color: var(--muted); }
+.tag-chg-added, .tag-chg-resolved, .tag-chg-completed { background: var(--routine-soft); color: var(--routine); }
+.tag-chg-changed { background: var(--review-soft); color: var(--review); }
+.tag-chg-removed, .tag-chg-reopened { background: var(--decide-soft); color: var(--decide); }
+.followup { border: 1px solid var(--review); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; background: var(--surface); }
+.fu-icon { display: inline-block; width: 1.4em; }
+.flag { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--review-soft); color: var(--review); font-size: .88rem; }
+.carried-badge { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-left: auto; }
+.callout ol { margin: 8px 0 0; padding-left: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; margin: 12px 0; }
+.card header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.card p { margin: 4px 0; }
+.card.is-approve { border-color: var(--routine); }
+.card.is-question { border-color: var(--review); }
+.choice { font-size: 1.02rem; }
+.muted { color: var(--muted); font-size: .92rem; }
+.risk-line { color: var(--decide); font-size: .92rem; }
+.tag { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; border-radius: 6px; padding: 2px 8px; }
+.tag-decide, .tag-high { background: var(--decide-soft); color: var(--decide); }
+.tag-review, .tag-medium { background: var(--review-soft); color: var(--review); }
+.tag-change-added { background: var(--routine-soft); color: var(--routine); }
+.tag-change-modified { background: var(--review-soft); color: var(--review); }
+.tag-change-removed { background: var(--decide-soft); color: var(--decide); }
+.tag-change-renamed { background: var(--accent-soft); color: var(--accent); }
+.tag-routine, .tag-low { background: var(--routine-soft); color: var(--routine); }
+.src { font: .75rem var(--mono); background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 6px; padding: 2px 8px; margin: 2px 4px 2px 0; cursor: pointer; }
+.src:hover { text-decoration: underline; }
+.verdict { display: flex; gap: 6px; }
+.v { font: inherit; font-size: .85rem; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; cursor: pointer; }
+.v[aria-pressed="true"][data-v="approve"] { background: var(--routine-soft); border-color: var(--routine); color: var(--routine); }
+.v[aria-pressed="true"][data-v="question"] { background: var(--review-soft); border-color: var(--review); color: var(--review); }
+textarea { width: 100%; margin-top: 10px; min-height: 64px; font: inherit; font-size: .92rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 20px; margin: 10px 0; }
+details > summary { cursor: pointer; font-weight: 600; }
+details[open] > summary { margin-bottom: 8px; }
+.tasks { list-style: none; padding: 0; margin: 0; }
+.tasks li { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: .92rem; }
+.tasks li:first-child { border-top: 0; }
+.tid { font: .78rem var(--mono); color: var(--muted); min-width: 44px; }
+.par { font-size: .7rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; }
+.done { text-decoration: line-through; color: var(--muted); }
+.empty { color: var(--muted); font-style: italic; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); }
+.bar .in { max-width: 860px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.progress { font-size: .9rem; color: var(--muted); }
+.bar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.secondary { font: inherit; font-weight: 600; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.primary { font: inherit; font-weight: 600; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100%); background: var(--surface); border-left: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column; z-index: 10; }
+.drawer.open { transform: none; }
+.drawer header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font: .9rem var(--mono); }
+.drawer pre { margin: 0; overflow: auto; flex: 1; font: .8rem/1.55 var(--mono); padding: 8px 0; }
+.drawer .ln { display: block; padding: 0 16px; white-space: pre-wrap; }
+.drawer .ln span { color: var(--muted); display: inline-block; width: 3.5em; user-select: none; }
+.drawer .ln.hl { background: var(--hl); }
+.x { font-size: 1.2rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <noscript><p class="nojs"><strong>This viewer is not running JavaScript</strong>, so approving or questioning
+  decisions, answering questions, exporting review.md, opening sources and drawing diagrams are turned off.
+  Open <code>review.html</code> in a web browser, or render it with <code>--open</code>.</p></noscript>
+  <div class="meta">
+    <span>spec-kit</span>
+    <span>generated by agent</span>
+    <span>unboringspec 0.2.0</span>
+  </div>
+  <h1>Shared Photo Albums</h1>
+  <div class="pills">
+    
+    
+    <span class="pill"><b>3</b> stories</span>
+    
+    <span class="pill"><b>9</b> requirements</span>
+    
+    <span class="pill"><b>13</b> decisions</span>
+    
+    <span class="pill"><b>18</b> tasks</span>
+    
+    <span class="pill"><b>7</b> open questions</span>
+    
+  </div>
+
+  
+
+  
+
+  
+
+  
+  <section class="tldr" aria-label="Summary">
+    <p class="one">Families share photo albums through an invite link and get a weekly email digest of new photos.</p>
+    <ul><li>Anyone holding the album link can view AND upload, with no per-person identity.</li><li>Uploads go browser-to-storage via presigned URLs; a worker does thumbnails, HEIC and GPS stripping.</li><li>Weekly digest is sent Monday 08:00 local time by an hourly scheduler job.</li><li>Three privacy-relevant gaps are open: link revocation, leaving members&#39; photos, file retention.</li><li>MVP scope: P1 is albums, uploads and invites; the digest (P2) can ship later.</li></ul>
+  </section>
+  
+
+  
+  <section class="listen" aria-label="Podcast">
+    <p class="listen-title">🎧 Listen instead · Álbumes familiares: un enlace que lo abre todo <span class="tag tag-routine">Casual</span></p>
+    
+    <audio controls preload="metadata" src="podcast.mp3"></audio>
+    <details>
+      <summary>Transcript</summary>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Hola, Álex. Hoy toca revisar una spec que parece sencilla: álbumes de fotos compartidos para familias. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Parece sencilla, sí. Pero he visto una frase que me ha quitado el sueño: cualquiera que tenga el enlace puede ver y subir fotos. <button class="src" data-file="spec.md" data-line="56" title="- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.">spec.md:56</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Llegaremos ahí, te lo prometo. Primero, situemos a quien nos escucha. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> La idea es que una familia cree un álbum, invite a sus parientes con un enlace y reciba cada semana un correo con las fotos nuevas. <button class="src" data-file="spec.md" data-line="6" title="**Input**: User description: &#34;Let families create shared photo albums, invite relatives by link, and get a weekly digest of new photos.&#34;">spec.md:6</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> O sea, tres piezas: crear y subir, invitar, y el resumen semanal. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Exacto. Las dos primeras son la prioridad máxima. El correo semanal es secundario: ayuda a que la gente vuelva, pero el producto funciona sin él. <button class="src" data-file="spec.md" data-line="39" title="**Why this priority**: Drives re-engagement but the product works without it.">spec.md:39</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Eso me parece sensato. Si hay que recortar, se recorta por el correo. Vale, ¿y cómo se suben las fotos? </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Aquí hay una decisión técnica bonita. El navegador sube las fotos directamente al almacenamiento, con enlaces firmados, sin pasar por el servidor de la aplicación. <button class="src" data-file="research.md" data-line="5" title="- **Decision**: Browser uploads directly to object storage with presigned URLs.">research.md:5</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Así los archivos de hasta veinticinco megas no saturan la aplicación, y se cumple el objetivo de subir diez fotos en menos de treinta segundos. <button class="src" data-file="research.md" data-line="6" title="- **Rationale**: Keeps 25 MB files off the API servers and meets the 30 s upload goal.">research.md:6</button><button class="src" data-file="spec.md" data-line="70" title="- **SC-002**: Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.">spec.md:70</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Me gusta, pero tengo una pega. Descartaron las subidas reanudables. <button class="src" data-file="research.md" data-line="7" title="- **Alternatives considered**: Upload through the API; tus resumable uploads">research.md:7</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Piensa en la abuela subiendo fotos desde el móvil, con mala cobertura. Si se corta a mitad de una foto de veinte megas, ¿empieza otra vez desde cero? </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Sí, empezaría de cero. Es un riesgo real. Para la primera versión puede valer, pero conviene medirlo pronto. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Y ahí va mi segunda pega: la prueba de los treinta segundos está en la última fase del plan. Si falla, lo descubrimos al final. <button class="src" data-file="tasks.md" data-line="37" title="- [ ] T018 Load test 10 parallel uploads on a throttled 20 Mbps connection">tasks.md:37</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Buen punto. Yo haría una prueba rápida con conexión lenta justo después de tener el endpoint de subida, no al final. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> De acuerdo. Ahora sí: hablemos del enlace mágico. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Vale. La decisión es un único enlace permanente por álbum. Quien lo tenga entra como miembro, con permiso para ver y para subir. <button class="src" data-file="research.md" data-line="11" title="- **Decision**: One permanent invite token per album, anyone with the link gets member rights.">research.md:11</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> La razón es la fricción. Los familiares no son técnicos, y pedirles crear cuentas o aceptar invitaciones por correo los espanta. <button class="src" data-file="research.md" data-line="12" title="- **Rationale**: Lowest friction for non-technical relatives.">research.md:12</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Lo entiendo. Pero un enlace permanente es una llave maestra. Si alguien lo reenvía a un grupo de mensajería, o acaba publicado, ¿qué pasa? </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Pues la propia spec lo pregunta y no lo responde. Está marcado como pendiente: ¿los enlaces caducan o se pueden revocar? <button class="src" data-file="spec.md" data-line="45" title="- What happens when an invite link is leaked publicly? [NEEDS CLARIFICATION: should links expire or be revocable?]">spec.md:45</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Y no es solo que un extraño vea las fotos de tu familia. Es que puede subir lo que quiera al álbum. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> No veo en ningún sitio que el dueño pueda borrar fotos que subieron otros. Ni moderación, ni nada. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Tienes razón, no aparece. Las alternativas que se descartaron eran invitaciones personales, enlaces que caducan, o enlaces de solo lectura con aprobación para subir. <button class="src" data-file="research.md" data-line="13" title="- **Alternatives considered**: Per-person email invites; expiring links; view-only links plus upload approval">research.md:13</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Yo no digo que haya que elegir la más estricta. Pero sí poder revocar el enlace y que el dueño pueda borrar fotos. Eso lo metería en la primera versión. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Me parece un término medio razonable: misma facilidad para entrar, pero con un botón de emergencia. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Siguiente tema: privacidad de las fotos. ¿Qué pasa con la ubicación que guardan los móviles? </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Eso está bien pensado. Antes de que otros miembros vean una foto, se elimina la ubicación de sus metadatos. <button class="src" data-file="spec.md" data-line="58" title="- **FR-006**: System MUST strip GPS location from EXIF metadata before photos are visible to other members.">spec.md:58</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Antes de que otros la vean. Pero el original se guarda tal cual, con la ubicación dentro. <button class="src" data-file="research.md" data-line="17" title="- **Decision**: Convert HEIC to JPEG in the worker and keep the original.">research.md:17</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Y cuánto tiempo se guardan los originales tampoco está decidido. <button class="src" data-file="spec.md" data-line="59" title="- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].">spec.md:59</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Cierto. Y va de la mano de otra pregunta abierta en el plan: cuál es el presupuesto de almacenamiento por familia. <button class="src" data-file="plan.md" data-line="19" title="**Constraints**: [NEEDS CLARIFICATION: monthly storage budget per family]">plan.md:19</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Originales de hasta veinticinco megas, más las copias convertidas, sin límite de tiempo ni de espacio. Eso, con cinco mil familias, es una factura que crece sola. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Vamos con el correo semanal, que tiene un detalle curioso. Sale los lunes a las ocho de la mañana en la zona horaria de cada miembro. <button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.">spec.md:57</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Para no programar un envío por persona, hay una tarea que se ejecuta cada hora y escoge a quién le toca. <button class="src" data-file="research.md" data-line="23" title="- **Decision**: Celery beat job every hour that sends digests to members whose local time is Monday 08:00.">research.md:23</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Elegante. Pero hay zonas horarias con media hora, como la India. Si la tarea corre en horas en punto, esas personas nunca coinciden con las ocho exactas. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Es un caso borde, pero fácil de arreglar si se trata como una ventana y no como una hora exacta. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Y otra cosa: el requisito dice que el sistema debe enviar el correo. ¿Nadie puede darse de baja? Eso suele ser obligatorio por ley. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> No se menciona. Lo apuntamos como pregunta. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> También hay casos borde que se listan pero no tienen respuesta. Por ejemplo, qué pasa si alguien sube dos veces la misma foto. <button class="src" data-file="spec.md" data-line="46" title="- How are duplicate uploads of the same photo handled?">spec.md:46</button></p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Y qué pasa con las fotos de alguien que abandona el álbum. ¿Se quedan o se van con él? Eso también está pendiente. <button class="src" data-file="spec.md" data-line="47" title="- What happens to photos when a member leaves the album? [NEEDS CLARIFICATION: do their photos stay or get removed?]">spec.md:47</button></p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Resumiendo, la spec es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Así que, a quien esté revisando, esto es lo que te toca decidir. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Primero: si el enlace de invitación se puede revocar o caduca, sabiendo que da permiso para subir. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Segundo: qué pasa con las fotos de quien se va del álbum, y si el dueño puede borrar fotos de otros. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Y tercero: cuánto tiempo se guardan los originales, con su ubicación, y cuánto espacio tiene cada familia. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Y un consejo extra: adelantad la prueba de velocidad de subida. Mejor descubrir el problema en la segunda semana que en la última. </p>
+      
+      
+      <p class="turn turn-guide"><strong>Lucía</strong> Perfecto. Gracias, Álex. Y a ti, gracias por escuchar en lugar de leer cinco documentos. </p>
+      
+      
+      <p class="turn turn-skeptic"><strong>Álex</strong> Hasta la próxima spec. </p>
+      
+    </details>
+  </section>
+  
+
+  <h2>1 · Needs your judgment</h2>
+  
+  <div class="callout">
+    Only these need a human call. Everything below is optional depth.
+  </div>
+  
+  <article class="card question" data-qid="Q1" data-key="q-3ae840286f5d">
+    
+    <header><span class="tag tag-decide">Q1</span><h3>should links expire or be revocable?</h3></header>
+    <p class="muted">The spec explicitly marks this as unresolved.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="45" title="- What happens when an invite link is leaked publicly? [NEEDS CLARIFICATION: should links expire or be revocable?]">spec.md:45</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q2" data-key="q-9f914c4ca13c">
+    
+    <header><span class="tag tag-decide">Q2</span><h3>do their photos stay or get removed?</h3></header>
+    <p class="muted">The spec explicitly marks this as unresolved.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="47" title="- What happens to photos when a member leaves the album? [NEEDS CLARIFICATION: do their photos stay or get removed?]">spec.md:47</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q3" data-key="q-4ab93d6dce7b">
+    
+    <header><span class="tag tag-decide">Q3</span><h3>retention period not specified</h3></header>
+    <p class="muted">The spec explicitly marks this as unresolved.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="59" title="- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].">spec.md:59</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q4" data-key="q-13a515428729">
+    
+    <header><span class="tag tag-decide">Q4</span><h3>monthly storage budget per family</h3></header>
+    <p class="muted">The spec explicitly marks this as unresolved.</p>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="19" title="**Constraints**: [NEEDS CLARIFICATION: monthly storage budget per family]">plan.md:19</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q5" data-key="q-138e049140cd">
+    
+    <header><span class="tag tag-decide">Q5</span><h3>How are duplicate uploads detected and handled?</h3></header>
+    <p class="muted">Listed as an edge case but no requirement or task covers it; families often upload the same photo twice.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="46" title="- How are duplicate uploads of the same photo handled?">spec.md:46</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q6" data-key="q-112d51f5fbee">
+    
+    <header><span class="tag tag-decide">Q6</span><h3>Can the owner delete photos uploaded by others?</h3></header>
+    <p class="muted">With open upload links, the owner needs a way to remove unwanted content; no requirement says so.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="65" title="- **Membership**: user, album, role (owner, member), joined at.">spec.md:65</button><button class="src" data-file="spec.md" data-line="56" title="- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.">spec.md:56</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card question" data-qid="Q7" data-key="q-f3440747cda8">
+    
+    <header><span class="tag tag-decide">Q7</span><h3>Can members opt out of the weekly digest?</h3></header>
+    <p class="muted">FR-005 makes it mandatory; unsubscribe is usually a legal requirement for recurring email.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.">spec.md:57</button></div>
+    <textarea class="answer" placeholder="Your answer for the agent"></textarea>
+  </article>
+  
+  <article class="card decision" data-id="D1" data-key="d-08643715055e" data-attention="decide">
+  <header>
+    <span class="tag tag-decide">decide</span>
+    <h3>Permanent invite link with full member rights</h3>
+  </header>
+  
+  <p class="choice">One permanent token per album; anyone with the link can view and upload.</p>
+  <p class="muted"><strong>Why:</strong> Lowest friction for non-technical relatives.</p>
+  <p class="muted"><strong>Instead of:</strong> Per-person email invites · Expiring links · View-only links plus upload approval</p>
+  <p class="risk-line"><strong>Risk:</strong> A leaked link exposes family photos and lets strangers upload; there is no way to revoke it.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="research.md" data-line="11" title="- **Decision**: One permanent invite token per album, anyone with the link gets member rights.">research.md:11</button><button class="src" data-file="spec.md" data-line="56" title="- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.">spec.md:56</button><button class="src" data-file="spec.md" data-line="45" title="- What happens when an invite link is leaked publicly? [NEEDS CLARIFICATION: should links expire or be revocable?]">spec.md:45</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Permanent invite link with full member rights">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+  
+
+  <h2>2 · Decisions worth a look</h2>
+  <article class="card decision" data-id="D2" data-key="d-ed25e9839a7d" data-attention="review">
+  <header>
+    <span class="tag tag-review">review</span>
+    <h3>Direct-to-storage uploads</h3>
+  </header>
+  
+  <p class="choice">Browser uploads to object storage with presigned URLs.</p>
+  <p class="muted"><strong>Why:</strong> Keeps 25 MB files off the API and meets the 30 s upload goal.</p>
+  <p class="muted"><strong>Instead of:</strong> Upload through the API · tus resumable uploads</p>
+  <p class="risk-line"><strong>Risk:</strong> No resumable uploads: large HEIC files on weak mobile connections may fail and restart.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="research.md" data-line="5" title="- **Decision**: Browser uploads directly to object storage with presigned URLs.">research.md:5</button><button class="src" data-file="spec.md" data-line="70" title="- **SC-002**: Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.">spec.md:70</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Direct-to-storage uploads">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="D3" data-key="d-dfd528e57780" data-attention="review">
+  <header>
+    <span class="tag tag-review">review</span>
+    <h3>GPS stripped only before other members see the photo</h3>
+  </header>
+  
+  <p class="choice">Originals are kept with EXIF; GPS is removed in the worker before photos are visible.</p>
+  <p class="muted"><strong>Why:</strong> Privacy for shared photos while keeping the original file.</p>
+  
+  <p class="risk-line"><strong>Risk:</strong> Originals with location data are stored indefinitely while retention is undefined.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="58" title="- **FR-006**: System MUST strip GPS location from EXIF metadata before photos are visible to other members.">spec.md:58</button><button class="src" data-file="research.md" data-line="17" title="- **Decision**: Convert HEIC to JPEG in the worker and keep the original.">research.md:17</button><button class="src" data-file="spec.md" data-line="59" title="- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].">spec.md:59</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for GPS stripped only before other members see the photo">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="D5" data-key="d-dc0d4a12449b" data-attention="review">
+  <header>
+    <span class="tag tag-review">review</span>
+    <h3>Timezone-aware digest via hourly job</h3>
+  </header>
+  
+  <p class="choice">Celery beat runs hourly and sends to members whose local time is Monday 08:00.</p>
+  <p class="muted"><strong>Why:</strong> Respects timezones without one scheduled job per user.</p>
+  <p class="muted"><strong>Instead of:</strong> One job per user · Everyone at 08:00 UTC</p>
+  <p class="risk-line"><strong>Risk:</strong> Members with half-hour offsets (e.g. India) never match an exact hour boundary.</p>
+  <footer>
+    <div class="sources"><button class="src" data-file="research.md" data-line="23" title="- **Decision**: Celery beat job every hour that sends digests to members whose local time is Monday 08:00.">research.md:23</button><button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.">spec.md:57</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Timezone-aware digest via hourly job">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+  
+  <details>
+    <summary>9 routine decisions</summary>
+    <article class="card decision" data-id="D4" data-key="d-ce8740aaf4de" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>HEIC converted to JPEG in the worker</h3>
+  </header>
+  
+  <p class="choice">Convert server-side and keep the original.</p>
+  <p class="muted"><strong>Why:</strong> Most browsers cannot render HEIC.</p>
+  <p class="muted"><strong>Instead of:</strong> Reject HEIC · Convert in the browser</p>
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="research.md" data-line="17" title="- **Decision**: Convert HEIC to JPEG in the worker and keep the original.">research.md:17</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for HEIC converted to JPEG in the worker">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC1" data-key="d-32941bb6bfb2" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Language/Version</h3>
+  </header>
+  
+  <p class="choice">Python 3.12 (API, worker), TypeScript 5 (web)</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="12" title="**Language/Version**: Python 3.12 (API, worker), TypeScript 5 (web)">plan.md:12</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Language/Version">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC2" data-key="d-ae73199fb90b" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Primary Dependencies</h3>
+  </header>
+  
+  <p class="choice">FastAPI, SQLAlchemy, Celery, React 19</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="13" title="**Primary Dependencies**: FastAPI, SQLAlchemy, Celery, React 19">plan.md:13</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Primary Dependencies">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC3" data-key="d-147f786eb313" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Storage</h3>
+  </header>
+  
+  <p class="choice">PostgreSQL 16 for metadata, S3-compatible object storage for files</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="14" title="**Storage**: PostgreSQL 16 for metadata, S3-compatible object storage for files">plan.md:14</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Storage">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC4" data-key="d-bab589641a93" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Testing</h3>
+  </header>
+  
+  <p class="choice">pytest, Playwright</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="15" title="**Testing**: pytest, Playwright">plan.md:15</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Testing">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC5" data-key="d-1df92596777c" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Target Platform</h3>
+  </header>
+  
+  <p class="choice">Linux containers on Kubernetes</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="16" title="**Target Platform**: Linux containers on Kubernetes">plan.md:16</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Target Platform">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC6" data-key="d-7cc0ddfe9cc1" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Project Type</h3>
+  </header>
+  
+  <p class="choice">web</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="17" title="**Project Type**: web">plan.md:17</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Project Type">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC7" data-key="d-5f68d8f89546" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Performance Goals</h3>
+  </header>
+  
+  <p class="choice">10 photo uploads in under 30 s on 20 Mbps</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="18" title="**Performance Goals**: 10 photo uploads in under 30 s on 20 Mbps">plan.md:18</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Performance Goals">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article><article class="card decision" data-id="TC8" data-key="d-13b49bf6ecf1" data-attention="routine">
+  <header>
+    <span class="tag tag-routine">routine</span>
+    <h3>Scale/Scope</h3>
+  </header>
+  
+  <p class="choice">5k families in the first year</p>
+  
+  
+  
+  <footer>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="20" title="**Scale/Scope**: 5k families in the first year">plan.md:20</button></div>
+    <div class="verdict" role="group" aria-label="Verdict for Scale/Scope">
+      <button class="v" data-v="approve">✓ Approve</button>
+      <button class="v" data-v="question">? Question</button>
+    </div>
+  </footer>
+  <textarea class="note" placeholder="What should change, or what do you want to ask the agent?" hidden></textarea>
+</article>
+  </details>
+  
+
+  
+  
+  
+  <h2>3 · Risks</h2>
+  
+  <article class="card">
+    <header><span class="tag tag-high">high</span><h3>Abuse through open upload links</h3></header>
+    <p class="muted"><strong>Impact:</strong> Anyone with the link can upload arbitrary content to a family album; no moderation or removal flow is specified.</p>
+    <p class="muted"><strong>Mitigation:</strong> Add link revocation and owner-side photo deletion to P1.</p>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="56" title="- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.">spec.md:56</button><button class="src" data-file="tasks.md" data-line="25" title="- [ ] T012 [US2] Generate invite token on album creation">tasks.md:25</button></div>
+  </article>
+  
+  <article class="card">
+    <header><span class="tag tag-medium">medium</span><h3>Storage cost is unbounded</h3></header>
+    <p class="muted"><strong>Impact:</strong> Originals plus converted copies, 25 MB each, with no retention period or budget.</p>
+    <p class="muted"><strong>Mitigation:</strong> Decide retention and a per-family quota before launch.</p>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="19" title="**Constraints**: [NEEDS CLARIFICATION: monthly storage budget per family]">plan.md:19</button><button class="src" data-file="spec.md" data-line="59" title="- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].">spec.md:59</button></div>
+  </article>
+  
+  <article class="card">
+    <header><span class="tag tag-low">low</span><h3>Success metric SC-002 is only tested at the end</h3></header>
+    <p class="muted"><strong>Impact:</strong> The 30 s upload goal drives the architecture but is verified only in the final polish phase.</p>
+    <p class="muted"><strong>Mitigation:</strong> Run a throttled upload spike right after T009.</p>
+    <div class="sources"><button class="src" data-file="tasks.md" data-line="37" title="- [ ] T018 Load test 10 parallel uploads on a throttled 20 Mbps connection">tasks.md:37</button><button class="src" data-file="spec.md" data-line="70" title="- **SC-002**: Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.">spec.md:70</button></div>
+  </article>
+  
+  
+
+  
+  
+  <h2>4 · Visual overview</h2>
+  
+  
+  <details class="diagram" data-kind="system" open>
+    <summary>What is involved and how it connects <span class="tag tag-review">by the agent</span></summary>
+    <div class="sources"><button class="src" data-file="plan.md" data-line="7" title="Web app with a REST API. Photos go straight from the browser to object storage with presigned URLs;">plan.md:7</button><button class="src" data-file="plan.md" data-line="13" title="**Primary Dependencies**: FastAPI, SQLAlchemy, Celery, React 19">plan.md:13</button><button class="src" data-file="plan.md" data-line="14" title="**Storage**: PostgreSQL 16 for metadata, S3-compatible object storage for files">plan.md:14</button><button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.">spec.md:57</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>flowchart LR
+  owner([Album owner])
+  relative([Relative with the invite link])
+  subgraph product[&#34;Shared Photo Albums&#34;]
+    web[Web app&lt;br/&gt;React]
+    api[REST API&lt;br/&gt;FastAPI]
+    worker[Background worker&lt;br/&gt;Celery]
+  end
+  subgraph data[&#34;Data&#34;]
+    db[(PostgreSQL&lt;br/&gt;albums, photos, members)]
+    store[(Object storage&lt;br/&gt;photo files)]
+  end
+  mail[[Email provider&lt;br/&gt;not specified]]
+  owner --&gt; web
+  relative --&gt;|invite link| web
+  web --&gt; api
+  web --&gt;|presigned upload| store
+  api --&gt; db
+  store --&gt;|new file| worker
+  worker --&gt;|thumbnails, GPS stripped| store
+  worker --&gt; db
+  worker --&gt;|weekly digest| mail
+  mail --&gt; owner
+  mail --&gt; relative</pre>
+  </details>
+  
+  
+  <details class="diagram" data-kind="journey">
+    <summary>From new album to weekly digest <span class="tag tag-review">by the agent</span></summary>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="10" title="### User Story 1 - Create an album and upload photos (Priority: P1)">spec.md:10</button><button class="src" data-file="spec.md" data-line="25" title="### User Story 2 - Invite relatives by link (Priority: P1)">spec.md:25</button><button class="src" data-file="spec.md" data-line="35" title="### User Story 3 - Weekly digest email (Priority: P2)">spec.md:35</button><button class="src" data-file="plan.md" data-line="7" title="Web app with a REST API. Photos go straight from the browser to object storage with presigned URLs;">plan.md:7</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>flowchart LR
+  A[Owner creates album] --&gt; B[Uploads photos]
+  B --&gt; C[Worker makes thumbnails&lt;br/&gt;strips GPS]
+  A --&gt; D[Owner shares invite link]
+  D --&gt; E{Relative opens link}
+  E --&gt; F[Joins as member]
+  F --&gt; G[Views and uploads photos]
+  G --&gt; C
+  C --&gt; H[Monday 08:00 local time]
+  H --&gt; I[Weekly digest email]</pre>
+  </details>
+  
+  
+  <details class="diagram" data-kind="sequence">
+    <summary>Uploading a photo <span class="tag tag-review">by the agent</span></summary>
+    <div class="sources"><button class="src" data-file="research.md" data-line="5" title="- **Decision**: Browser uploads directly to object storage with presigned URLs.">research.md:5</button><button class="src" data-file="plan.md" data-line="7" title="Web app with a REST API. Photos go straight from the browser to object storage with presigned URLs;">plan.md:7</button><button class="src" data-file="spec.md" data-line="58" title="- **FR-006**: System MUST strip GPS location from EXIF metadata before photos are visible to other members.">spec.md:58</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>sequenceDiagram
+  actor U as Member
+  participant W as Web app
+  participant API as API
+  participant S as Object storage
+  participant K as Worker
+  U-&gt;&gt;W: Pick photos
+  W-&gt;&gt;API: Request presigned upload URL
+  API--&gt;&gt;W: Presigned URL
+  W-&gt;&gt;S: Upload file directly
+  S--&gt;&gt;K: New file event
+  K-&gt;&gt;K: Thumbnail, HEIC to JPEG, strip GPS
+  K--&gt;&gt;API: Photo ready
+  API--&gt;&gt;W: Photo appears in album grid</pre>
+  </details>
+  
+  
+  <details class="diagram" data-kind="data-model">
+    <summary>Data model · 3 entities <span class="tag tag-routine">from the spec</span></summary>
+    <div class="sources"><button class="src" data-file="spec.md" data-line="63" title="- **Album**: name, owner, invite token, created at.">spec.md:63</button><button class="src" data-file="spec.md" data-line="64" title="- **Photo**: file, album, uploader, taken at, uploaded at.">spec.md:64</button><button class="src" data-file="spec.md" data-line="65" title="- **Membership**: user, album, role (owner, member), joined at.">spec.md:65</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>erDiagram
+  Album ||--o{ Photo : &#34;has&#34;
+  Album ||--o{ Membership : &#34;has&#34;
+  Album {
+    field name
+    field owner
+    field invite_token
+    field created_at
+  }
+  Photo {
+    field file
+    field album
+    field uploader
+    field taken_at
+    field uploaded_at
+  }
+  Membership {
+    field user
+    field album
+    field role
+    field joined_at
+  }</pre>
+  </details>
+  
+  
+  <details class="diagram" data-kind="tasks">
+    <summary>Task graph · 18 tasks in 6 phases <span class="tag tag-routine">from the spec</span></summary>
+    <div class="sources"><button class="src" data-file="tasks.md" data-line="5" title="- [x] T001 Create backend and frontend project structure per plan.md">tasks.md:5</button></div>
+    <div class="diagram-canvas"></div>
+    <pre class="diagram-src" hidden>flowchart TB
+  subgraph g0[&#34;1 · Setup&#34;]
+    direction LR
+    t_T001[&#34;T001 Create backend and frontend project stru…&#34;]
+    class t_T001 ub_done
+    t_T002[&#34;T002 Configure ruff, mypy and eslint&#34;]
+    class t_T002 ub_done
+    class t_T002 ub_parallel
+    t_T003[&#34;T003 Provision PostgreSQL and object storage…&#34;]
+    class t_T003 ub_parallel
+    t_T001 --&gt; t_T002
+    t_T001 --&gt; t_T003
+  end
+  subgraph g1[&#34;2 · Foundational&#34;]
+    direction LR
+    t_T004[&#34;T004 Create Album, Photo and Membership model…&#34;]
+    t_T005[&#34;T005 Implement EXIF reader and GPS stripping…&#34;]
+    class t_T005 ub_parallel
+    t_T006[&#34;T006 Implement thumbnail generation in backen…&#34;]
+    class t_T006 ub_parallel
+    t_T004 --&gt; t_T005
+    t_T004 --&gt; t_T006
+  end
+  subgraph g2[&#34;3 · US1&#34;]
+    direction LR
+    t_T007[&#34;T007 Contract test POST /albums in backend/te…&#34;]
+    t_T008[&#34;T008 Implement POST /albums and GET /albums&#34;]
+    t_T007 --&gt; t_T008
+    t_T009[&#34;T009 Implement presigned upload URL endpoint&#34;]
+    class t_T009 ub_parallel
+    t_T010[&#34;T010 Worker job: thumbnail, HEIC conversion,…&#34;]
+    t_T008 --&gt; t_T009
+    t_T009 --&gt; t_T010
+    t_T011[&#34;T011 Album grid page sorted by date taken in…&#34;]
+    class t_T011 ub_parallel
+    t_T010 --&gt; t_T011
+  end
+  subgraph g3[&#34;4 · US2&#34;]
+    direction LR
+    t_T012[&#34;T012 Generate invite token on album creation&#34;]
+    t_T013[&#34;T013 Join album via invite link endpoint&#34;]
+    t_T012 --&gt; t_T013
+    t_T014[&#34;T014 Join page in frontend/src/pages/Join.tsx&#34;]
+    class t_T014 ub_parallel
+    t_T013 --&gt; t_T014
+  end
+  subgraph g4[&#34;5 · US3&#34;]
+    direction LR
+    t_T015[&#34;T015 Hourly Celery beat job selecting members…&#34;]
+    t_T016[&#34;T016 Digest email template with thumbnails&#34;]
+    class t_T016 ub_parallel
+    t_T015 --&gt; t_T016
+  end
+  subgraph g5[&#34;6 · Polish&#34;]
+    direction LR
+    t_T017[&#34;T017 Playwright end-to-end test for create, i…&#34;]
+    class t_T017 ub_parallel
+    t_T018[&#34;T018 Load test 10 parallel uploads on a throt…&#34;]
+    t_T017 --&gt; t_T018
+  end
+  g0 --&gt; g1
+  g1 --&gt; g2
+  g2 --&gt; g3
+  g3 --&gt; g4
+  g4 --&gt; g5
+  classDef ub_done opacity:0.55
+  classDef ub_parallel stroke-dasharray:4 3</pre>
+  </details>
+  
+  
+
+  
+  <h2>5 · Scope and plan</h2>
+  
+  
+  <details>
+    <summary>Shared · 8 tasks</summary>
+    
+    <ul class="tasks">
+    
+      <li><span class="tid">T001</span><span class="done">Create backend and frontend project structure per plan.md</span></li>
+    
+      <li><span class="tid">T002</span><span class="done">Configure ruff, mypy and eslint</span><span class="par">P</span></li>
+    
+      <li><span class="tid">T003</span><span class="">Provision PostgreSQL and object storage in docker-compose</span><span class="par">P</span></li>
+    
+      <li><span class="tid">T004</span><span class="">Create Album, Photo and Membership models in backend/src/api/models.py</span></li>
+    
+      <li><span class="tid">T005</span><span class="">Implement EXIF reader and GPS stripping in backend/src/photos_core/exif.py</span><span class="par">P</span></li>
+    
+      <li><span class="tid">T006</span><span class="">Implement thumbnail generation in backend/src/photos_core/thumbs.py</span><span class="par">P</span></li>
+    
+      <li><span class="tid">T017</span><span class="">Playwright end-to-end test for create, invite, upload</span><span class="par">P</span></li>
+    
+      <li><span class="tid">T018</span><span class="">Load test 10 parallel uploads on a throttled 20 Mbps connection</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  <details>
+    <summary>P1 Create an album and upload photos · 5 tasks</summary>
+    <p class="muted">A user creates an album, gives it a name and uploads photos from their phone or desktop.</p>
+    <ul class="tasks">
+    
+      <li><span class="tid">T007</span><span class="">Contract test POST /albums in backend/tests/contract/test_albums.py</span></li>
+    
+      <li><span class="tid">T008</span><span class="">Implement POST /albums and GET /albums</span></li>
+    
+      <li><span class="tid">T009</span><span class="">Implement presigned upload URL endpoint</span><span class="par">P</span></li>
+    
+      <li><span class="tid">T010</span><span class="">Worker job: thumbnail, HEIC conversion, GPS stripping on upload</span></li>
+    
+      <li><span class="tid">T011</span><span class="">Album grid page sorted by date taken in frontend/src/pages/Album.tsx</span><span class="par">P</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  <details>
+    <summary>P1 Invite relatives by link · 3 tasks</summary>
+    <p class="muted">The album owner shares an invite link. Anyone with the link can view and add photos.</p>
+    <ul class="tasks">
+    
+      <li><span class="tid">T012</span><span class="">Generate invite token on album creation</span></li>
+    
+      <li><span class="tid">T013</span><span class="">Join album via invite link endpoint</span></li>
+    
+      <li><span class="tid">T014</span><span class="">Join page in frontend/src/pages/Join.tsx</span><span class="par">P</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  <details>
+    <summary>P2 Weekly digest email · 2 tasks</summary>
+    <p class="muted">Members receive a weekly email with thumbnails of new photos in albums they belong to.</p>
+    <ul class="tasks">
+    
+      <li><span class="tid">T015</span><span class="">Hourly Celery beat job selecting members at Monday 08:00 local time</span></li>
+    
+      <li><span class="tid">T016</span><span class="">Digest email template with thumbnails</span><span class="par">P</span></li>
+    
+    </ul>
+  </details>
+  
+  
+  
+  <details>
+    <summary>9 requirements</summary>
+    <ul class="tasks">
+    <li><span class="tid">FR-001</span><span>System MUST allow signed-in users to create albums with a name of up to 80 characters.</span></li><li><span class="tid">FR-002</span><span>System MUST accept JPEG, PNG and HEIC uploads up to 25 MB each.</span></li><li><span class="tid">FR-003</span><span>System MUST generate a unique invite link per album.</span></li><li><span class="tid">FR-004</span><span>Anyone with an invite link MUST be able to view and upload photos to that album.</span></li><li><span class="tid">FR-005</span><span>System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.</span></li><li><span class="tid">FR-006</span><span>System MUST strip GPS location from EXIF metadata before photos are visible to other members.</span></li><li><span class="tid">FR-007</span><span>System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].</span></li><li><span class="tid">SC-001</span><span>80% of new albums receive at least one invited member within 7 days.</span></li><li><span class="tid">SC-002</span><span>Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.</span></li>
+    </ul>
+  </details>
+  
+</main>
+
+<div class="bar"><div class="in">
+  <span class="progress" id="progress"></span>
+  <span class="bar-actions">
+    <button class="secondary" id="copy" title="Copy the review to paste into your coding agent">Copy for your agent</button>
+    <button class="primary" id="export">Export review.md</button>
+  </span>
+</div></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><span id="drawer-title"></span><button class="x" id="drawer-close" aria-label="Close">×</button></header>
+  <pre id="drawer-body"></pre>
+</aside>
+
+<script id="data" type="application/json">{"feature": "Shared Photo Albums", "documents": {"spec.md": "# Feature Specification: Shared Photo Albums\n\n**Feature Branch**: `001-photo-albums`\n**Created**: 2026-11-20\n**Status**: Draft\n**Input**: User description: \"Let families create shared photo albums, invite relatives by link, and get a weekly digest of new photos.\"\n\n## User Scenarios & Testing *(mandatory)*\n\n### User Story 1 - Create an album and upload photos (Priority: P1)\n\nA user creates an album, gives it a name and uploads photos from their phone or desktop.\n\n**Why this priority**: Without albums and uploads there is no product.\n\n**Independent Test**: Create an album, upload 10 photos, see them in a grid sorted by date taken.\n\n**Acceptance Scenarios**:\n\n1. **Given** a signed-in user, **When** they create an album named \"Summer 2026\", **Then** it appears in their album list.\n2. **Given** an album, **When** the user uploads 10 JPEG photos, **Then** all 10 appear sorted by EXIF date.\n\n---\n\n### User Story 2 - Invite relatives by link (Priority: P1)\n\nThe album owner shares an invite link. Anyone with the link can view and add photos.\n\n**Why this priority**: Sharing is the core value proposition.\n\n**Independent Test**: Open the invite link in a private window, join, upload a photo.\n\n---\n\n### User Story 3 - Weekly digest email (Priority: P2)\n\nMembers receive a weekly email with thumbnails of new photos in albums they belong to.\n\n**Why this priority**: Drives re-engagement but the product works without it.\n\n---\n\n### Edge Cases\n\n- What happens when an invite link is leaked publicly? [NEEDS CLARIFICATION: should links expire or be revocable?]\n- How are duplicate uploads of the same photo handled?\n- What happens to photos when a member leaves the album? [NEEDS CLARIFICATION: do their photos stay or get removed?]\n\n## Requirements *(mandatory)*\n\n### Functional Requirements\n\n- **FR-001**: System MUST allow signed-in users to create albums with a name of up to 80 characters.\n- **FR-002**: System MUST accept JPEG, PNG and HEIC uploads up to 25 MB each.\n- **FR-003**: System MUST generate a unique invite link per album.\n- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.\n- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member's timezone.\n- **FR-006**: System MUST strip GPS location from EXIF metadata before photos are visible to other members.\n- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].\n\n### Key Entities\n\n- **Album**: name, owner, invite token, created at.\n- **Photo**: file, album, uploader, taken at, uploaded at.\n- **Membership**: user, album, role (owner, member), joined at.\n\n## Success Criteria *(mandatory)*\n\n- **SC-001**: 80% of new albums receive at least one invited member within 7 days.\n- **SC-002**: Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.\n", "plan.md": "# Implementation Plan: Shared Photo Albums\n\n**Branch**: `001-photo-albums` | **Date**: 2026-11-21 | **Spec**: [spec.md](./spec.md)\n\n## Summary\n\nWeb app with a REST API. Photos go straight from the browser to object storage with presigned URLs;\na background worker builds thumbnails, strips GPS data and sends the weekly digest.\n\n## Technical Context\n\n**Language/Version**: Python 3.12 (API, worker), TypeScript 5 (web)\n**Primary Dependencies**: FastAPI, SQLAlchemy, Celery, React 19\n**Storage**: PostgreSQL 16 for metadata, S3-compatible object storage for files\n**Testing**: pytest, Playwright\n**Target Platform**: Linux containers on Kubernetes\n**Project Type**: web\n**Performance Goals**: 10 photo uploads in under 30 s on 20 Mbps\n**Constraints**: [NEEDS CLARIFICATION: monthly storage budget per family]\n**Scale/Scope**: 5k families in the first year\n\n## Constitution Check\n\n- Library-first: thumbnail and EXIF handling live in `photos_core`, independent from the API. PASS\n- Test-first: contract tests before endpoints. PASS\n\n## Project Structure\n\n```text\nbackend/\n  src/api/  src/worker/  src/photos_core/\n  tests/contract/  tests/integration/\nfrontend/\n  src/pages/  src/components/\n```\n", "research.md": "# Research: Shared Photo Albums\n\n## Upload path\n\n- **Decision**: Browser uploads directly to object storage with presigned URLs.\n- **Rationale**: Keeps 25 MB files off the API servers and meets the 30 s upload goal.\n- **Alternatives considered**: Upload through the API; tus resumable uploads\n\n## Invite model\n\n- **Decision**: One permanent invite token per album, anyone with the link gets member rights.\n- **Rationale**: Lowest friction for non-technical relatives.\n- **Alternatives considered**: Per-person email invites; expiring links; view-only links plus upload approval\n\n## HEIC support\n\n- **Decision**: Convert HEIC to JPEG in the worker and keep the original.\n- **Rationale**: Most browsers cannot render HEIC.\n- **Alternatives considered**: Reject HEIC; convert in the browser\n\n## Digest delivery\n\n- **Decision**: Celery beat job every hour that sends digests to members whose local time is Monday 08:00.\n- **Rationale**: Respects timezones without one job per user.\n- **Alternatives considered**: One scheduled job per user; send everyone at 08:00 UTC\n", "tasks.md": "# Tasks: Shared Photo Albums\n\n## Phase 1: Setup\n\n- [x] T001 Create backend and frontend project structure per plan.md\n- [x] T002 [P] Configure ruff, mypy and eslint\n- [ ] T003 [P] Provision PostgreSQL and object storage in docker-compose\n\n## Phase 2: Foundational\n\n- [ ] T004 Create Album, Photo and Membership models in backend/src/api/models.py\n- [ ] T005 [P] Implement EXIF reader and GPS stripping in backend/src/photos_core/exif.py\n- [ ] T006 [P] Implement thumbnail generation in backend/src/photos_core/thumbs.py\n\n## Phase 3: User Story 1 - Create an album and upload photos (P1)\n\n- [ ] T007 [US1] Contract test POST /albums in backend/tests/contract/test_albums.py\n- [ ] T008 [US1] Implement POST /albums and GET /albums\n- [ ] T009 [P] [US1] Implement presigned upload URL endpoint\n- [ ] T010 [US1] Worker job: thumbnail, HEIC conversion, GPS stripping on upload\n- [ ] T011 [P] [US1] Album grid page sorted by date taken in frontend/src/pages/Album.tsx\n\n## Phase 4: User Story 2 - Invite relatives by link (P1)\n\n- [ ] T012 [US2] Generate invite token on album creation\n- [ ] T013 [US2] Join album via invite link endpoint\n- [ ] T014 [P] [US2] Join page in frontend/src/pages/Join.tsx\n\n## Phase 5: User Story 3 - Weekly digest email (P2)\n\n- [ ] T015 [US3] Hourly Celery beat job selecting members at Monday 08:00 local time\n- [ ] T016 [P] [US3] Digest email template with thumbnails\n\n## Phase 6: Polish\n\n- [ ] T017 [P] Playwright end-to-end test for create, invite, upload\n- [ ] T018 Load test 10 parallel uploads on a throttled 20 Mbps connection\n"}, "version": "3eca9b648dc9", "decisions": [{"id": "D1", "key": "d-08643715055e", "title": "Permanent invite link with full member rights", "choice": "One permanent token per album; anyone with the link can view and upload.", "cite": "research.md:11"}, {"id": "D2", "key": "d-ed25e9839a7d", "title": "Direct-to-storage uploads", "choice": "Browser uploads to object storage with presigned URLs.", "cite": "research.md:5"}, {"id": "D3", "key": "d-dfd528e57780", "title": "GPS stripped only before other members see the photo", "choice": "Originals are kept with EXIF; GPS is removed in the worker before photos are visible.", "cite": "spec.md:58"}, {"id": "D4", "key": "d-ce8740aaf4de", "title": "HEIC converted to JPEG in the worker", "choice": "Convert server-side and keep the original.", "cite": "research.md:17"}, {"id": "D5", "key": "d-dc0d4a12449b", "title": "Timezone-aware digest via hourly job", "choice": "Celery beat runs hourly and sends to members whose local time is Monday 08:00.", "cite": "research.md:23"}, {"id": "TC1", "key": "d-32941bb6bfb2", "title": "Language/Version", "choice": "Python 3.12 (API, worker), TypeScript 5 (web)", "cite": "plan.md:12"}, {"id": "TC2", "key": "d-ae73199fb90b", "title": "Primary Dependencies", "choice": "FastAPI, SQLAlchemy, Celery, React 19", "cite": "plan.md:13"}, {"id": "TC3", "key": "d-147f786eb313", "title": "Storage", "choice": "PostgreSQL 16 for metadata, S3-compatible object storage for files", "cite": "plan.md:14"}, {"id": "TC4", "key": "d-bab589641a93", "title": "Testing", "choice": "pytest, Playwright", "cite": "plan.md:15"}, {"id": "TC5", "key": "d-1df92596777c", "title": "Target Platform", "choice": "Linux containers on Kubernetes", "cite": "plan.md:16"}, {"id": "TC6", "key": "d-7cc0ddfe9cc1", "title": "Project Type", "choice": "web", "cite": "plan.md:17"}, {"id": "TC7", "key": "d-5f68d8f89546", "title": "Performance Goals", "choice": "10 photo uploads in under 30 s on 20 Mbps", "cite": "plan.md:18"}, {"id": "TC8", "key": "d-13b49bf6ecf1", "title": "Scale/Scope", "choice": "5k families in the first year", "cite": "plan.md:20"}], "questions": [{"id": "Q1", "key": "q-3ae840286f5d", "question": "should links expire or be revocable?", "cite": "spec.md:45"}, {"id": "Q2", "key": "q-9f914c4ca13c", "question": "do their photos stay or get removed?", "cite": "spec.md:47"}, {"id": "Q3", "key": "q-4ab93d6dce7b", "question": "retention period not specified", "cite": "spec.md:59"}, {"id": "Q4", "key": "q-13a515428729", "question": "monthly storage budget per family", "cite": "plan.md:19"}, {"id": "Q5", "key": "q-138e049140cd", "question": "How are duplicate uploads detected and handled?", "cite": "spec.md:46"}, {"id": "Q6", "key": "q-112d51f5fbee", "question": "Can the owner delete photos uploaded by others?", "cite": "spec.md:65"}, {"id": "Q7", "key": "q-f3440747cda8", "question": "Can members opt out of the weekly digest?", "cite": "spec.md:57"}], "apply_hint": "Apply this review with spec-kit's own commands (/speckit.clarify, /speckit.plan, /speckit.tasks), not by editing the spec; `unboring feedback` prints the exact steps.", "carried": {}}</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("data").textContent);
+  // Marks are saved per item identity (data-key), never per position (D1, Q2...), which is
+  // reassigned on every render (#29). Old position-based marks cannot be mapped safely, so the
+  // previous storage entry is dropped instead of being applied to whatever now sits in that slot.
+  const key = "unboringspec:v2:" + data.feature;
+  let state = {};
+  try {
+    localStorage.removeItem("unboringspec:" + data.feature);
+    state = JSON.parse(localStorage.getItem(key) || "{}");
+  } catch (e) {}
+  // Marks carried over from the last saved review fill the gaps; what the reader did in this
+  // browser wins. A carried mark stops being "carried" as soon as the reader touches it.
+  Object.entries(data.carried || {}).forEach(([k, mark]) => {
+    if (!state[k]) state[k] = Object.assign({ carried: true }, mark);
+  });
+  const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} updateProgress(); };
+
+  // Verdicts on decision cards
+  document.querySelectorAll(".decision").forEach(card => {
+    const id = card.dataset.key, note = card.querySelector(".note");
+    const apply = () => {
+      const s = state[id] || {};
+      card.classList.toggle("is-approve", s.v === "approve");
+      card.classList.toggle("is-question", s.v === "question");
+      card.querySelectorAll(".v").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === s.v)));
+      note.hidden = s.v !== "question";
+      note.value = s.note || "";
+      let badge = card.querySelector(".carried-badge");
+      if (s.carried && s.v) {
+        if (!badge) { badge = document.createElement("span"); badge.className = "carried-badge"; card.querySelector("header").appendChild(badge); }
+        badge.textContent = "from your last review";
+      } else if (badge) badge.remove();
+    };
+    card.querySelectorAll(".v").forEach(b => b.addEventListener("click", () => {
+      const s = state[id] || {};
+      s.v = s.v === b.dataset.v ? undefined : b.dataset.v;
+      delete s.carried;
+      state[id] = s; save(); apply();
+      if (s.v === "question") note.focus();
+    }));
+    note.addEventListener("input", () => { (state[id] = state[id] || {}).note = note.value; delete state[id].carried; save(); });
+    apply();
+  });
+
+  // Answers to open questions
+  document.querySelectorAll(".question").forEach(card => {
+    const id = card.dataset.key, ta = card.querySelector(".answer");
+    ta.value = (state[id] || {}).answer || "";
+    ta.addEventListener("input", () => { (state[id] = state[id] || {}).answer = ta.value; delete state[id].carried; save(); });
+  });
+
+  function updateProgress() {
+    const ids = data.decisions.map(d => d.key).concat(data.questions.map(q => q.key));
+    const marked = id => state[id] && (state[id].v || (state[id].answer || "").trim());
+    const done = ids.filter(marked).length;
+    const carried = ids.filter(id => marked(id) && state[id].carried).length;
+    document.getElementById("progress").textContent =
+      `${done} of ${ids.length} items reviewed` + (carried ? ` (${carried} from your last review)` : "");
+  }
+  updateProgress();
+
+  // Source drawer: every claim links back to the exact line
+  const drawer = document.getElementById("drawer");
+  document.querySelectorAll(".src").forEach(b => b.addEventListener("click", () => {
+    const file = b.dataset.file, line = +b.dataset.line;
+    const lines = (data.documents[file] || "").split("\n");
+    const pre = document.getElementById("drawer-body");
+    pre.replaceChildren(...lines.map((t, i) => {
+      const el = document.createElement("span");
+      el.className = "ln" + (i + 1 === line ? " hl" : "");
+      const n = document.createElement("span"); n.textContent = i + 1;
+      el.append(n, t);
+      return el;
+    }));
+    document.getElementById("drawer-title").textContent = `${file}:${line}`;
+    drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false");
+    const target = pre.children[line - 1];
+    if (target) target.scrollIntoView({ block: "center" });
+  }));
+  const close = () => { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); };
+  document.getElementById("drawer-close").addEventListener("click", close);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+
+  // Diagrams: Mermaid loads on the first open, so closed diagrams cost nothing. Spec-built
+  // diagrams need no LLM; drawing them needs Mermaid from the CDN, and without it the source shows.
+  const MERMAID = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  let mermaidReady;
+  const loadMermaid = () => mermaidReady || (mermaidReady = import(MERMAID).then(m => {
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    m.default.initialize({
+      startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default",
+      flowchart: { subGraphTitleMargin: { top: 6, bottom: 10 } },
+    });
+    return m.default;
+  }));
+  const draw = async (d, i) => {
+    if (!d.open || d.dataset.drawn) return;
+    d.dataset.drawn = "1";
+    const canvas = d.querySelector(".diagram-canvas");
+    const src = d.querySelector(".diagram-src").textContent;
+    const fallback = msg => {
+      canvas.textContent = msg;
+      const pre = document.createElement("pre");
+      pre.className = "diagram-fallback";
+      pre.textContent = src;
+      canvas.appendChild(pre);
+    };
+    canvas.textContent = "Drawing…";
+    let mermaid;
+    try { mermaid = await loadMermaid(); } catch (e) { mermaidReady = null; return fallback("Mermaid could not be loaded (offline?). Diagram source:"); }
+    try {
+      await mermaid.parse(src);
+      const { svg } = await mermaid.render("diagram-" + i, src);
+      canvas.innerHTML = svg;
+      canvas.classList.add("drawn");
+      canvas.title = "Click to enlarge";
+      const hint = document.createElement("p");
+      hint.className = "diagram-hint";
+      hint.textContent = "Click the diagram to see it full size.";
+      canvas.after(hint);
+      d.dataset.rendered = "1";
+    } catch (e) {
+      fallback("This diagram could not be drawn. Source:");
+      d.dataset.failed = "1";
+    }
+  };
+  document.querySelectorAll("details.diagram").forEach((d, i) => {
+    d.addEventListener("toggle", () => draw(d, i));
+    draw(d, i);  // diagrams that start open
+    const canvas = d.querySelector(".diagram-canvas");
+    canvas.addEventListener("click", () => {
+      if (!canvas.classList.contains("drawn")) return;
+      const zoomed = canvas.classList.toggle("zoomed");
+      // Mermaid sizes the SVG to its container; full size means its own viewBox width.
+      const svg = canvas.querySelector("svg");
+      svg.style.width = zoomed && svg.viewBox.baseVal ? svg.viewBox.baseVal.width + "px" : "";
+    });
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    document.querySelectorAll(".diagram-canvas.zoomed").forEach(c => {
+      c.classList.remove("zoomed");
+      c.querySelector("svg").style.width = "";
+    });
+  });
+
+  // Export: structured feedback the agent can consume (e.g. in /speckit.clarify), plus a hidden
+  // machine-readable block so the next render can follow it up (unboring feedback, #28).
+  function buildReview() {
+    const out = [`# Review: ${data.feature}`, "", `_Generated with unboringspec on ${new Date().toISOString().slice(0, 10)}_`, ""];
+    if (data.apply_hint) out.push(`> ${data.apply_hint}`, "");
+    const answered = data.questions.filter(q => ((state[q.key] || {}).answer || "").trim());
+    if (answered.length) {
+      out.push("## Answers to open questions", "");
+      answered.forEach(q => out.push(`- **${q.id}** ${q.question}`, `  - Answer: ${state[q.key].answer.trim()}`));
+      out.push("");
+    }
+    const qd = data.decisions.filter(d => (state[d.key] || {}).v === "question");
+    if (qd.length) {
+      out.push("## Decisions to revisit", "");
+      qd.forEach(d => out.push(`- **${d.id} ${d.title}**: ${d.choice}`, `  - Reviewer: ${(state[d.key].note || "(no comment)").trim()}`));
+      out.push("");
+    }
+    const ok = data.decisions.filter(d => (state[d.key] || {}).v === "approve");
+    if (ok.length) {
+      out.push("## Approved", "");
+      ok.forEach(d => out.push(`- ${d.id} ${d.title}: ${d.choice}`));
+      out.push("");
+    }
+    const items = [];
+    answered.forEach(q => items.push({ id: q.id, key: q.key, kind: "answer", text: q.question, cite: q.cite, answer: state[q.key].answer.trim() }));
+    qd.forEach(d => items.push({ id: d.id, key: d.key, kind: "question", text: d.title, choice: d.choice, cite: d.cite, note: (state[d.key].note || "").trim() }));
+    ok.forEach(d => items.push({ id: d.id, key: d.key, kind: "approve", text: d.title, choice: d.choice, cite: d.cite }));
+    // "--" cannot appear inside an HTML comment; inside JSON strings it is written as -\u002d.
+    const block = JSON.stringify({ version: data.version, feature: data.feature, created: new Date().toISOString(), items })
+      .replace(/--/g, "-\\u002d");
+    out.push(`<!-- unboring:review ${block} -->`, "");
+    return out.join("\n");
+  }
+
+  document.getElementById("export").addEventListener("click", () => {
+    const blob = new Blob([buildReview()], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "review.md"; a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("copy").addEventListener("click", async e => {
+    const text = buildReview();
+    const button = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {  // file:// pages and older browsers
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+    }
+    const label = button.textContent;
+    button.textContent = "Copied: paste it to your agent";
+    setTimeout(() => { button.textContent = label; }, 2500);
+  });
+})();
+</script>
+</body>
+</html>
