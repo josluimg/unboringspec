@@ -414,3 +414,82 @@ def test_player_seeks_on_release_and_recovers_a_stall(tmp_path, monkeypatch):
     assert "if (!dragging) seekTo(" in script  # keyboard steps seek right away, drags only on release
     assert 'audio.addEventListener("waiting"' in script and "audio.load()" in script
     assert "audio.readyState >= 3" in script  # never reloads audio that has data to play
+
+
+# --- #61: a cast of voices, blends and pitch ------------------------------------------
+
+
+def test_voice_specs():
+    assert tts.parse_voice("em_alex") == ([("em_alex", 1.0)], 0.0)
+    assert tts.parse_voice("em_alex@-2") == ([("em_alex", 1.0)], -2.0)
+    blend, shift = tts.parse_voice("ef_dora*3 + em_alex @ +1.5")
+    assert blend == [("ef_dora", 0.75), ("em_alex", 0.25)] and shift == 1.5
+    for bad in ("", "Alex", "em_alex*0", "em_alex*x", "em_alex@-9"):
+        with pytest.raises(ValueError):
+            tts.parse_voice(bad)
+
+
+def test_every_voice_in_the_cast_parses_and_roles_stay_apart():
+    for lang, pool in tts.KOKORO_CAST.items():
+        for role in ("guide", "skeptic"):
+            for spec in pool[role]:
+                tts.parse_voice(spec)
+        assert pool["guide"][0] == tts.KOKORO_VOICES[lang]["guide"]  # the default pair is in the cast
+        assert pool["skeptic"][0] == tts.KOKORO_VOICES[lang]["skeptic"]
+
+
+def test_cast_picks_at_random_and_drops_pitch_without_ffmpeg(monkeypatch):
+    import random
+
+    engine = tts.KokoroEngine()
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/ffmpeg")
+    picks = {tuple(engine.cast("es", random.Random(seed)).items()) for seed in range(60)}
+    assert len(picks) > 6  # many pairs, not always the same
+    for pair in picks:
+        guide, skeptic = dict(pair)["guide"], dict(pair)["skeptic"]
+        assert guide in tts.KOKORO_CAST["es"]["guide"] and skeptic in tts.KOKORO_CAST["es"]["skeptic"]
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    assert all("@" not in engine.cast("es", random.Random(s))["skeptic"] for s in range(60))
+    assert engine.cast("fr") == tts.KOKORO_VOICES["fr"]  # no cast yet: the default pair
+
+
+class BlendKokoro(FakeKokoro):
+    def get_voices(self):
+        return ["ef_dora", "em_alex", "em_santa"]
+
+    def get_voice_style(self, name):
+        import numpy as np
+
+        return np.full((2, 2), {"ef_dora": 1.0, "em_alex": 3.0, "em_santa": 5.0}[name], dtype="float32")
+
+    def create(self, text, voice, speed=1.0, lang="en-us", is_phonemes=False):
+        self.voice = voice
+        return super().create(text, voice, speed, lang, is_phonemes)
+
+
+def test_kokoro_blends_styles_and_shifts_pitch(tmp_path, monkeypatch):
+    pytest.importorskip("numpy")
+    engine = tts.KokoroEngine()
+    engine._model = BlendKokoro()
+    shifted = []
+    monkeypatch.setattr(tts, "shift_pitch", lambda path, semitones: shifted.append(semitones))
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/ffmpeg")
+    engine.synth("Hola.", "em_alex*0.5+em_santa*0.5@-2", "es", 1.2, tmp_path / "a.wav")
+    assert float(engine._model.voice[0][0]) == 4.0  # halfway between 3 and 5
+    assert shifted == [-2.0]
+    engine.synth("Hola.", "ef_dora", "es", 1.2, tmp_path / "b.wav")
+    assert engine._model.voice == "ef_dora"  # a plain voice is passed by name
+    with pytest.raises(tts.EngineUnavailable):
+        engine.synth("Hola.", "em_nobody", "es", 1.2, tmp_path / "c.wav")
+
+
+def test_render_records_the_voices_it_used(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(tts.ENGINES, "fake", FakeEngine)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    shutil.copy(EXAMPLE_SCRIPT, wd / "podcast.json")
+    r = runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "fake", "--voice-skeptic", "x_y"])
+    assert r.exit_code == 0, r.output
+    meta = json.loads((wd / "podcast.meta.json").read_text())
+    assert meta["voices"] == {"guide": "g", "skeptic": "x_y"}

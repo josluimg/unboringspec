@@ -11,6 +11,7 @@ The podcast is **optional**. Nothing related to it is installed unless you ask f
 - [Use it](#use-it)
 - [Tones](#tones)
 - [Voices](#voices)
+- [A cast of voices](#a-cast-of-voices)
 - [Words in another language](#words-in-another-language)
 - [Pace and the player](#pace-and-the-player)
 - [Rendering options](#rendering-options)
@@ -128,6 +129,30 @@ uv solves for you:
 `~/.cache/unboringspec/kokoro` (override with `UNBORING_KOKORO_DIR`); delete that folder to remove it.
 On Intel Macs, uv picks ONNX Runtime 1.23, the last release built for Intel; that is the one tested.
 
+## A cast of voices
+
+Kokoro has few voices in some languages (three in Spanish), so episodes would always sound the same. Each
+recording with Kokoro therefore picks its hosts at random from a **cast**. The guide comes from one list and
+the skeptic from another, so the names the script gives them still fit, and the two are easy to tell apart.
+The Spanish cast:
+
+| Guide | Skeptic |
+|---|---|
+| `ef_dora` | `em_alex` |
+| `ef_dora*0.5+af_bella*0.5` | `em_santa` |
+| `ef_dora*0.6+em_alex*0.4` | `em_alex*0.6+em_santa*0.4` |
+| | `em_alex@-2` |
+
+A voice can be a blend of Kokoro voices with weights (`a*0.6+b*0.4`), and `@-2` lowers its pitch two semitones
+without changing its speed (needs ffmpeg; without it, those voices leave the cast). The voices used are printed
+and saved in `podcast.meta.json`. To keep a pair, pin it:
+
+```bash
+unboring podcast render specs/001 --voice-guide "ef_dora*0.6+em_alex*0.4" --voice-skeptic "em_alex@-2"
+```
+
+Other languages use their default pair until someone has listened to a cast for them.
+
 ## Words in another language
 
 Teams say a lot of things in English whatever language they speak: product names (*Snowflake*, *PostgreSQL*)
@@ -158,7 +183,7 @@ pace. The choice is remembered in that browser. Without JavaScript, the browser'
 | Option | Meaning |
 |---|---|
 | `--engine` | `auto` (default: Kokoro if ready, else system), `system`, `kokoro`, `say`, `sapi`, `espeak` |
-| `--voice-guide`, `--voice-skeptic` | Override a host's voice (names from `unboring podcast engines`) |
+| `--voice-guide`, `--voice-skeptic` | Pin a host's voice: a name from `unboring podcast engines` or, with Kokoro, a blend and pitch (see [A cast of voices](#a-cast-of-voices)). Default: a pair picked at random from the cast |
 | `--speed` | 0.5 to 2.0. Default: 1.2 times the tone's own pace (see [Pace and the player](#pace-and-the-player)) |
 
 With ffmpeg installed you get an MP3; without it, a WAV. The transcript is written to `podcast.md`.

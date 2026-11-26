@@ -1,6 +1,10 @@
 {
   "version": "f02fb8d1d440",
-  "recorded": "2026-11-26T19:02:28+00:00",
+  "recorded": "2026-11-26T20:27:17+00:00",
   "engine": "kokoro",
-  "tone": "casual"
+  "tone": "casual",
+  "voices": {
+    "guide": "ef_dora",
+    "skeptic": "em_alex*0.6+em_santa*0.4"
+  }
 }
