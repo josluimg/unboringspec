@@ -384,3 +384,33 @@ def test_player_with_visible_speed_and_native_fallback(tmp_path, monkeypatch):
     assert '<audio controls preload="metadata"' in html  # the native player stays, for pages without JavaScript
     assert "html:not(.js) .player { display: none; }" in html and "html.js .listen audio { display: none; }" in html
     assert 'localStorage.setItem("unboring-speed"' in html
+
+
+# --- #59: seeking that keeps playing ------------------------------------------------
+
+
+def test_episodes_are_encoded_at_a_constant_bitrate(tmp_path, monkeypatch):
+    """VBR makes browsers guess byte offsets when seeking, and WebKit can stall on it."""
+    calls = []
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/ffmpeg" if name == "ffmpeg" else None)
+    monkeypatch.setattr(tts.subprocess, "run", lambda args, **kw: calls.append(args))
+    part = tmp_path / "1.wav"
+    FakeEngine().synth("x", "g", "es", 1.0, part)
+    tts.assemble([part], tmp_path / "podcast")
+    args = calls[-1]
+    assert args[args.index("-b:a") + 1] == "64k" and "-q:a" not in args
+
+
+def test_player_seeks_on_release_and_recovers_a_stall(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(tts.ENGINES, "fake", FakeEngine)
+    wd = tmp_path / ".unboring/001-photo-albums"
+    wd.mkdir(parents=True)
+    shutil.copy(EXAMPLE_SCRIPT, wd / "podcast.json")
+    assert runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "fake"]).exit_code == 0
+    html = (wd / "review.html").read_text()
+    script = html.split("// Podcast player (#57)")[1].split('document.getElementById("copy")')[0]
+    assert 'seek.addEventListener("pointerdown"' in script and "window.addEventListener(\"pointerup\", release)" in script
+    assert "if (!dragging) seekTo(" in script  # keyboard steps seek right away, drags only on release
+    assert 'audio.addEventListener("waiting"' in script and "audio.load()" in script
+    assert "audio.readyState >= 3" in script  # never reloads audio that has data to play
