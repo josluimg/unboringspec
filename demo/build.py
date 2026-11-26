@@ -46,8 +46,8 @@ class Demo:
 DEMOS = [
     Demo("speckit", "examples/speckit-es/specs/001-albumes-compartidos", "spec-kit",
          "All in Spanish · casual podcast", "es"),
-    Demo("openspec", "examples/openspec/openspec/changes/add-invite-link-revocation", "OpenSpec",
-         "Podcast in English · roast tone", "en"),
+    Demo("openspec", "examples/openspec/openspec/changes/add-invite-link-revocation", "OpenSpec · custom theme",
+         "Podcast in English · roast tone", "en", theme="examples/themes/roast.css"),
     Demo("themed", "examples/speckit/specs/001-photo-albums", "spec-kit · custom theme",
          "Podcast in English · sports tone", "en", theme="examples/themes/brutalist.css"),
 ]
@@ -184,7 +184,10 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
     print(f"✓ {demo.slug}: {len(files)} files, {lines} lines → review.html + index.html")
     return {"slug": demo.slug, "framework": demo.framework, "feature": ir.feature, "files": len(files),
             "lines": lines, "podcast": demo.podcast_note, "one_liner": ir.summary.one_liner if ir.summary else "",
-            "theme": Path(demo.theme).name}
+            "theme": Path(demo.theme).name, "lang": demo.lang}
+
+
+FLAGS = {"es": "🇪🇸", "en": "🇬🇧"}  # the language of each demo, on its landing card
 
 
 def card_html(c: dict) -> str:
@@ -193,7 +196,7 @@ def card_html(c: dict) -> str:
         f'      <span class="fw">{escape(c["framework"])}</span>\n'
         f'      <h2>{escape(c["feature"])}</h2>\n'
         f'      <p>{escape(c["one_liner"])}</p>\n'
-        f'      <span class="pill">🎧 {escape(c["podcast"])}</span>\n'
+        f'      <span class="pill">{FLAGS[c["lang"]]} {escape(c["podcast"])}</span>\n'
         + (f'      <p class="themed">🎨 Same page, your look: this review uses <code>{escape(c["theme"])}</code>, '
            f'one CSS file in the project.</p>\n' if c["theme"] else "")
         + f'      <p>{c["files"]} files, {c["lines"]} lines of Markdown → one review page.</p>\n'
