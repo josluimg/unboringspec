@@ -62,7 +62,7 @@ The review opens in your browser; once the episode is recorded, it plays at the 
 
 ## Everything in the review
 
-| | |
+| Feature | What |
 |---|---|
 | 🎧 **Spec podcast** | A guide and a skeptic, in the tone you choose. Player and transcript at the top of the page. |
 | 🧭 **Needs your judgment** | Only what is blocked on a human: `[NEEDS CLARIFICATION]` markers, unresolved trade-offs, gaps a careful reviewer would raise. |
