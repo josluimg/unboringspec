@@ -6,7 +6,9 @@ spec, validating citations, rendering the page). You do the analysis. No API key
 1. **Pick the spec folder.** Use the one the user named. If they named none, use the most recently
    modified spec folder: `specs/<feature>/` (spec-kit) or
    `openspec/changes/<change>/` (OpenSpec, excluding `archive/`). Ask only if it is genuinely ambiguous.
-2. **Check the CLI** with `unboring version`. If the command is not found, tell the user to install it
+2. **Check the CLI** with `unboring version`. If the command is not found or is blocked (on Windows an
+   antivirus or company policy can block `unboring.exe`), try `python -m unboringspec version`; if that works,
+   use `python -m unboringspec` wherever these steps say `unboring`. If neither works, tell the user to install it
    with `uv tool install git+https://github.com/josluimg/unboringspec`
    (or `pipx install git+https://github.com/josluimg/unboringspec`) and stop.
 3. **Get the prompt:** run `unboring prompt <folder>`. It prints the path of a prompt file and the path
