@@ -585,8 +585,19 @@ def wav_seconds(path: Path) -> float:
 MP3_ENCODING = ("-c:a", "libmp3lame", "-b:a", "64k")
 
 
-def assemble(parts: list[Path], out_stem: Path, pause_ms: int = PAUSE_MS) -> Path:
-    """Join turn WAVs with pauses. MP3 when ffmpeg is available, WAV otherwise."""
+def _ffmetadata(text: str) -> str:
+    """Escape a value for ffmpeg's metadata file format."""
+    return "".join("\\" + c if c in "=;#\\\n" else c for c in text)
+
+
+def assemble(
+    parts: list[Path], out_stem: Path, pause_ms: int = PAUSE_MS, chapters: Sequence[tuple[str, float, float]] = ()
+) -> Path:
+    """Join turn WAVs with pauses. MP3 when ffmpeg is available, WAV otherwise.
+
+    `chapters` are (title, start, end) in seconds; the MP3 gets them as ID3 chapter frames (#4), so
+    podcast players show them too.
+    """
     work = parts[0].parent
     gap = _silence(work / "_pause.wav", pause_ms)
     sequence: list[Path] = []
@@ -599,8 +610,20 @@ def assemble(parts: list[Path], out_stem: Path, pause_ms: int = PAUSE_MS) -> Pat
         listing = work / "_concat.txt"
         listing.write_text("".join(f"file '{p.resolve()}'\n" for p in sequence), encoding="utf-8")
         out = out_stem.with_suffix(".mp3")
+        meta_args: list[str] = []
+        if chapters:
+            meta = work / "_chapters.txt"
+            meta.write_text(
+                ";FFMETADATA1\n" + "".join(
+                    f"[CHAPTER]\nTIMEBASE=1/1000\nSTART={int(start * 1000)}\nEND={int(end * 1000)}\n"
+                    f"title={_ffmetadata(title)}\n"
+                    for title, start, end in chapters
+                ),
+                encoding="utf-8",
+            )
+            meta_args = ["-i", str(meta), "-map", "0:a", "-map_metadata", "1", "-map_chapters", "1", "-id3v2_version", "3"]
         subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
+            ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing), *meta_args,
              "-ar", str(SAMPLE_RATE), "-ac", "1", *MP3_ENCODING, str(out)],
             check=True,
         )

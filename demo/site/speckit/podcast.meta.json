@@ -1,10 +1,37 @@
 {
   "version": "f02fb8d1d440",
-  "recorded": "2026-11-26T20:27:17+00:00",
+  "recorded": "2026-11-26T23:04:19+00:00",
   "engine": "kokoro",
   "tone": "casual",
   "voices": {
-    "guide": "ef_dora",
-    "skeptic": "em_alex*0.6+em_santa*0.4"
-  }
+    "guide": "ef_dora*0.6+em_alex*0.4",
+    "skeptic": "em_alex"
+  },
+  "chapters": [
+    {
+      "id": "hook",
+      "start": 0.0,
+      "end": 13.5
+    },
+    {
+      "id": "overview",
+      "start": 13.5,
+      "end": 43.71
+    },
+    {
+      "id": "decisions",
+      "start": 43.71,
+      "end": 257.3
+    },
+    {
+      "id": "to_decide",
+      "start": 257.3,
+      "end": 278.06
+    },
+    {
+      "id": "close",
+      "start": 278.06,
+      "end": 293.06
+    }
+  ]
 }

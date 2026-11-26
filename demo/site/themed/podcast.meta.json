@@ -1,6 +1,37 @@
 {
   "version": "3eca9b648dc9",
-  "recorded": "2026-11-26T19:04:29+00:00",
+  "recorded": "2026-11-26T23:06:23+00:00",
   "engine": "kokoro",
-  "tone": "sports"
+  "tone": "sports",
+  "voices": {
+    "guide": "af_heart",
+    "skeptic": "am_michael"
+  },
+  "chapters": [
+    {
+      "id": "hook",
+      "start": 0.0,
+      "end": 9.96
+    },
+    {
+      "id": "overview",
+      "start": 9.96,
+      "end": 30.24
+    },
+    {
+      "id": "decisions",
+      "start": 30.24,
+      "end": 178.43
+    },
+    {
+      "id": "to_decide",
+      "start": 178.43,
+      "end": 194.18
+    },
+    {
+      "id": "close",
+      "start": 194.18,
+      "end": 203.82
+    }
+  ]
 }

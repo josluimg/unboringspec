@@ -33,6 +33,12 @@ class Host(BaseModel):
     )
 
 
+# The parts every episode follows (#4). The first turn of each part carries its id, so the player can
+# jump to it, the most useful jump being straight to what the listener must decide.
+CHAPTERS = ("hook", "overview", "decisions", "to_decide", "close")
+Chapter = Literal["hook", "overview", "decisions", "to_decide", "close"]
+
+
 class Turn(BaseModel):
     """One spoken turn. Written for the ear: no Markdown, no lists, no file paths, no IDs like FR-006."""
 
@@ -40,6 +46,11 @@ class Turn(BaseModel):
     text: str = Field(description="What the host says, 1 to 3 short sentences.")
     sources: list[Citation] = Field(
         default_factory=list, description="Optional citations for the claim in this turn (shown in the transcript)."
+    )
+    chapter: Chapter | None = Field(
+        None,
+        description="Only on the first turn of each part of the episode: 'hook', 'overview' (what it is), "
+        "'decisions' (the key decisions), 'to_decide' (what the listener must decide), 'close'.",
     )
 
 
@@ -212,6 +223,9 @@ Rules:
   and company names (Snowflake, Control-M, PostgreSQL) and the English jargon you kept. Each once, written
   exactly as in the turns, with the language it is pronounced in ("en"). Natural voices then say them right.
 - Set "tone" in the output to "{tone_id}".
+- Mark the first turn of each part of the structure with "chapter": "hook", "overview" (what it is),
+  "decisions", "to_decide" (what the listener must decide) and "close", in that order. Listeners use them
+  to jump, above all straight to what they must decide.
 
 ## Tone
 
@@ -252,6 +266,7 @@ class ResolvedTurn(BaseModel):
     role: str
     text: str
     sources: list[SourceRef] = Field(default_factory=list)
+    chapter: str | None = None
 
 
 def validate_script(script: PodcastScript, docs: dict[str, str]) -> tuple[list[ResolvedTurn], list[str]]:
@@ -271,10 +286,66 @@ def validate_script(script: PodcastScript, docs: dict[str, str]) -> tuple[list[R
         if len(refs) < len(t.sources):
             problems.append(f"turn {i}: {len(t.sources) - len(refs)} citation(s) point to lines that do not exist")
         h = hosts[t.speaker]
-        turns.append(ResolvedTurn(speaker=t.speaker, name=h.name, role=h.role, text=text, sources=refs))
+        turns.append(ResolvedTurn(speaker=t.speaker, name=h.name, role=h.role, text=text, sources=refs, chapter=t.chapter))
     if not turns:
         raise ValueError("The script has no turns to speak.")
     return turns, problems
+
+
+def chapter_marks(turns: list[ResolvedTurn], seconds: list[float], pause_ms: int) -> list[dict]:
+    """Start and end, in seconds, of each chapter, from the recorded length of every turn.
+
+    A chapter starts where the first turn marked with it starts; it ends where the next one starts,
+    or with the episode. A chapter marked twice keeps its first mark.
+    """
+    starts: dict[str, float] = {}
+    at = 0.0
+    for i, (turn, length) in enumerate(zip(turns, seconds)):
+        if turn.chapter and turn.chapter not in starts:
+            starts[turn.chapter] = round(at, 2)
+        at += length + (pause_ms / 1000 if i < len(turns) - 1 else 0)
+    total = round(at, 2)
+    ordered = sorted(starts.items(), key=lambda kv: kv[1])
+    return [
+        {"id": cid, "start": start, "end": ordered[i + 1][1] if i + 1 < len(ordered) else total}
+        for i, (cid, start) in enumerate(ordered)
+    ]
+
+
+def record_episode(engine, script: PodcastScript, turns: list[ResolvedTurn], voices: dict, speed: float,
+                   out_stem, progress=None) -> tuple:
+    """Voice every turn, measure where each chapter starts, and assemble the episode.
+
+    Returns (audio path, length in seconds, chapters). `progress(i, total, turn)` is called before
+    each turn. Engine errors propagate (EngineUnavailable).
+    """
+    import tempfile
+    from pathlib import Path
+
+    from .i18n import table
+    from .tts import PAUSE_MS, assemble, wav_seconds
+
+    terms = [(term.text, term.lang) for term in script.terms]
+    out_stem = Path(out_stem)
+    with tempfile.TemporaryDirectory(prefix="unboring-") as tmp:
+        parts = []
+        for i, t in enumerate(turns, start=1):
+            if progress:
+                progress(i, len(turns), t)
+            part = Path(tmp) / f"{i:04d}.wav"
+            engine.synth(t.text, voices[t.role], script.language, speed, part, terms=terms)
+            parts.append(part)
+        lengths = [wav_seconds(p) for p in parts]
+        chapters = chapter_marks(turns, lengths, PAUSE_MS)
+        labels = table(script.language)
+        for old in (out_stem.with_suffix(".mp3"), out_stem.with_suffix(".wav")):
+            old.unlink(missing_ok=True)
+        audio = assemble(
+            parts, out_stem, pause_ms=PAUSE_MS,
+            chapters=[(labels[f"chapter_{c['id']}"], c["start"], c["end"]) for c in chapters],
+        )
+    seconds = sum(lengths) + PAUSE_MS / 1000 * (len(parts) - 1)
+    return audio, seconds, chapters
 
 
 def word_count(turns: list[ResolvedTurn]) -> int:
@@ -282,8 +353,13 @@ def word_count(turns: list[ResolvedTurn]) -> int:
 
 
 def transcript_markdown(script: PodcastScript, turns: list[ResolvedTurn]) -> str:
+    from .i18n import table
+
+    labels = table(script.language)
     lines = [f"# {script.title}", ""]
     for t in turns:
+        if t.chapter:
+            lines += [f"## {labels[f'chapter_{t.chapter}']}", ""]
         cites = " ".join(f"`{s.file}:{s.line}`" for s in t.sources)
         lines.append(f"**{t.name}:** {t.text}" + (f" {cites}" if cites else ""))
         lines.append("")

@@ -63,6 +63,15 @@ html:not(.js) .player { display: none; }
   padding: 4px 10px; border-radius: 999px; cursor: pointer; }
 .pl-speeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .pl-play:focus-visible, .pl-speeds button:focus-visible, .pl-seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+html:not(.js) .chapters { display: none; }
+.chapters button { font: 500 .82rem var(--font); background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chapters button:hover { border-color: var(--accent); }
+.chapters button[aria-current="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chapters .ch-time { font-family: var(--mono); font-size: .76rem; color: var(--muted); margin-right: 2px; }
+.chapters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapter-title { margin: 16px 0 4px; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 @media (max-width: 560px) { .player { gap: 10px 8px; } .pl-seek { flex-basis: calc(100% - 52px); } .pl-speeds { margin-left: auto; } .pl-speeds button { padding: 4px 7px; } }
 .listen details { background: var(--surface); margin: 12px 0 0; }
 .turn { margin: 8px 0; font-size: .95rem; }
@@ -312,101 +321,138 @@ h3 { font-weight: 700; }
       </div>
     </div>
     <audio controls preload="metadata" src="podcast.mp3"></audio>
+    
+    <nav class="chapters" aria-label="Chapters">
+      <button type="button" data-start="0.0"><span class="ch-time">0:00</span> Intro</button><button type="button" data-start="9.96"><span class="ch-time">0:09</span> What it is</button><button type="button" data-start="30.24"><span class="ch-time">0:30</span> Key decisions</button><button type="button" data-start="178.43"><span class="ch-time">2:58</span> What you must decide</button><button type="button" data-start="194.18"><span class="ch-time">3:14</span> Wrap-up</button>
+    </nav>
+    
     <details>
       <summary>Transcript</summary>
       
+      <p class="chapter-title">Intro</p>
       
       <p class="turn turn-guide"><strong>Jordan</strong> Good evening and welcome to a packed stadium! Tonight&#39;s fixture: Shared Photo Albums. Families create albums, invite relatives by link, and get a weekly digest of new photos. <button class="src" data-file="spec.md" data-line="6" title="**Input**: User description: &#34;Let families create shared photo albums, invite relatives by link, and get a weekly digest of new photos.&#34;">spec.md:6</button></p>
       
+      <p class="chapter-title">What it is</p>
       
       <p class="turn turn-skeptic"><strong>Sam</strong> Big match, Jordan. Three user stories on the pitch, nine requirements on the bench, and a couple of question marks in the line-up. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Jordan</strong> Kick-off! User Story One takes possession: create an album, give it a name, upload photos from phone or desktop. Priority one, and rightly so. <button class="src" data-file="spec.md" data-line="10" title="### User Story 1 - Create an album and upload photos (Priority: P1)">spec.md:10</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Sam</strong> No albums, no uploads, no product. The spec says it, I&#39;ll say it louder. <button class="src" data-file="spec.md" data-line="14" title="**Why this priority**: Without albums and uploads there is no product.">spec.md:14</button></p>
       
+      <p class="chapter-title">Key decisions</p>
       
       <p class="turn turn-guide"><strong>Jordan</strong> And look at this build-up play! Photos go straight from the browser to object storage with presigned URLs. Twenty-five megabyte files never touch the API servers! <button class="src" data-file="research.md" data-line="5" title="- **Decision**: Browser uploads directly to object storage with presigned URLs.">research.md:5</button><button class="src" data-file="research.md" data-line="6" title="- **Rationale**: Keeps 25 MB files off the API servers and meets the 30 s upload goal.">research.md:6</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> Lovely footwork. But they passed on resumable uploads. A big HEIC file on a shaky phone connection drops halfway, and it&#39;s back to the centre circle. <button class="src" data-file="research.md" data-line="7" title="- **Alternatives considered**: Upload through the API; tus resumable uploads">research.md:7</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> The target on the scoreboard: ten photos in under thirty seconds on twenty megabits. <button class="src" data-file="spec.md" data-line="70" title="- **SC-002**: Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.">spec.md:70</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> A target the whole architecture is built around, and it&#39;s only tested in the very last phase. That&#39;s checking the goalposts after the final whistle. <button class="src" data-file="tasks.md" data-line="37" title="- [ ] T018 Load test 10 parallel uploads on a throttled 20 Mbps connection">tasks.md:37</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Meanwhile, the worker is everywhere! Thumbnails, HEIC to JPEG, and it strips GPS location before anyone else sees the photo. <button class="src" data-file="tasks.md" data-line="20" title="- [ ] T010 [US1] Worker job: thumbnail, HEIC conversion, GPS stripping on upload">tasks.md:20</button><button class="src" data-file="spec.md" data-line="58" title="- **FR-006**: System MUST strip GPS location from EXIF metadata before photos are visible to other members.">spec.md:58</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> Good defending on privacy. But the original file keeps its location, and how long originals are kept is still undecided. <button class="src" data-file="research.md" data-line="17" title="- **Decision**: Convert HEIC to JPEG in the worker and keep the original.">research.md:17</button><button class="src" data-file="spec.md" data-line="59" title="- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].">spec.md:59</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Here comes User Story Two, also priority one: invite relatives by link. Anyone with the link can view and add photos. <button class="src" data-file="spec.md" data-line="25" title="### User Story 2 - Invite relatives by link (Priority: P1)">spec.md:25</button><button class="src" data-file="spec.md" data-line="27" title="The album owner shares an invite link. Anyone with the link can view and add photos.">spec.md:27</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> And there it is, the most dangerous play of the night. One permanent invite token per album, full member rights, for anyone holding the link. <button class="src" data-file="research.md" data-line="11" title="- **Decision**: One permanent invite token per album, anyone with the link gets member rights.">research.md:11</button><button class="src" data-file="spec.md" data-line="56" title="- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.">spec.md:56</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> The reasoning: lowest friction for relatives who aren&#39;t technical. Grandma taps the link and she&#39;s in. <button class="src" data-file="research.md" data-line="12" title="- **Rationale**: Lowest friction for non-technical relatives.">research.md:12</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> So does anyone grandma forwards it to. What happens when the link leaks? The spec asks the question itself and leaves it open: should links expire or be revocable? <button class="src" data-file="spec.md" data-line="45" title="- What happens when an invite link is leaked publicly? [NEEDS CLARIFICATION: should links expire or be revocable?]">spec.md:45</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> That one goes to the referee. A human has to make the call. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> And while we wait: the alternatives were on the bench all along. Per-person email invites, expiring links, view-only links with upload approval. None of them got a minute. <button class="src" data-file="research.md" data-line="13" title="- **Alternatives considered**: Per-person email invites; expiring links; view-only links plus upload approval">research.md:13</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Second open question in this half: when a member leaves the album, do their photos stay or go? <button class="src" data-file="spec.md" data-line="47" title="- What happens to photos when a member leaves the album? [NEEDS CLARIFICATION: do their photos stay or get removed?]">spec.md:47</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> Also unanswered. And can the owner remove photos someone else uploaded? With open upload links, they&#39;ll need to. No requirement says so. <button class="src" data-file="spec.md" data-line="65" title="- **Membership**: user, album, role (owner, member), joined at.">spec.md:65</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Half time! Into the second half with User Story Three, priority two: the weekly digest email. <button class="src" data-file="spec.md" data-line="35" title="### User Story 3 - Weekly digest email (Priority: P2)">spec.md:35</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> The super-sub. Brings people back, but the product plays fine without it. <button class="src" data-file="spec.md" data-line="39" title="**Why this priority**: Drives re-engagement but the product works without it.">spec.md:39</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Every Monday at eight in the morning, in each member&#39;s own timezone. An hourly job picks whoever just hit Monday, eight o&#39;clock. <button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.">spec.md:57</button><button class="src" data-file="research.md" data-line="23" title="- **Decision**: Celery beat job every hour that sends digests to members whose local time is Monday 08:00.">research.md:23</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> Clever. Except for members in half-hour timezones, like India. An hourly job never lands on their eight o&#39;clock. They never get the email. <button class="src" data-file="research.md" data-line="23" title="- **Decision**: Celery beat job every hour that sends digests to members whose local time is Monday 08:00.">research.md:23</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Ooh, offside by thirty minutes! </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> And one more: the digest is mandatory. No way to unsubscribe, and recurring email usually needs one. <button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member&#39;s timezone.">spec.md:57</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Into stoppage time. The storage budget per family? Still a question mark in the plan. <button class="src" data-file="plan.md" data-line="19" title="**Constraints**: [NEEDS CLARIFICATION: monthly storage budget per family]">plan.md:19</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Sam</strong> Originals plus converted copies, twenty-five megabytes each, no retention period, no budget. That bill keeps running after the match. </p>
       
+      <p class="chapter-title">What you must decide</p>
       
       <p class="turn turn-guide"><strong>Jordan</strong> Full time! Let&#39;s go to the analysis desk. Reviewer, here&#39;s what&#39;s on you. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Jordan</strong> One: invite links. Do they expire, can the owner revoke them, given they let people upload? </p>
       
       
+      
       <p class="turn turn-guide"><strong>Jordan</strong> Two: what happens to a member&#39;s photos when they leave. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Jordan</strong> Three: how long originals are kept, and the storage budget per family. </p>
       
+      <p class="chapter-title">Wrap-up</p>
       
       <p class="turn turn-skeptic"><strong>Sam</strong> And credit where it&#39;s due: direct uploads and GPS stripping are a strong game plan. Fix the link, and this team goes up a division. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Jordan</strong> That&#39;s all from the stadium. Goodnight! </p>
@@ -1353,7 +1399,22 @@ h3 { font-weight: 700; }
       if (!dragging) seekTo(Number(seek.value));
     });
     seek.addEventListener("change", () => { dragging = false; seekTo(Number(seek.value)); });
+    // Chapters (#4): jump to one and play; the current one is marked while listening.
+    const chapterButtons = [...player.parentElement.querySelectorAll(".chapters button")];
+    chapterButtons.forEach(b => b.addEventListener("click", () => {
+      const at = Number(b.dataset.start);
+      seek.value = String(Math.floor(at));
+      seekTo(at);
+      time.textContent = clock(at);
+      if (audio.paused) { watch(); audio.play().catch(err => { if (err && err.name !== "NotAllowedError") recover(); else calm(); }); }
+    }));
+    const markChapter = () => {
+      let current = null;
+      chapterButtons.forEach(b => { if (audio.currentTime + 0.25 >= Number(b.dataset.start)) current = b; });
+      chapterButtons.forEach(b => b.setAttribute("aria-current", String(b === current && (audio.currentTime > 0 || !audio.paused))));
+    };
     audio.addEventListener("timeupdate", () => {
+      markChapter();
       if (!dragging) {
         seek.value = String(Math.floor(audio.currentTime));
         time.textContent = clock(audio.currentTime);

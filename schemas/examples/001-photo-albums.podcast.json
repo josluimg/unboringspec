@@ -17,7 +17,8 @@
   "turns": [
     {
       "speaker": "A",
-      "text": "Hola, Álex. Hoy toca revisar una especificación que parece sencilla: álbumes de fotos compartidos para familias."
+      "text": "Hola, Álex. Hoy toca revisar una especificación que parece sencilla: álbumes de fotos compartidos para familias.",
+      "chapter": "hook"
     },
     {
       "speaker": "B",
@@ -31,7 +32,8 @@
     },
     {
       "speaker": "A",
-      "text": "Llegaremos ahí, te lo prometo. Primero, situemos a quien nos escucha."
+      "text": "Llegaremos ahí, te lo prometo. Primero, situemos a quien nos escucha.",
+      "chapter": "overview"
     },
     {
       "speaker": "A",
@@ -69,7 +71,8 @@
           "file": "research.md",
           "line": 5
         }
-      ]
+      ],
+      "chapter": "decisions"
     },
     {
       "speaker": "A",
@@ -291,7 +294,8 @@
     },
     {
       "speaker": "A",
-      "text": "Así que, a quien esté revisando, esto es lo que te toca decidir."
+      "text": "Así que, a quien esté revisando, esto es lo que te toca decidir.",
+      "chapter": "to_decide"
     },
     {
       "speaker": "A",
@@ -307,7 +311,8 @@
     },
     {
       "speaker": "B",
-      "text": "Y un consejo extra: adelantad la prueba de velocidad de subida. Mejor descubrir el problema en la segunda semana que en la última."
+      "text": "Y un consejo extra: adelantad la prueba de velocidad de subida. Mejor descubrir el problema en la segunda semana que en la última.",
+      "chapter": "close"
     },
     {
       "speaker": "A",

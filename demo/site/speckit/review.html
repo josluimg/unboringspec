@@ -63,6 +63,15 @@ html:not(.js) .player { display: none; }
   padding: 4px 10px; border-radius: 999px; cursor: pointer; }
 .pl-speeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .pl-play:focus-visible, .pl-speeds button:focus-visible, .pl-seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+html:not(.js) .chapters { display: none; }
+.chapters button { font: 500 .82rem var(--font); background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chapters button:hover { border-color: var(--accent); }
+.chapters button[aria-current="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chapters .ch-time { font-family: var(--mono); font-size: .76rem; color: var(--muted); margin-right: 2px; }
+.chapters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapter-title { margin: 16px 0 4px; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 @media (max-width: 560px) { .player { gap: 10px 8px; } .pl-seek { flex-basis: calc(100% - 52px); } .pl-speeds { margin-left: auto; } .pl-speeds button { padding: 4px 7px; } }
 .listen details { background: var(--surface); margin: 12px 0 0; }
 .turn { margin: 8px 0; font-size: .95rem; }
@@ -202,143 +211,194 @@ details[open] > summary { margin-bottom: 8px; }
       </div>
     </div>
     <audio controls preload="metadata" src="podcast.mp3"></audio>
+    
+    <nav class="chapters" aria-label="Capítulos">
+      <button type="button" data-start="0.0"><span class="ch-time">0:00</span> Intro</button><button type="button" data-start="13.5"><span class="ch-time">0:13</span> Qué es</button><button type="button" data-start="43.71"><span class="ch-time">0:43</span> Decisiones clave</button><button type="button" data-start="257.3"><span class="ch-time">4:17</span> Lo que te toca decidir</button><button type="button" data-start="278.06"><span class="ch-time">4:38</span> Cierre</button>
+    </nav>
+    
     <details>
       <summary>Transcripción</summary>
       
+      <p class="chapter-title">Intro</p>
       
       <p class="turn turn-guide"><strong>Lucía</strong> Hola, Álex. Hoy toca revisar una especificación que parece sencilla: álbumes de fotos compartidos para familias. </p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Parece sencilla, sí. Pero he visto una frase que me ha quitado el sueño: cualquiera que tenga el enlace puede ver y subir fotos. <button class="src" data-file="spec.md" data-line="56" title="- **FR-004**: Cualquiera con un enlace de invitación DEBE poder ver y subir fotos a ese álbum.">spec.md:56</button></p>
       
+      <p class="chapter-title">Qué es</p>
       
       <p class="turn turn-guide"><strong>Lucía</strong> Llegaremos ahí, te lo prometo. Primero, situemos a quien nos escucha. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> La idea es que una familia cree un álbum, invite a sus parientes con un enlace y reciba cada semana un correo con las fotos nuevas. <button class="src" data-file="spec.md" data-line="6" title="**Entrada**: Descripción del usuario: &#34;Que las familias creen álbumes de fotos compartidos, inviten a sus parientes con un enlace y reciban un resumen semanal de las fotos nuevas.&#34;">spec.md:6</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> O sea, tres piezas: crear y subir, invitar, y el resumen semanal. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Exacto. Las dos primeras son la prioridad máxima. El correo semanal es secundario: ayuda a que la gente vuelva, pero el producto funciona sin él. <button class="src" data-file="spec.md" data-line="39" title="**Por qué esta prioridad**: Hace que la gente vuelva, pero el producto funciona sin él.">spec.md:39</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Eso me parece sensato. Si hay que recortar, se recorta por el correo. Vale, ¿y cómo se suben las fotos? </p>
       
+      <p class="chapter-title">Decisiones clave</p>
       
       <p class="turn turn-guide"><strong>Lucía</strong> Aquí hay una decisión técnica bonita. El navegador sube las fotos directamente al almacenamiento, con enlaces firmados, sin pasar por el servidor de la aplicación. <button class="src" data-file="research.md" data-line="5" title="- **Decisión**: El navegador sube directamente al almacenamiento de objetos con URL prefirmadas.">research.md:5</button></p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Así los archivos de hasta veinticinco megas no saturan la aplicación, y se cumple el objetivo de subir diez fotos en menos de treinta segundos. <button class="src" data-file="research.md" data-line="6" title="- **Justificación**: Evita que los archivos de 25 MB pasen por los servidores de la API y cumple el objetivo de subida de 30 s.">research.md:6</button><button class="src" data-file="spec.md" data-line="70" title="- **SC-002**: Subir 10 fotos tarda menos de 30 segundos con una conexión de 20 Mbps.">spec.md:70</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Me gusta, pero tengo una pega. Descartaron las subidas reanudables. <button class="src" data-file="research.md" data-line="7" title="- **Alternativas consideradas**: Subir a través de la API; subidas reanudables con tus">research.md:7</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Piensa en la abuela subiendo fotos desde el móvil, con mala cobertura. Si se corta a mitad de una foto de veinte megas, ¿empieza otra vez desde cero? </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Sí, empezaría de cero. Es un riesgo real. Para la primera versión puede valer, pero conviene medirlo pronto. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Y ahí va mi segunda pega: la prueba de los treinta segundos está en la última fase del plan. Si falla, lo descubrimos al final. <button class="src" data-file="tasks.md" data-line="37" title="- [ ] T018 Prueba de carga: 10 subidas en paralelo con una conexión limitada a 20 Mbps">tasks.md:37</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Buen punto. Yo haría una prueba rápida con conexión lenta justo después de tener el endpoint de subida, no al final. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> De acuerdo. Ahora sí: hablemos del enlace mágico. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Vale. La decisión es un único enlace permanente por álbum. Quien lo tenga entra como miembro, con permiso para ver y para subir. <button class="src" data-file="research.md" data-line="11" title="- **Decisión**: Un único token de invitación permanente por álbum; quien tenga el enlace es miembro.">research.md:11</button></p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> La razón es la fricción. Los familiares no son técnicos, y pedirles crear cuentas o aceptar invitaciones por correo los espanta. <button class="src" data-file="research.md" data-line="12" title="- **Justificación**: La menor fricción posible para familiares poco técnicos.">research.md:12</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Lo entiendo. Pero un enlace permanente es una llave maestra. Si alguien lo reenvía a un grupo de mensajería, o acaba publicado, ¿qué pasa? </p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Pues la propia especificación lo pregunta y no lo responde. Está marcado como pendiente: ¿los enlaces caducan o se pueden revocar? <button class="src" data-file="spec.md" data-line="45" title="- ¿Qué pasa si un enlace de invitación se filtra públicamente? [NEEDS CLARIFICATION: ¿los enlaces deben caducar o poder revocarse?]">spec.md:45</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Y no es solo que un extraño vea las fotos de tu familia. Es que puede subir lo que quiera al álbum. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> No veo en ningún sitio que el dueño pueda borrar fotos que subieron otros. Ni moderación, ni nada. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Tienes razón, no aparece. Las alternativas que se descartaron eran invitaciones personales, enlaces que caducan, o enlaces de solo lectura con aprobación para subir. <button class="src" data-file="research.md" data-line="13" title="- **Alternativas consideradas**: Invitaciones personales por correo; enlaces que caducan; enlaces de solo lectura con aprobación para subir">research.md:13</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Yo no digo que haya que elegir la más estricta. Pero sí poder revocar el enlace y que el dueño pueda borrar fotos. Eso lo metería en la primera versión. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Me parece un término medio razonable: misma facilidad para entrar, pero con un botón de emergencia. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Siguiente tema: privacidad de las fotos. ¿Qué pasa con la ubicación que guardan los móviles? </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Eso está bien pensado. Antes de que otros miembros vean una foto, se elimina la ubicación de sus metadatos. <button class="src" data-file="spec.md" data-line="58" title="- **FR-006**: El sistema DEBE eliminar la ubicación GPS de los metadatos EXIF antes de que otros miembros vean las fotos.">spec.md:58</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Antes de que otros la vean. Pero el original se guarda tal cual, con la ubicación dentro. <button class="src" data-file="research.md" data-line="17" title="- **Decisión**: Convertir HEIC a JPEG en el proceso en segundo plano y conservar el original.">research.md:17</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Y cuánto tiempo se guardan los originales tampoco está decidido. <button class="src" data-file="spec.md" data-line="59" title="- **FR-007**: El sistema DEBE conservar los archivos originales durante [NEEDS CLARIFICATION: no se ha definido el plazo de conservación].">spec.md:59</button></p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Cierto. Y va de la mano de otra pregunta abierta en el plan: cuál es el presupuesto de almacenamiento por familia. <button class="src" data-file="plan.md" data-line="19" title="**Restricciones**: [NEEDS CLARIFICATION: presupuesto mensual de almacenamiento por familia]">plan.md:19</button></p>
       
       
+      
       <p class="turn turn-skeptic"><strong>Álex</strong> Originales de hasta veinticinco megas, más las copias convertidas, sin límite de tiempo ni de espacio. Eso, con cinco mil familias, es una factura que crece sola. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Vamos con el correo semanal, que tiene un detalle curioso. Sale los lunes a las ocho de la mañana en la zona horaria de cada miembro. <button class="src" data-file="spec.md" data-line="57" title="- **FR-005**: El sistema DEBE enviar un correo con el resumen semanal cada lunes a las 08:00 en la zona horaria del miembro.">spec.md:57</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Para no programar un envío por persona, hay una tarea que se ejecuta cada hora y escoge a quién le toca. <button class="src" data-file="research.md" data-line="23" title="- **Decisión**: Una tarea de Celery beat cada hora que envía el resumen a los miembros cuya hora local sea el lunes a las 08:00.">research.md:23</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Elegante. Pero hay zonas horarias con media hora, como la India. Si la tarea corre en horas en punto, esas personas nunca coinciden con las ocho exactas. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Es un caso borde, pero fácil de arreglar si se trata como una ventana y no como una hora exacta. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Y otra cosa: el requisito dice que el sistema debe enviar el correo. ¿Nadie puede darse de baja? Eso suele ser obligatorio por ley. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> No se menciona. Lo apuntamos como pregunta. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> También hay casos borde que se listan pero no tienen respuesta. Por ejemplo, qué pasa si alguien sube dos veces la misma foto. <button class="src" data-file="spec.md" data-line="46" title="- ¿Cómo se gestionan las subidas duplicadas de la misma foto?">spec.md:46</button></p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Y qué pasa con las fotos de alguien que abandona el álbum. ¿Se quedan o se van con él? Eso también está pendiente. <button class="src" data-file="spec.md" data-line="47" title="- ¿Qué pasa con las fotos de un miembro cuando abandona el álbum? [NEEDS CLARIFICATION: ¿sus fotos se quedan o se eliminan?]">spec.md:47</button></p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Resumiendo, la especificación es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias. </p>
       
+      <p class="chapter-title">Lo que te toca decidir</p>
       
       <p class="turn turn-guide"><strong>Lucía</strong> Así que, a quien esté revisando, esto es lo que te toca decidir. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Primero: si el enlace de invitación se puede revocar o caduca, sabiendo que da permiso para subir. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Segundo: qué pasa con las fotos de quien se va del álbum, y si el dueño puede borrar fotos de otros. </p>
+      
       
       
       <p class="turn turn-guide"><strong>Lucía</strong> Y tercero: cuánto tiempo se guardan los originales, con su ubicación, y cuánto espacio tiene cada familia. </p>
       
+      <p class="chapter-title">Cierre</p>
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Y un consejo extra: adelantad la prueba de velocidad de subida. Mejor descubrir el problema en la segunda semana que en la última. </p>
       
       
+      
       <p class="turn turn-guide"><strong>Lucía</strong> Perfecto. Gracias, Álex. Y a ti, gracias por escuchar en lugar de leer cinco documentos. </p>
+      
       
       
       <p class="turn turn-skeptic"><strong>Álex</strong> Hasta la próxima especificación. </p>
@@ -1285,7 +1345,22 @@ details[open] > summary { margin-bottom: 8px; }
       if (!dragging) seekTo(Number(seek.value));
     });
     seek.addEventListener("change", () => { dragging = false; seekTo(Number(seek.value)); });
+    // Chapters (#4): jump to one and play; the current one is marked while listening.
+    const chapterButtons = [...player.parentElement.querySelectorAll(".chapters button")];
+    chapterButtons.forEach(b => b.addEventListener("click", () => {
+      const at = Number(b.dataset.start);
+      seek.value = String(Math.floor(at));
+      seekTo(at);
+      time.textContent = clock(at);
+      if (audio.paused) { watch(); audio.play().catch(err => { if (err && err.name !== "NotAllowedError") recover(); else calm(); }); }
+    }));
+    const markChapter = () => {
+      let current = null;
+      chapterButtons.forEach(b => { if (audio.currentTime + 0.25 >= Number(b.dataset.start)) current = b; });
+      chapterButtons.forEach(b => b.setAttribute("aria-current", String(b === current && (audio.currentTime > 0 || !audio.paused))));
+    };
     audio.addEventListener("timeupdate", () => {
+      markChapter();
       if (!dragging) {
         seek.value = String(Math.floor(audio.currentTime));
         time.textContent = clock(audio.currentTime);

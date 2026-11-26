@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import tempfile
 from html import escape
 from dataclasses import dataclass
 from pathlib import Path
@@ -107,8 +106,9 @@ def theme(page: str, lang: str) -> str:
     return page.replace("__THEME_HEAD__", THEME_HEAD).replace("__THEME_BUTTON__", THEME_BUTTON.format(label=UI[lang]["theme"]))
 
 
-def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_name: str) -> tuple[str, dict]:
-    from unboringspec.tts import assemble, pick_engine
+def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_name: str) -> tuple[str, dict, list]:
+    from unboringspec.podcast import record_episode
+    from unboringspec.tts import pick_engine
 
     parsed = parse_script(script_path.read_text(encoding="utf-8"))
     turns, problems = validate_script(parsed, documents)
@@ -117,20 +117,13 @@ def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_nam
     engine = pick_engine(engine_name)
     voices = engine.cast(parsed.language)
     speed = tone_speed(parsed.tone)
-    with tempfile.TemporaryDirectory() as tmp:
-        parts = []
-        for i, t in enumerate(turns, start=1):
-            part = Path(tmp) / f"{i:04d}.wav"
-            engine.synth(t.text, voices[t.role], parsed.language, speed, part,
-                         terms=[(term.text, term.lang) for term in parsed.terms])
-            parts.append(part)
-            print(f"  {folder.name}: turn {i}/{len(turns)}", end="\r", flush=True)
-        for old in (folder / "podcast.mp3", folder / "podcast.wav"):
-            old.unlink(missing_ok=True)
-        audio = assemble(parts, folder / "podcast")
+    audio, _, chapters = record_episode(
+        engine, parsed, turns, voices, speed, folder / "podcast",
+        lambda i, total, t: print(f"  {folder.name}: turn {i}/{total}", end="\r", flush=True),
+    )
     (folder / "podcast.md").write_text(transcript_markdown(parsed, turns), encoding="utf-8")
     print(f"  {folder.name}: {audio.name} recorded with {engine.name} ({voices['guide']} / {voices['skeptic']})")
-    return engine.name, voices
+    return engine.name, voices, chapters
 
 
 def build(demo: Demo, record: bool, engine: str) -> dict:
@@ -145,13 +138,13 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
 
     script = folder / "podcast.json"
     if record or not any((folder / n).exists() for n in ("podcast.mp3", "podcast.wav")):
-        used, voices = voice(folder, script, ir.documents, engine)
-        kept = {"voices": voices}
+        used, voices, chapters = voice(folder, script, ir.documents, engine)
+        kept = {"voices": voices, "chapters": chapters}
     else:
         meta = folder / "podcast.meta.json"
         old = json.loads(meta.read_text()) if meta.exists() else {}
         used = old.get("engine", "kokoro")
-        kept = {k: old[k] for k in ("recorded", "voices") if k in old}  # the audio did not change
+        kept = {k: old[k] for k in ("recorded", "voices", "chapters") if k in old}  # the audio did not change
     tone = parse_script(script.read_text(encoding="utf-8")).tone
     write_podcast_meta(folder, ir.documents, engine=used, tone=tone, **kept)
     style = load_theme(ROOT / demo.theme) if demo.theme else None

@@ -399,12 +399,11 @@ def podcast_render(
     theme: Optional[Path] = THEME_OPT,
 ) -> None:
     """Step 2: validate the script, voice it and add a player to the review page."""
-    import tempfile
 
     style = _theme(theme)
 
-    from .podcast import parse_script, tone_speed, transcript_markdown, validate_script, word_count
-    from .tts import PAUSE_MS, EngineUnavailable, assemble, pick_engine, wav_seconds
+    from .podcast import parse_script, record_episode, tone_speed, transcript_markdown, validate_script, word_count
+    from .tts import EngineUnavailable, pick_engine
 
     ir = _load(spec, adapter)
     wd = _workdir(spec)
@@ -448,29 +447,21 @@ def podcast_render(
             f"{escape(parsed.language)} rules by system voices; natural voices say them right.[/]"
         )
 
-    with tempfile.TemporaryDirectory(prefix="unboring-") as tmp:
-        parts = []
-        with console.status("Recording...") as status:
-            for i, t in enumerate(turns, start=1):
-                status.update(f"Recording turn {i}/{len(turns)} · {t.name}")
-                part = Path(tmp) / f"{i:04d}.wav"
-                try:
-                    tts.synth(t.text, voices[t.role], parsed.language, speed, part, terms=terms)
-                except EngineUnavailable as e:
-                    status.stop()
-                    console.print(f"[red]{escape(str(e))}[/]")
-                    raise typer.Exit(1)
-                parts.append(part)
-            status.update("Mixing...")
-            for old in (wd / "podcast.mp3", wd / "podcast.wav"):
-                old.unlink(missing_ok=True)
-            audio = assemble(parts, wd / "podcast", pause_ms=PAUSE_MS)
-            seconds = sum(wav_seconds(p) for p in parts) + PAUSE_MS / 1000 * (len(parts) - 1)
+    with console.status("Recording...") as status:
+        def progress(i, total, turn):
+            status.update(f"Recording turn {i}/{total} · {turn.name}")
+
+        try:
+            audio, seconds, chapters = record_episode(tts, parsed, turns, voices, speed, wd / "podcast", progress)
+        except EngineUnavailable as e:
+            status.stop()
+            console.print(f"[red]{escape(str(e))}[/]")
+            raise typer.Exit(1)
 
     (wd / "podcast.md").write_text(transcript_markdown(parsed, turns), encoding="utf-8")
     from .render import write_podcast_meta
 
-    write_podcast_meta(wd, ir.documents, engine=tts.name, tone=parsed.tone, voices=voices)
+    write_podcast_meta(wd, ir.documents, engine=tts.name, tone=parsed.tone, voices=voices, chapters=chapters)
     console.print(f"[green]✓[/] {audio}  ({int(seconds // 60)}:{int(seconds % 60):02d} min)")
     console.print(f"[green]✓[/] {wd / 'podcast.md'}  (transcript)")
 

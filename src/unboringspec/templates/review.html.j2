@@ -93,6 +93,15 @@ html:not(.js) .player { display: none; }
   padding: 4px 10px; border-radius: 999px; cursor: pointer; }
 .pl-speeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .pl-play:focus-visible, .pl-speeds button:focus-visible, .pl-seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+html:not(.js) .chapters { display: none; }
+.chapters button { font: 500 .82rem var(--font); background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chapters button:hover { border-color: var(--accent); }
+.chapters button[aria-current="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chapters .ch-time { font-family: var(--mono); font-size: .76rem; color: var(--muted); margin-right: 2px; }
+.chapters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chapter-title { margin: 16px 0 4px; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 @media (max-width: 560px) { .player { gap: 10px 8px; } .pl-seek { flex-basis: calc(100% - 52px); } .pl-speeds { margin-left: auto; } .pl-speeds button { padding: 4px 7px; } }
 .listen details { background: var(--surface); margin: 12px 0 0; }
 .turn { margin: 8px 0; font-size: .95rem; }
@@ -281,9 +290,15 @@ details[open] > summary { margin-bottom: 8px; }
       </div>
     </div>
     <audio controls preload="metadata" src="{{ podcast.audio }}"></audio>
+    {% if podcast.chapters %}
+    <nav class="chapters" aria-label="{{ t.chapters_label }}">
+      {% for c in podcast.chapters %}<button type="button" data-start="{{ c.start }}"><span class="ch-time">{{ "%d:%02d" % (c.start // 60, c.start % 60) }}</span> {{ t["chapter_" ~ c.id] }}</button>{% endfor %}
+    </nav>
+    {% endif %}
     <details>
       <summary>{{ t.transcript }}</summary>
       {% for turn in podcast.turns %}
+      {% if turn.chapter and podcast.chapters %}<p class="chapter-title">{{ t["chapter_" ~ turn.chapter] }}</p>{% endif %}
       {# A stale transcript cites lines of an older version: no links, they would point at the wrong text. #}
       <p class="turn turn-{{ turn.role }}"><strong>{{ turn.name }}</strong> {{ turn.text }} {% if not podcast.stale %}{{ chips(turn.sources) }}{% endif %}</p>
       {% endfor %}
@@ -712,7 +727,22 @@ details[open] > summary { margin-bottom: 8px; }
       if (!dragging) seekTo(Number(seek.value));
     });
     seek.addEventListener("change", () => { dragging = false; seekTo(Number(seek.value)); });
+    // Chapters (#4): jump to one and play; the current one is marked while listening.
+    const chapterButtons = [...player.parentElement.querySelectorAll(".chapters button")];
+    chapterButtons.forEach(b => b.addEventListener("click", () => {
+      const at = Number(b.dataset.start);
+      seek.value = String(Math.floor(at));
+      seekTo(at);
+      time.textContent = clock(at);
+      if (audio.paused) { watch(); audio.play().catch(err => { if (err && err.name !== "NotAllowedError") recover(); else calm(); }); }
+    }));
+    const markChapter = () => {
+      let current = null;
+      chapterButtons.forEach(b => { if (audio.currentTime + 0.25 >= Number(b.dataset.start)) current = b; });
+      chapterButtons.forEach(b => b.setAttribute("aria-current", String(b === current && (audio.currentTime > 0 || !audio.paused))));
+    };
     audio.addEventListener("timeupdate", () => {
+      markChapter();
       if (!dragging) {
         seek.value = String(Math.floor(audio.currentTime));
         time.textContent = clock(audio.currentTime);

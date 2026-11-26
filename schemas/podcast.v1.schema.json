@@ -104,6 +104,26 @@
           },
           "title": "Sources",
           "type": "array"
+        },
+        "chapter": {
+          "anyOf": [
+            {
+              "enum": [
+                "hook",
+                "overview",
+                "decisions",
+                "to_decide",
+                "close"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only on the first turn of each part of the episode: 'hook', 'overview' (what it is), 'decisions' (the key decisions), 'to_decide' (what the listener must decide), 'close'.",
+          "title": "Chapter"
         }
       },
       "required": [

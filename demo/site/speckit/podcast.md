@@ -1,8 +1,12 @@
 # Álbumes familiares: un enlace que lo abre todo
 
+## Intro
+
 **Lucía:** Hola, Álex. Hoy toca revisar una especificación que parece sencilla: álbumes de fotos compartidos para familias.
 
 **Álex:** Parece sencilla, sí. Pero he visto una frase que me ha quitado el sueño: cualquiera que tenga el enlace puede ver y subir fotos. `spec.md:56`
+
+## Qué es
 
 **Lucía:** Llegaremos ahí, te lo prometo. Primero, situemos a quien nos escucha.
 
@@ -13,6 +17,8 @@
 **Lucía:** Exacto. Las dos primeras son la prioridad máxima. El correo semanal es secundario: ayuda a que la gente vuelva, pero el producto funciona sin él. `spec.md:39`
 
 **Álex:** Eso me parece sensato. Si hay que recortar, se recorta por el correo. Vale, ¿y cómo se suben las fotos?
+
+## Decisiones clave
 
 **Lucía:** Aquí hay una decisión técnica bonita. El navegador sube las fotos directamente al almacenamiento, con enlaces firmados, sin pasar por el servidor de la aplicación. `research.md:5`
 
@@ -78,6 +84,8 @@
 
 **Álex:** Resumiendo, la especificación es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias.
 
+## Lo que te toca decidir
+
 **Lucía:** Así que, a quien esté revisando, esto es lo que te toca decidir.
 
 **Lucía:** Primero: si el enlace de invitación se puede revocar o caduca, sabiendo que da permiso para subir.
@@ -85,6 +93,8 @@
 **Lucía:** Segundo: qué pasa con las fotos de quien se va del álbum, y si el dueño puede borrar fotos de otros.
 
 **Lucía:** Y tercero: cuánto tiempo se guardan los originales, con su ubicación, y cuánto espacio tiene cada familia.
+
+## Cierre
 
 **Álex:** Y un consejo extra: adelantad la prueba de velocidad de subida. Mejor descubrir el problema en la segunda semana que en la última.
 

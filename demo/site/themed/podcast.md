@@ -1,12 +1,18 @@
 # Live from the spec: Shared Photo Albums, kick-off to final whistle
 
+## Intro
+
 **Jordan:** Good evening and welcome to a packed stadium! Tonight's fixture: Shared Photo Albums. Families create albums, invite relatives by link, and get a weekly digest of new photos. `spec.md:6`
+
+## What it is
 
 **Sam:** Big match, Jordan. Three user stories on the pitch, nine requirements on the bench, and a couple of question marks in the line-up.
 
 **Jordan:** Kick-off! User Story One takes possession: create an album, give it a name, upload photos from phone or desktop. Priority one, and rightly so. `spec.md:10`
 
 **Sam:** No albums, no uploads, no product. The spec says it, I'll say it louder. `spec.md:14`
+
+## Key decisions
 
 **Jordan:** And look at this build-up play! Photos go straight from the browser to object storage with presigned URLs. Twenty-five megabyte files never touch the API servers! `research.md:5` `research.md:6`
 
@@ -52,6 +58,8 @@
 
 **Sam:** Originals plus converted copies, twenty-five megabytes each, no retention period, no budget. That bill keeps running after the match.
 
+## What you must decide
+
 **Jordan:** Full time! Let's go to the analysis desk. Reviewer, here's what's on you.
 
 **Jordan:** One: invite links. Do they expire, can the owner revoke them, given they let people upload?
@@ -59,6 +67,8 @@
 **Jordan:** Two: what happens to a member's photos when they leave.
 
 **Jordan:** Three: how long originals are kept, and the storage budget per family.
+
+## Wrap-up
 
 **Sam:** And credit where it's due: direct uploads and GPS stripping are a strong game plan. Fix the link, and this team goes up a division.
 
