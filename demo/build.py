@@ -28,6 +28,7 @@ from unboringspec.adapters import get_adapter  # noqa: E402
 from unboringspec.insights import apply_insights, parse_insights  # noqa: E402
 from unboringspec.podcast import parse_script, tone_speed, transcript_markdown, validate_script  # noqa: E402
 from unboringspec.render import write_html, write_podcast_meta  # noqa: E402
+from unboringspec.theme import load as load_theme  # noqa: E402
 
 REPO_URL = "https://github.com/josluimg/unboringspec"
 
@@ -39,6 +40,7 @@ class Demo:
     framework: str
     podcast_note: str  # shown on the landing page
     lang: str  # the spec, the review page, the podcast and the demo's own texts
+    theme: str = ""  # a stylesheet from the repository, as unboring.css would be (#48)
 
 
 DEMOS = [
@@ -46,6 +48,8 @@ DEMOS = [
          "All in Spanish · casual podcast", "es"),
     Demo("openspec", "examples/openspec/openspec/changes/add-invite-link-revocation", "OpenSpec",
          "Podcast in English · roast tone", "en"),
+    Demo("themed", "examples/speckit/specs/001-photo-albums", "spec-kit · custom theme",
+         "Podcast in English · sports tone", "en", theme="examples/themes/brutalist.css"),
 ]
 
 # The demo page's own texts (the review page has its own, in unboringspec.i18n).
@@ -149,7 +153,10 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
         kept = {"recorded": old["recorded"]} if "recorded" in old else {}  # the audio did not change
     tone = parse_script(script.read_text(encoding="utf-8")).tone
     write_podcast_meta(folder, ir.documents, engine=used, tone=tone, **kept)
-    write_html(ir, folder / "review.html", demo.lang)
+    style = load_theme(ROOT / demo.theme) if demo.theme else None
+    if style and style.warnings:
+        raise SystemExit(f"{demo.slug}: {demo.theme}: {style.warnings}")
+    write_html(ir, folder / "review.html", demo.lang, style)
 
     # The "before": the raw documents as they sit in the repository, under their real paths.
     # examples/<example>/<path in that project>
@@ -176,7 +183,8 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
     lines = sum(len(t.splitlines()) for t in ir.documents.values())
     print(f"✓ {demo.slug}: {len(files)} files, {lines} lines → review.html + index.html")
     return {"slug": demo.slug, "framework": demo.framework, "feature": ir.feature, "files": len(files),
-            "lines": lines, "podcast": demo.podcast_note, "one_liner": ir.summary.one_liner if ir.summary else ""}
+            "lines": lines, "podcast": demo.podcast_note, "one_liner": ir.summary.one_liner if ir.summary else "",
+            "theme": Path(demo.theme).name}
 
 
 def card_html(c: dict) -> str:
@@ -186,7 +194,9 @@ def card_html(c: dict) -> str:
         f'      <h2>{escape(c["feature"])}</h2>\n'
         f'      <p>{escape(c["one_liner"])}</p>\n'
         f'      <span class="pill">🎧 {escape(c["podcast"])}</span>\n'
-        f'      <p>{c["files"]} files, {c["lines"]} lines of Markdown → one review page.</p>\n'
+        + (f'      <p class="themed">🎨 Same page, your look: this review uses <code>{escape(c["theme"])}</code>, '
+           f'one CSS file in the project.</p>\n' if c["theme"] else "")
+        + f'      <p>{c["files"]} files, {c["lines"]} lines of Markdown → one review page.</p>\n'
         f'      <span class="go">Open the demo →</span>\n'
         f"    </a>"
     )
