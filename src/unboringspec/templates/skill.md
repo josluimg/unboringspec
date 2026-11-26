@@ -13,7 +13,8 @@ spec, validating citations, rendering the page). You do the analysis. No API key
    where your output must go.
 4. **Do the analysis:** read the prompt file completely and follow it. Write ONLY the JSON object to the
    insights path the command printed.
-5. **Render:** run `unboring render <folder>`. If it reports a validation error, fix the JSON and run it
+5. **Render:** run `unboring render <folder>`, adding `--lang es` when the user writes to you in Spanish so the
+   page's own labels are in Spanish too. If it reports a validation error, fix the JSON and run it
    again. If it reports dropped items, some citations pointed at lines that do not exist: fix the line
    numbers and render again.
 6. **Answer briefly:** give the user the path to `review.html`, the one-liner, and the

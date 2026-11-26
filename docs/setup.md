@@ -227,6 +227,7 @@ markers, recorded decisions). It is useful to see the page, not to replace a rev
 | `unboring adapters` / `agents` | List supported frameworks and agents. |
 | `unboring version` | Show the version. |
 
-Common options: `--lang` (output language, default: same as the spec), `--adapter` (force one), `--out`
+Common options: `--lang` (`en` or `es`: the page's own labels; for `review` and `prompt` also the analysis
+language, which otherwise follows the spec), `--adapter` (force one), `--out`
 (HTML path), `--open` (open in the browser), `--since <git ref>` (compare with that version; `render` and
 `review`). Working files go to `.unboring/<feature>/` in the current folder.

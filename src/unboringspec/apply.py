@@ -131,12 +131,11 @@ def plan_apply(review: SavedReview, ir: SpecIR, adapter: Adapter, spec: Path, wo
     return kept
 
 
-def apply_hint(adapter: Adapter, ir: SpecIR) -> str:
+def apply_hint(adapter: Adapter, ir: SpecIR, lang: str = "en") -> str:
     """One line for exported reviews, so an agent without the skill still uses the right commands."""
+    from .i18n import table
+
     commands = [s.command for s in adapter.apply_steps(ir) if s.command and not s.optional]
     if not commands:
         return ""
-    return (
-        f"Apply this review with {adapter.label or adapter.name}'s own commands ({', '.join(commands)}), not by editing the spec; "
-        "`unboring feedback` prints the exact steps."
-    )
+    return table(lang)["apply_hint"].format(framework=adapter.label or adapter.name, commands=", ".join(commands))

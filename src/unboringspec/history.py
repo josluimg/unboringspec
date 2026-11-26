@@ -42,6 +42,7 @@ def _when(name: str) -> str:
 class History:
     def __init__(self, workdir: Path):
         self.dir = workdir / "history"
+        self.previous_when = ""
 
     def snapshots(self) -> list[Path]:
         return sorted(p for p in self.dir.glob("*") if (p / "ir.json").is_file()) if self.dir.is_dir() else []
@@ -75,7 +76,8 @@ class History:
             shutil.rmtree(old, ignore_errors=True)
         if previous is None:
             return None
-        return self.load(previous), f"the previous version (rendered {_when(previous.name)})"
+        self.previous_when = _when(previous.name)
+        return self.load(previous), f"the previous version (rendered {self.previous_when})"
 
 
 def _git(args: list[str], cwd: Path) -> str:

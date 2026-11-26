@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 
+from .i18n import table
 from .ir import Diagram, Entity, SpecIR, Task
 
 AGENT_KINDS = {"system", "journey", "sequence", "flow", "state"}
@@ -55,10 +56,11 @@ def _phase_label(name: str) -> str:
     Mermaid wraps subgraph titles at a fixed width and the second line gets hidden, so titles stay
     short; the stories' full titles are on the page under Scope and plan."""
     name = re.sub(r"\s*\(P\d+\)\s*$", "", name)
-    name = re.sub(r"^Phase\s+(\d+)\s*[:.-]\s*", r"\1 · ", name, flags=re.IGNORECASE)
-    story = re.match(r"^(\d+ · )?User Story\s+(\d+)\b", name, flags=re.IGNORECASE)
+    name = re.sub(r"^(?:Phase|Fase)\s+(\d+)\s*[:.-]\s*", r"\1 · ", name, flags=re.IGNORECASE)
+    story = re.match(r"^(\d+ · )?(User Story|Historia de usuario)\s+(\d+)\b", name, flags=re.IGNORECASE)
     if story:
-        return f"{story.group(1) or ''}US{story.group(2)}"
+        short = "US" if story.group(2).lower().startswith("user") else "HU"
+        return f"{story.group(1) or ''}{short}{story.group(3)}"
     return _label(name, 24)
 
 
@@ -78,7 +80,7 @@ def _groups(tasks: list[Task]) -> list[tuple[str, list[Task]]]:
     return groups
 
 
-def task_graph(ir: SpecIR) -> Diagram | None:
+def task_graph(ir: SpecIR, strings: dict | None = None) -> Diagram | None:
     """Phases run in order; inside a phase tasks run in order, except [P] tasks, which fan out
     in parallel. Big plans collapse to one node per phase so the graph stays readable."""
     if not ir.tasks:
@@ -126,7 +128,7 @@ def task_graph(ir: SpecIR) -> Diagram | None:
     return Diagram(
         id="tasks",
         kind="tasks",
-        title=f"Task graph · {len(ir.tasks)} tasks in {len(groups)} phases",
+        title=(strings or table())["diag_tasks"].format(n=len(ir.tasks), phases=len(groups)),
         mermaid="\n".join(lines),
         sources=ir.tasks[0].sources[:1],
     )
@@ -145,7 +147,7 @@ def _refers_to(attribute: str, entity: Entity) -> bool:
     return a in {e, e + "s"} or a.replace(" ", "_") == e.replace(" ", "_")
 
 
-def data_model(ir: SpecIR) -> Diagram | None:
+def data_model(ir: SpecIR, strings: dict | None = None) -> Diagram | None:
     """An entity-relationship diagram. A relationship is drawn when an attribute names another
     entity (Photo.album -> Album has many Photos); attributes have no types in most specs, so
     they are listed by name only."""
@@ -167,11 +169,11 @@ def data_model(ir: SpecIR) -> Diagram | None:
     return Diagram(
         id="data-model",
         kind="data-model",
-        title=f"Data model · {len(ir.entities)} entities",
+        title=(strings or table())["diag_data"].format(n=len(ir.entities)),
         mermaid="\n".join(lines),
         sources=[s for e in ir.entities for s in e.sources[:1]],
     )
 
 
-def spec_diagrams(ir: SpecIR) -> list[Diagram]:
-    return [d for d in (data_model(ir), task_graph(ir)) if d]
+def spec_diagrams(ir: SpecIR, strings: dict | None = None) -> list[Diagram]:
+    return [d for d in (data_model(ir, strings), task_graph(ir, strings)) if d]

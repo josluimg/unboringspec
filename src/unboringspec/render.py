@@ -12,6 +12,7 @@ from . import __version__
 from .diagrams import spec_diagrams
 from .diff import _norm, areas, summarize
 from .history import documents_hash
+from .i18n import note, supported, table
 from .ir import Attention, SpecIR
 
 
@@ -62,17 +63,17 @@ def find_podcast(folder: Path, ir: SpecIR) -> dict | None:
 
     tone = TONES[parsed.tone].label if parsed.tone in TONES else ("Custom tone" if parsed.tone else "")
     return {
-        "audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns,
+        "audio": audio.name, "title": parsed.title, "tone": tone, "tone_id": parsed.tone, "turns": turns,
         "stale": stale, "known_version": version is not None, "changes": changes,
     }
 
 
-def _apply_hint(ir: SpecIR) -> str:
+def _apply_hint(ir: SpecIR, lang: str = "en") -> str:
     from .adapters import ADAPTERS
     from .apply import apply_hint
 
     adapter = next((a() for a in ADAPTERS if a.name == ir.framework), None)
-    return apply_hint(adapter, ir) if adapter else ""
+    return apply_hint(adapter, ir, lang) if adapter else ""
 
 
 def _cite(item) -> str:
@@ -100,14 +101,15 @@ def review_keys(ir: SpecIR) -> dict[str, str]:
     return keys
 
 
-def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
+def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en") -> str:
+    t = table(lang)
     env = Environment(loader=PackageLoader("unboringspec", "templates"), autoescape=True)
     tpl = env.get_template("review.html.j2")
 
     stories = {s.id: s for s in ir.stories}
     tasks_by_story: dict[str, list] = {}
-    for t in ir.tasks:
-        tasks_by_story.setdefault(t.story or "Shared", []).append(t)
+    for task in ir.tasks:
+        tasks_by_story.setdefault(task.story or "Shared", []).append(task)
 
     # Embedded as JSON for the source drawer and the review export. Escape "</" so a spec
     # containing "</script>" cannot break out of the script tag.
@@ -121,14 +123,26 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
                 {"id": d.id, "key": keys[d.id], "title": d.title, "choice": d.choice, "cite": _cite(d)} for d in ir.decisions
             ],
             "questions": [{"id": q.id, "key": keys[q.id], "question": q.question, "cite": _cite(q)} for q in ir.questions],
-            "apply_hint": _apply_hint(ir),
+            "apply_hint": _apply_hint(ir, lang),
+            "ui": {k: v for k, v in t.items() if k.startswith("js_")},
             # Marks from the reader's last review that still hold (#28): they work in any browser.
             "carried": ir.follow_up.carried if ir.follow_up else {},
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")
 
+    changes_title = ""
+    if ir.changes:
+        since = ir.changes.since_ref or (
+            t["since_previous"].format(when=ir.changes.since_render) if ir.changes.since_render else ir.changes.baseline
+        )
+        changes_title = t["changes_title"].format(since=since)
+
     return tpl.render(
+        t=t,
+        lang=supported(lang),
+        note=lambda text: note(text, t),
+        changes_title=changes_title,
         ir=ir,
         version=__version__,
         decide=ir.decisions_by_attention(Attention.decide),
@@ -141,13 +155,13 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
         podcast=podcast,
         # From understanding to planning: the agent's map and flows first, then the data model
         # and the task graph built from the spec.
-        diagrams=ir.diagrams + spec_diagrams(ir),
+        diagrams=ir.diagrams + spec_diagrams(ir, t),
         change_areas=list(areas(ir.changes)) if ir.changes else [],
         change_summary=summarize(ir.changes) if ir.changes else "",
     )
 
 
-def write_html(ir: SpecIR, out: Path) -> Path:
+def write_html(ir: SpecIR, out: Path, lang: str = "en") -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_html(ir, find_podcast(out.parent, ir)), encoding="utf-8")
+    out.write_text(render_html(ir, find_podcast(out.parent, ir), lang), encoding="utf-8")
     return out

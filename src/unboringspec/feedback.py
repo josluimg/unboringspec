@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from .diff import _match, _norm, line_map
 from .history import History
+from .i18n import STRINGS
 from .ir import FollowUp, FollowUpItem, SpecIR
 
 BLOCK_RE = re.compile(r"<!--\s*unboring:review\s*(\{.*?\})\s*-->", re.DOTALL)
@@ -102,14 +103,14 @@ def follow_up(review: SavedReview, reviewed_at: str, current: SpecIR, history: H
     decisions = {d.id: d for d in current.decisions}
     questions = {q.id: q for q in current.questions}
     same = review.version == documents_hash(current.documents)
-    out = FollowUp(reviewed=f"your review of {reviewed_at}", same_version=same)
+    out = FollowUp(reviewed=f"your review of {reviewed_at}", reviewed_at=reviewed_at, same_version=same)
 
     # The reviewed version, to tell "changed" from "removed" and to follow reworded items.
     snapshot = history.find(review.version)
     baseline = History.load(snapshot) if snapshot else None
     if baseline is None and not same:
         out.notes.append(
-            "The reviewed version is no longer in the history, so changed items are matched by title only."
+            STRINGS["en"]["note_no_snapshot"]
         )
     lines = line_map(baseline.documents, current.documents) if baseline else None
 
@@ -154,7 +155,8 @@ def follow_up(review: SavedReview, reviewed_at: str, current: SpecIR, history: H
             else:
                 outcome = "pending"
                 out.carried[key] = {"answer": item.answer}
-                out.flags[key] = "Still open: you answered it in your last review."
+                out.flags[key] = STRINGS["en"]["flag_pending"]
+                out.flag_codes[key] = {"code": "pending"}
             said = item.answer
         elif item.kind == "question":
             if current_id is None:
@@ -162,10 +164,12 @@ def follow_up(review: SavedReview, reviewed_at: str, current: SpecIR, history: H
             elif identical:
                 outcome = "not-addressed"
                 out.carried[key] = {"v": "question", "note": item.note}
-                out.flags[key] = "Not changed since you questioned it."
+                out.flags[key] = STRINGS["en"]["flag_not-addressed"]
+                out.flag_codes[key] = {"code": "not-addressed"}
             else:
                 outcome = "changed"
-                out.flags[key] = f"Changed since you questioned it. Your note: {item.note or '(none)'}"
+                out.flags[key] = STRINGS["en"]["flag_changed"].format(note=item.note or "(none)")
+                out.flag_codes[key] = {"code": "changed", "note": item.note}
             said = item.note
         else:  # approve
             if current_id is None:
@@ -175,7 +179,8 @@ def follow_up(review: SavedReview, reviewed_at: str, current: SpecIR, history: H
                 out.carried[key] = {"v": "approve"}
             else:
                 outcome = "approved-changed"
-                out.flags[key] = "You approved this before; it has changed since. Look again."
+                out.flags[key] = STRINGS["en"]["flag_approved-changed"]
+                out.flag_codes[key] = {"code": "approved-changed"}
             said = ""
         if same:
             # A review of this very version: everything simply carries over.
@@ -185,6 +190,7 @@ def follow_up(review: SavedReview, reviewed_at: str, current: SpecIR, history: H
                     mark["note"] = item.note
                 out.carried[key] = mark
                 out.flags.pop(key, None)
+                out.flag_codes.pop(key, None)
             continue
         out.items.append(
             FollowUpItem(kind=item.kind, outcome=outcome, label=item.text, reader_said=said, key=key, sources=src)

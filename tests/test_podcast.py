@@ -259,7 +259,7 @@ def test_render_uses_tone_speed_and_shows_label(tmp_path, monkeypatch):
     r = runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "spy"])
     assert r.exit_code == 0, r.output
     assert set(speeds) == {tone_speed("sports")} == {1.1}
-    assert "Sports commentary" in (wd / "review.html").read_text()
+    assert "Retransmisión deportiva" in (wd / "review.html").read_text()  # Spanish script → Spanish page
 
     speeds.clear()
     runner.invoke(app, ["podcast", "render", str(EXAMPLE_SPEC), "--engine", "spy", "--speed", "0.8"])
