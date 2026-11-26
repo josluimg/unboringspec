@@ -5,38 +5,66 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>unboringspec demo</title>
 <meta name="description" content="See a spec go from walls of Markdown to a visual review and a podcast.">
+<script>
+(() => {
+  const KEY = "unboring-theme", root = document.documentElement, sys = matchMedia("(prefers-color-scheme: dark)");
+  let choice = null;
+  try { choice = localStorage.getItem(KEY); } catch (e) {}
+  const apply = () => { root.dataset.theme = choice || (sys.matches ? "dark" : "light"); };
+  apply();
+  sys.addEventListener("change", () => { if (!choice) apply(); });
+  window.unboringToggleTheme = () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    choice = next === (sys.matches ? "dark" : "light") ? null : next;  // back to the system's: follow it again
+    try { choice ? localStorage.setItem(KEY, choice) : localStorage.removeItem(KEY); } catch (e) {}
+    apply();
+  };
+})();
+</script>
 <style>
 :root {
   --bg: #f6f5f2; --surface: #ffffff; --ink: #1b1b1f; --muted: #5d6068; --line: #e3e1db;
-  --accent: #5b51f0; --accent-soft: #eceaff;
+  --accent: #5b51f0; --accent-soft: #eceaff; --cta: #ff6b4a; --cta-ink: #1a0b06; --cta-text: #c2410c;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #101116; --surface: #1a1b21; --ink: #ececf1; --muted: #a0a2ad; --line: #2a2b33;
-    --accent: #8b84ff; --accent-soft: #24233f; }
+  :root:not([data-theme="light"]) { --bg: #101116; --surface: #1a1b21; --ink: #ececf1; --muted: #a0a2ad; --line: #2a2b33;
+    --accent: #8b84ff; --accent-soft: #24233f; --cta-text: #ff8a6b; color-scheme: dark; }
 }
+:root[data-theme="dark"] { --bg: #101116; --surface: #1a1b21; --ink: #ececf1; --muted: #a0a2ad; --line: #2a2b33;
+  --accent: #8b84ff; --accent-soft: #24233f; --cta-text: #ff8a6b; color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
-main { max-width: 960px; margin: 0 auto; padding: 56px 16px 64px; }
+main { max-width: 960px; margin: 0 auto; padding: 56px 16px 64px; position: relative; }
+.theme { position: absolute; top: 20px; right: 16px; display: inline-grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 999px; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--muted); padding: 0; }
+.theme:hover { color: var(--ink); border-color: var(--accent); }
+.theme:focus-visible, .card:focus-visible, .how a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme svg { width: 17px; height: 17px; }
+.theme .sun, :root[data-theme="dark"] .theme .moon { display: none; }
+:root[data-theme="dark"] .theme .sun { display: block; }
 .kicker { color: var(--accent); font-weight: 700; letter-spacing: .02em; margin: 0 0 8px; }
 h1 { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 16px; }
-.lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 0 36px; }
+.lead { font-size: 1.02rem; color: var(--muted); margin: 0 0 32px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .card { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line);
   border-radius: 16px; padding: 22px; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card:hover { border-color: var(--cta); transform: translateY(-2px); }
 .card .fw { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
 .card h2 { margin: 0; font-size: 1.3rem; letter-spacing: -0.01em; }
 .card p { margin: 0; color: var(--muted); }
 .pill { align-self: flex-start; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 12px; font-size: .85rem; font-weight: 600; }
-.card .go { margin-top: auto; font-weight: 700; color: var(--accent); }
-.how { margin-top: 40px; color: var(--muted); font-size: .95rem; }
-.how a { color: var(--accent); }
+.card .go { margin-top: auto; align-self: flex-start; font-weight: 700; background: var(--cta); color: var(--cta-ink);
+  border-radius: 999px; padding: 8px 18px; font-size: .95rem; }
+.how { margin-top: 36px; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+.how a { color: var(--cta-text); font-weight: 600; }
 footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
 footer a { color: inherit; }
 </style>
 </head>
 <body>
 <main>
+  <button class="theme" type="button" onclick="unboringToggleTheme()" aria-label="Switch between light and dark mode" title="Switch between light and dark mode"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   <p class="kicker">unboringspec · live demo</p>
   <h1>Specs your brain actually wants to review.</h1>
   <p class="lead">Each demo starts with the spec as you get it: a pile of Markdown files. Flip to <strong>After</strong>
@@ -45,9 +73,9 @@ footer a { color: inherit; }
   <div class="cards">
     <a class="card" href="speckit/">
       <span class="fw">spec-kit</span>
-      <h2>Shared Photo Albums</h2>
-      <p>Families share photo albums through an invite link and get a weekly email digest of new photos.</p>
-      <span class="pill">🎧 Podcast in Spanish · casual tone</span>
+      <h2>Álbumes de fotos compartidos</h2>
+      <p>Las familias comparten álbumes de fotos con un enlace de invitación y reciben cada semana un correo con las fotos nuevas.</p>
+      <span class="pill">🎧 All in Spanish · casual podcast</span>
       <p>4 files, 167 lines of Markdown → one review page.</p>
       <span class="go">Open the demo →</span>
     </a>

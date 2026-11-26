@@ -206,3 +206,11 @@ def test_page_escapes_spec_and_agent_text():
     assert '<img src=x onerror="alert(1)">' not in html
     assert "<script>alert(2)</script>" not in html
     assert "&lt;img src=x onerror=" in html
+
+
+def test_an_embedding_page_can_force_the_theme():
+    """The demo sets data-theme on the review's <html>; colours and drawn diagrams follow it."""
+    html = render_html(heuristic_insights(load(SPECKIT)))
+    assert ':root[data-theme="dark"] {' in html and ':root:not([data-theme="light"])' in html
+    assert 'attributeFilter: ["data-theme"]' in html and "const redraw" in html
+    assert "if (stale()) return;" in html  # a redraw started later wins over one still in flight

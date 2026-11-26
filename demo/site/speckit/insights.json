@@ -1,277 +1,122 @@
 {
-  "one_liner": "Families share photo albums through an invite link and get a weekly email digest of new photos.",
+  "one_liner": "Las familias comparten álbumes de fotos con un enlace de invitación y reciben cada semana un correo con las fotos nuevas.",
   "bullets": [
-    "Anyone holding the album link can view AND upload, with no per-person identity.",
-    "Uploads go browser-to-storage via presigned URLs; a worker does thumbnails, HEIC and GPS stripping.",
-    "Weekly digest is sent Monday 08:00 local time by an hourly scheduler job.",
-    "Three privacy-relevant gaps are open: link revocation, leaving members' photos, file retention.",
-    "MVP scope: P1 is albums, uploads and invites; the digest (P2) can ship later."
+    "Cualquiera con el enlace del álbum puede ver Y subir fotos, sin identidad por persona.",
+    "Las subidas van del navegador al almacenamiento con URL prefirmadas; un proceso en segundo plano hace miniaturas, HEIC y quita el GPS.",
+    "El resumen semanal sale el lunes a las 08:00 hora local, desde una tarea que corre cada hora.",
+    "Quedan abiertos tres huecos de privacidad: revocar enlaces, las fotos de quien se va y cuánto se guardan los archivos.",
+    "Alcance del MVP: P1 son álbumes, subidas e invitaciones; el resumen (P2) puede llegar después."
   ],
   "you_must_decide": [
-    "Do invite links expire or become revocable, given they grant upload rights?",
-    "What happens to a member's photos when they leave the album?",
-    "How long are original files retained, and what is the storage budget per family?"
+    "¿Caducan o se pueden revocar los enlaces de invitación, sabiendo que dan permiso para subir?",
+    "¿Qué pasa con las fotos de un miembro cuando deja el álbum?",
+    "¿Cuánto tiempo se guardan los originales y cuál es el presupuesto de almacenamiento por familia?"
   ],
   "decisions": [
     {
-      "title": "Permanent invite link with full member rights",
-      "choice": "One permanent token per album; anyone with the link can view and upload.",
-      "rationale": "Lowest friction for non-technical relatives.",
-      "alternatives": [
-        "Per-person email invites",
-        "Expiring links",
-        "View-only links plus upload approval"
-      ],
-      "risk": "A leaked link exposes family photos and lets strangers upload; there is no way to revoke it.",
+      "title": "Enlace de invitación permanente con todos los permisos",
+      "choice": "Un token permanente por álbum; quien tenga el enlace puede ver y subir.",
+      "rationale": "La menor fricción para parientes poco técnicos.",
+      "alternatives": ["Invitaciones por correo, una por persona", "Enlaces que caducan", "Enlaces de solo lectura y subidas con aprobación"],
+      "risk": "Un enlace filtrado expone las fotos de la familia y deja subir a desconocidos; no hay forma de revocarlo.",
       "attention": "decide",
-      "sources": [
-        {
-          "file": "research.md",
-          "line": 11
-        },
-        {
-          "file": "spec.md",
-          "line": 56
-        },
-        {
-          "file": "spec.md",
-          "line": 45
-        }
-      ]
+      "sources": [{"file": "research.md", "line": 11}, {"file": "spec.md", "line": 56}, {"file": "spec.md", "line": 45}]
     },
     {
-      "title": "Direct-to-storage uploads",
-      "choice": "Browser uploads to object storage with presigned URLs.",
-      "rationale": "Keeps 25 MB files off the API and meets the 30 s upload goal.",
-      "alternatives": [
-        "Upload through the API",
-        "tus resumable uploads"
-      ],
-      "risk": "No resumable uploads: large HEIC files on weak mobile connections may fail and restart.",
+      "title": "Subidas directas al almacenamiento",
+      "choice": "El navegador sube al almacenamiento de objetos con URL prefirmadas.",
+      "rationale": "Saca los archivos de 25 MB de la API y cumple el objetivo de 30 s por subida.",
+      "alternatives": ["Subir a través de la API", "Subidas reanudables con tus"],
+      "risk": "Sin subidas reanudables: un HEIC grande con mala cobertura móvil puede fallar y empezar de cero.",
       "attention": "review",
-      "sources": [
-        {
-          "file": "research.md",
-          "line": 5
-        },
-        {
-          "file": "spec.md",
-          "line": 70
-        }
-      ]
+      "sources": [{"file": "research.md", "line": 5}, {"file": "spec.md", "line": 70}]
     },
     {
-      "title": "GPS stripped only before other members see the photo",
-      "choice": "Originals are kept with EXIF; GPS is removed in the worker before photos are visible.",
-      "rationale": "Privacy for shared photos while keeping the original file.",
+      "title": "El GPS solo se quita antes de que lo vean los demás",
+      "choice": "Los originales se guardan con EXIF; el proceso en segundo plano quita el GPS antes de que las fotos sean visibles.",
+      "rationale": "Privacidad en las fotos compartidas sin perder el archivo original.",
       "alternatives": [],
-      "risk": "Originals with location data are stored indefinitely while retention is undefined.",
+      "risk": "Los originales con ubicación se guardan indefinidamente mientras no se defina cuánto tiempo.",
       "attention": "review",
-      "sources": [
-        {
-          "file": "spec.md",
-          "line": 58
-        },
-        {
-          "file": "research.md",
-          "line": 17
-        },
-        {
-          "file": "spec.md",
-          "line": 59
-        }
-      ]
+      "sources": [{"file": "spec.md", "line": 58}, {"file": "research.md", "line": 17}, {"file": "spec.md", "line": 59}]
     },
     {
-      "title": "HEIC converted to JPEG in the worker",
-      "choice": "Convert server-side and keep the original.",
-      "rationale": "Most browsers cannot render HEIC.",
-      "alternatives": [
-        "Reject HEIC",
-        "Convert in the browser"
-      ],
+      "title": "HEIC convertido a JPEG en segundo plano",
+      "choice": "Convertir en el servidor y conservar el original.",
+      "rationale": "La mayoría de navegadores no muestran HEIC.",
+      "alternatives": ["Rechazar HEIC", "Convertir en el navegador"],
       "risk": "",
       "attention": "routine",
-      "sources": [
-        {
-          "file": "research.md",
-          "line": 17
-        }
-      ]
+      "sources": [{"file": "research.md", "line": 17}]
     },
     {
-      "title": "Timezone-aware digest via hourly job",
-      "choice": "Celery beat runs hourly and sends to members whose local time is Monday 08:00.",
-      "rationale": "Respects timezones without one scheduled job per user.",
-      "alternatives": [
-        "One job per user",
-        "Everyone at 08:00 UTC"
-      ],
-      "risk": "Members with half-hour offsets (e.g. India) never match an exact hour boundary.",
+      "title": "Resumen según la zona horaria con una tarea cada hora",
+      "choice": "Celery beat corre cada hora y envía el correo a los miembros para los que es lunes a las 08:00.",
+      "rationale": "Respeta las zonas horarias sin programar una tarea por usuario.",
+      "alternatives": ["Una tarea por usuario", "Todos a las 08:00 UTC"],
+      "risk": "Los miembros con desfases de media hora (por ejemplo, India) nunca coinciden con una hora en punto.",
       "attention": "review",
-      "sources": [
-        {
-          "file": "research.md",
-          "line": 23
-        },
-        {
-          "file": "spec.md",
-          "line": 57
-        }
-      ]
+      "sources": [{"file": "research.md", "line": 23}, {"file": "spec.md", "line": 57}]
     }
   ],
   "risks": [
     {
-      "title": "Abuse through open upload links",
-      "impact": "Anyone with the link can upload arbitrary content to a family album; no moderation or removal flow is specified.",
-      "mitigation": "Add link revocation and owner-side photo deletion to P1.",
+      "title": "Abusos a través de enlaces de subida abiertos",
+      "impact": "Cualquiera con el enlace puede subir cualquier contenido a un álbum familiar; no se especifica moderación ni forma de borrarlo.",
+      "mitigation": "Añadir a P1 la revocación de enlaces y que el dueño pueda borrar fotos.",
       "severity": "high",
-      "sources": [
-        {
-          "file": "spec.md",
-          "line": 56
-        },
-        {
-          "file": "tasks.md",
-          "line": 25
-        }
-      ]
+      "sources": [{"file": "spec.md", "line": 56}, {"file": "tasks.md", "line": 25}]
     },
     {
-      "title": "Storage cost is unbounded",
-      "impact": "Originals plus converted copies, 25 MB each, with no retention period or budget.",
-      "mitigation": "Decide retention and a per-family quota before launch.",
+      "title": "El coste de almacenamiento no tiene límite",
+      "impact": "Originales y copias convertidas, de hasta 25 MB cada una, sin periodo de conservación ni presupuesto.",
+      "mitigation": "Decidir la conservación y una cuota por familia antes del lanzamiento.",
       "severity": "medium",
-      "sources": [
-        {
-          "file": "plan.md",
-          "line": 19
-        },
-        {
-          "file": "spec.md",
-          "line": 59
-        }
-      ]
+      "sources": [{"file": "plan.md", "line": 19}, {"file": "spec.md", "line": 59}]
     },
     {
-      "title": "Success metric SC-002 is only tested at the end",
-      "impact": "The 30 s upload goal drives the architecture but is verified only in the final polish phase.",
-      "mitigation": "Run a throttled upload spike right after T009.",
+      "title": "La métrica SC-002 solo se prueba al final",
+      "impact": "El objetivo de 30 s por subida condiciona la arquitectura, pero solo se verifica en la fase final de pulido.",
+      "mitigation": "Hacer una prueba de subida con red limitada justo después de T009.",
       "severity": "low",
-      "sources": [
-        {
-          "file": "tasks.md",
-          "line": 37
-        },
-        {
-          "file": "spec.md",
-          "line": 70
-        }
-      ]
+      "sources": [{"file": "tasks.md", "line": 37}, {"file": "spec.md", "line": 70}]
     }
   ],
   "questions": [
     {
-      "question": "How are duplicate uploads detected and handled?",
-      "why_it_matters": "Listed as an edge case but no requirement or task covers it; families often upload the same photo twice.",
-      "sources": [
-        {
-          "file": "spec.md",
-          "line": 46
-        }
-      ]
+      "question": "¿Cómo se detectan y se gestionan las subidas duplicadas?",
+      "why_it_matters": "Aparece como caso límite, pero ningún requisito ni tarea lo cubre; en las familias es habitual subir la misma foto dos veces.",
+      "sources": [{"file": "spec.md", "line": 46}]
     },
     {
-      "question": "Can the owner delete photos uploaded by others?",
-      "why_it_matters": "With open upload links, the owner needs a way to remove unwanted content; no requirement says so.",
-      "sources": [
-        {
-          "file": "spec.md",
-          "line": 65
-        },
-        {
-          "file": "spec.md",
-          "line": 56
-        }
-      ]
+      "question": "¿Puede el dueño borrar fotos subidas por otros?",
+      "why_it_matters": "Con enlaces de subida abiertos, el dueño necesita una forma de quitar contenido no deseado; ningún requisito lo dice.",
+      "sources": [{"file": "spec.md", "line": 65}, {"file": "spec.md", "line": 56}]
     },
     {
-      "question": "Can members opt out of the weekly digest?",
-      "why_it_matters": "FR-005 makes it mandatory; unsubscribe is usually a legal requirement for recurring email.",
-      "sources": [
-        {
-          "file": "spec.md",
-          "line": 57
-        }
-      ]
+      "question": "¿Pueden los miembros darse de baja del resumen semanal?",
+      "why_it_matters": "FR-005 lo hace obligatorio; en los correos periódicos la baja suele ser una exigencia legal.",
+      "sources": [{"file": "spec.md", "line": 57}]
     }
   ],
   "diagrams": [
     {
       "kind": "system",
-      "title": "What is involved and how it connects",
-      "mermaid": "flowchart LR\n  owner([Album owner])\n  relative([Relative with the invite link])\n  subgraph product[\"Shared Photo Albums\"]\n    web[Web app<br/>React]\n    api[REST API<br/>FastAPI]\n    worker[Background worker<br/>Celery]\n  end\n  subgraph data[\"Data\"]\n    db[(PostgreSQL<br/>albums, photos, members)]\n    store[(Object storage<br/>photo files)]\n  end\n  mail[[Email provider<br/>not specified]]\n  owner --> web\n  relative -->|invite link| web\n  web --> api\n  web -->|presigned upload| store\n  api --> db\n  store -->|new file| worker\n  worker -->|thumbnails, GPS stripped| store\n  worker --> db\n  worker -->|weekly digest| mail\n  mail --> owner\n  mail --> relative",
-      "sources": [
-        {
-          "file": "plan.md",
-          "line": 7
-        },
-        {
-          "file": "plan.md",
-          "line": 13
-        },
-        {
-          "file": "plan.md",
-          "line": 14
-        },
-        {
-          "file": "spec.md",
-          "line": 57
-        }
-      ]
+      "title": "Qué piezas hay y cómo se conectan",
+      "mermaid": "flowchart LR\n  owner([Dueño del álbum])\n  relative([Pariente con el enlace])\n  subgraph product[\"Álbumes de fotos compartidos\"]\n    web[Aplicación web<br/>React]\n    api[API REST<br/>FastAPI]\n    worker[Proceso en segundo plano<br/>Celery]\n  end\n  subgraph data[\"Datos\"]\n    db[(PostgreSQL<br/>álbumes, fotos, miembros)]\n    store[(Almacenamiento de objetos<br/>archivos de fotos)]\n  end\n  mail[[Proveedor de correo<br/>sin especificar]]\n  owner --> web\n  relative -->|enlace de invitación| web\n  web --> api\n  web -->|subida prefirmada| store\n  api --> db\n  store -->|archivo nuevo| worker\n  worker -->|miniaturas, sin GPS| store\n  worker --> db\n  worker -->|resumen semanal| mail\n  mail --> owner\n  mail --> relative",
+      "sources": [{"file": "plan.md", "line": 7}, {"file": "plan.md", "line": 13}, {"file": "plan.md", "line": 14}, {"file": "spec.md", "line": 57}]
     },
     {
       "kind": "journey",
-      "title": "From new album to weekly digest",
-      "mermaid": "flowchart LR\n  A[Owner creates album] --> B[Uploads photos]\n  B --> C[Worker makes thumbnails<br/>strips GPS]\n  A --> D[Owner shares invite link]\n  D --> E{Relative opens link}\n  E --> F[Joins as member]\n  F --> G[Views and uploads photos]\n  G --> C\n  C --> H[Monday 08:00 local time]\n  H --> I[Weekly digest email]",
-      "sources": [
-        {
-          "file": "spec.md",
-          "line": 10
-        },
-        {
-          "file": "spec.md",
-          "line": 25
-        },
-        {
-          "file": "spec.md",
-          "line": 35
-        },
-        {
-          "file": "plan.md",
-          "line": 7
-        }
-      ]
+      "title": "Del álbum nuevo al resumen semanal",
+      "mermaid": "flowchart LR\n  A[El dueño crea el álbum] --> B[Sube fotos]\n  B --> C[Miniaturas<br/>y GPS eliminado]\n  A --> D[El dueño comparte el enlace]\n  D --> E{Un pariente abre el enlace}\n  E --> F[Entra como miembro]\n  F --> G[Ve y sube fotos]\n  G --> C\n  C --> H[Lunes, 08:00 hora local]\n  H --> I[Correo con el resumen semanal]",
+      "sources": [{"file": "spec.md", "line": 10}, {"file": "spec.md", "line": 25}, {"file": "spec.md", "line": 35}, {"file": "plan.md", "line": 7}]
     },
     {
       "kind": "sequence",
-      "title": "Uploading a photo",
-      "mermaid": "sequenceDiagram\n  actor U as Member\n  participant W as Web app\n  participant API as API\n  participant S as Object storage\n  participant K as Worker\n  U->>W: Pick photos\n  W->>API: Request presigned upload URL\n  API-->>W: Presigned URL\n  W->>S: Upload file directly\n  S-->>K: New file event\n  K->>K: Thumbnail, HEIC to JPEG, strip GPS\n  K-->>API: Photo ready\n  API-->>W: Photo appears in album grid",
-      "sources": [
-        {
-          "file": "research.md",
-          "line": 5
-        },
-        {
-          "file": "plan.md",
-          "line": 7
-        },
-        {
-          "file": "spec.md",
-          "line": 58
-        }
-      ]
+      "title": "Subir una foto",
+      "mermaid": "sequenceDiagram\n  actor U as Miembro\n  participant W as Aplicación web\n  participant API as API\n  participant S as Almacenamiento\n  participant K as Proceso en segundo plano\n  U->>W: Elige fotos\n  W->>API: Pide una URL de subida prefirmada\n  API-->>W: URL prefirmada\n  W->>S: Sube el archivo directamente\n  S-->>K: Evento de archivo nuevo\n  K->>K: Miniatura, HEIC a JPEG, quita el GPS\n  K-->>API: Foto lista\n  API-->>W: La foto aparece en el álbum",
+      "sources": [{"file": "research.md", "line": 5}, {"file": "plan.md", "line": 7}, {"file": "spec.md", "line": 58}]
     }
   ]
 }
