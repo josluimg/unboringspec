@@ -17,7 +17,7 @@
   "turns": [
     {
       "speaker": "A",
-      "text": "Hola, Álex. Hoy toca revisar una spec que parece sencilla: álbumes de fotos compartidos para familias."
+      "text": "Hola, Álex. Hoy toca revisar una especificación que parece sencilla: álbumes de fotos compartidos para familias."
     },
     {
       "speaker": "B",
@@ -147,7 +147,7 @@
     },
     {
       "speaker": "A",
-      "text": "Pues la propia spec lo pregunta y no lo responde. Está marcado como pendiente: ¿los enlaces caducan o se pueden revocar?",
+      "text": "Pues la propia especificación lo pregunta y no lo responde. Está marcado como pendiente: ¿los enlaces caducan o se pueden revocar?",
       "sources": [
         {
           "file": "spec.md",
@@ -287,7 +287,7 @@
     },
     {
       "speaker": "B",
-      "text": "Resumiendo, la spec es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias."
+      "text": "Resumiendo, la especificación es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias."
     },
     {
       "speaker": "A",
@@ -315,7 +315,13 @@
     },
     {
       "speaker": "B",
-      "text": "Hasta la próxima spec."
+      "text": "Hasta la próxima especificación."
+    }
+  ],
+  "terms": [
+    {
+      "text": "endpoint",
+      "lang": "en"
     }
   ]
 }

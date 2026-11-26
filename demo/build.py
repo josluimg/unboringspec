@@ -121,7 +121,8 @@ def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_nam
         parts = []
         for i, t in enumerate(turns, start=1):
             part = Path(tmp) / f"{i:04d}.wav"
-            engine.synth(t.text, voices[t.role], parsed.language, speed, part)
+            engine.synth(t.text, voices[t.role], parsed.language, speed, part,
+                         terms=[(term.text, term.lang) for term in parsed.terms])
             parts.append(part)
             print(f"  {folder.name}: turn {i}/{len(turns)}", end="\r", flush=True)
         for old in (folder / "podcast.mp3", folder / "podcast.wav"):

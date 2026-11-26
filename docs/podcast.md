@@ -11,6 +11,8 @@ The podcast is **optional**. Nothing related to it is installed unless you ask f
 - [Use it](#use-it)
 - [Tones](#tones)
 - [Voices](#voices)
+- [Words in another language](#words-in-another-language)
+- [Pace and the player](#pace-and-the-player)
 - [Rendering options](#rendering-options)
 
 ## Enable it
@@ -126,6 +128,29 @@ uv solves for you:
 `~/.cache/unboringspec/kokoro` (override with `UNBORING_KOKORO_DIR`); delete that folder to remove it.
 On Intel Macs, uv picks ONNX Runtime 1.23, the last release built for Intel; that is the one tested.
 
+## Words in another language
+
+Teams say a lot of things in English whatever language they speak: product names (*Snowflake*, *PostgreSQL*)
+and jargon (*endpoint*, *deadline*, *backoffice*). The script keeps that jargon as the team says it, and lists
+those words with their language in `terms`. With Kokoro, each one is pronounced with its own language's rules
+inside the sentence, so a Spanish host says *Snowflake* the English way instead of reading it letter by letter
+in Spanish. The transcript is unchanged.
+
+Words that are not jargon go in the episode's language: a Spanish episode talks about *la especificación*,
+not *la spec*.
+
+System voices cannot switch language in the middle of a sentence, so they read those words with the episode's
+language rules; `podcast render` says so when it happens.
+
+## Pace and the player
+
+Natural voices sound slow at their nominal speed, so episodes are recorded at **1.2** by default. Each tone
+keeps its own pace on top of that (sports commentary a little faster, the noir detective a little slower), and
+`--speed` replaces the result for one recording.
+
+On the review page the player shows the speed at all times: **1×, 1.25×, 1.5×, 2×**, on top of the recorded
+pace. The choice is remembered in that browser. Without JavaScript, the browser's own player shows instead.
+
 ## Rendering options
 
 `unboring podcast render <folder>` accepts:
@@ -134,6 +159,6 @@ On Intel Macs, uv picks ONNX Runtime 1.23, the last release built for Intel; tha
 |---|---|
 | `--engine` | `auto` (default: Kokoro if ready, else system), `system`, `kokoro`, `say`, `sapi`, `espeak` |
 | `--voice-guide`, `--voice-skeptic` | Override a host's voice (names from `unboring podcast engines`) |
-| `--speed` | 0.5 to 2.0. Default: the tone's own pace |
+| `--speed` | 0.5 to 2.0. Default: 1.2 times the tone's own pace (see [Pace and the player](#pace-and-the-player)) |
 
 With ffmpeg installed you get an MP3; without it, a WAV. The transcript is written to `podcast.md`.

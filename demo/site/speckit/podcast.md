@@ -1,6 +1,6 @@
 # Álbumes familiares: un enlace que lo abre todo
 
-**Lucía:** Hola, Álex. Hoy toca revisar una spec que parece sencilla: álbumes de fotos compartidos para familias.
+**Lucía:** Hola, Álex. Hoy toca revisar una especificación que parece sencilla: álbumes de fotos compartidos para familias.
 
 **Álex:** Parece sencilla, sí. Pero he visto una frase que me ha quitado el sueño: cualquiera que tenga el enlace puede ver y subir fotos. `spec.md:56`
 
@@ -36,7 +36,7 @@
 
 **Álex:** Lo entiendo. Pero un enlace permanente es una llave maestra. Si alguien lo reenvía a un grupo de mensajería, o acaba publicado, ¿qué pasa?
 
-**Lucía:** Pues la propia spec lo pregunta y no lo responde. Está marcado como pendiente: ¿los enlaces caducan o se pueden revocar? `spec.md:45`
+**Lucía:** Pues la propia especificación lo pregunta y no lo responde. Está marcado como pendiente: ¿los enlaces caducan o se pueden revocar? `spec.md:45`
 
 **Álex:** Y no es solo que un extraño vea las fotos de tu familia. Es que puede subir lo que quiera al álbum.
 
@@ -76,7 +76,7 @@
 
 **Lucía:** Y qué pasa con las fotos de alguien que abandona el álbum. ¿Se quedan o se van con él? Eso también está pendiente. `spec.md:47`
 
-**Álex:** Resumiendo, la spec es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias.
+**Álex:** Resumiendo, la especificación es clara en lo técnico, pero deja abiertas justo las decisiones que afectan a la confianza de las familias.
 
 **Lucía:** Así que, a quien esté revisando, esto es lo que te toca decidir.
 
@@ -90,4 +90,4 @@
 
 **Lucía:** Perfecto. Gracias, Álex. Y a ti, gracias por escuchar en lugar de leer cinco documentos.
 
-**Álex:** Hasta la próxima spec.
+**Álex:** Hasta la próxima especificación.

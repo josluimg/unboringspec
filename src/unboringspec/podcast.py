@@ -43,6 +43,13 @@ class Turn(BaseModel):
     )
 
 
+class Term(BaseModel):
+    """A word the voices must say in another language: a product name or team jargon."""
+
+    text: str = Field(max_length=60, description="The word or name exactly as written in the turns, e.g. 'Snowflake'.")
+    lang: str = Field(description="BCP 47 code of the language it is pronounced in, e.g. 'en'.")
+
+
 class PodcastScript(BaseModel):
     """unboringspec podcast script: a two-host conversation about one spec."""
 
@@ -51,6 +58,12 @@ class PodcastScript(BaseModel):
     tone: str = Field("", description="The tone the episode was written in: a preset id (e.g. 'roast') or 'custom'.")
     hosts: list[Host] = Field(description="Exactly two hosts: A (guide) and B (skeptic).")
     turns: list[Turn] = Field(description="The conversation in order. Aim for 900 to 1200 words in total.")
+    terms: list[Term] = Field(
+        default_factory=list,
+        max_length=80,
+        description="Words in the turns that are pronounced in another language than the script's: product "
+        "names and technical jargon the team says in English. Natural voices say them in that language.",
+    )
 
 
 def podcast_json_schema() -> dict:
@@ -68,7 +81,16 @@ class Tone(BaseModel):
     label: str
     summary: str  # one line for `unboring podcast tones`
     style: str  # instructions for the script writer, in English (the script language is set separately)
-    speed: float = 1.0  # default speech speed for this tone
+    pace: float = 1.0  # relative to BASE_SPEED: above 1 faster (sports), below 1 slower (noir)
+
+    @property
+    def speed(self) -> float:
+        return round(BASE_SPEED * self.pace, 2)
+
+
+# Natural voices sound slow at 1.0, so episodes are recorded a little faster by default (#57);
+# each tone's pace is relative to this, and --speed overrides the result.
+BASE_SPEED = 1.2
 
 
 TONES: dict[str, Tone] = {
@@ -96,7 +118,7 @@ TONES: dict[str, Tone] = {
             "(in Spanish things like 'tío', 'illo', 'en plan', 'qué fuerte', 'flipar'; in English things like "
             "'bro', 'no cap', 'lowkey', 'that's wild'). Banter, exaggeration and running jokes. "
             "The slang is in the delivery; every fact about the spec is still exact.",
-            speed=1.05,
+            pace=1.05,
         ),
         Tone(
             id="roast",
@@ -107,7 +129,7 @@ TONES: dict[str, Tone] = {
             "the spec with comebacks and concedes when a hit lands. Roast the spec and its decisions, never "
             "real people, teams or the authors. Under every joke there must be a real, cited issue: the "
             "listener should finish laughing and knowing exactly what to fix.",
-            speed=1.05,
+            pace=1.05,
         ),
         Tone(
             id="sports",
@@ -116,7 +138,7 @@ TONES: dict[str, Tone] = {
             style="Live sports commentary, like two football commentators narrating a match. The spec is the "
             "game, decisions are plays, risks are fouls, open questions are penalties still to be called. "
             "Excited, fast, with commentator catchphrases and replays of the key moments.",
-            speed=1.1,
+            pace=1.1,
         ),
         Tone(
             id="noir",
@@ -126,7 +148,7 @@ TONES: dict[str, Tone] = {
             "the spec; the skeptic is the partner who doubts every lead. Rainy-night atmosphere and short, "
             "dramatic sentences, but every clue is a real fact from the documents, and the open questions are "
             "the unsolved part of the case.",
-            speed=0.95,
+            pace=0.95,
         ),
         Tone(
             id="eli5",
@@ -150,11 +172,11 @@ def resolve_tone(tone: str | None) -> tuple[str, str, float]:
         return t.id, t.style, t.speed
     if len(tone) > MAX_CUSTOM_TONE:
         raise ValueError(f"A custom tone must be at most {MAX_CUSTOM_TONE} characters.")
-    return "custom", f"Custom style requested by the listener: {tone}", 1.0
+    return "custom", f"Custom style requested by the listener: {tone}", BASE_SPEED
 
 
 def tone_speed(tone_id: str) -> float:
-    return TONES[tone_id].speed if tone_id in TONES else 1.0
+    return TONES[tone_id].speed if tone_id in TONES else BASE_SPEED
 
 
 PODCAST_PROMPT = """You write the script of a short podcast episode that helps a software engineer review a
@@ -181,6 +203,14 @@ Rules:
 - Do not invent facts that are not in the documents. Opinions and questions are welcome.
 - When a turn states a fact from the spec, add a citation (file + line number from the numbered documents).
 - Whatever the tone: the facts stay exact, the open questions are all mentioned, and nobody real is mocked.
+- Say things the way the team says them. Keep technical jargon that the team uses in English as it is
+  (endpoint, deadline, backoffice, commit, pull request...): do not translate it. Words that are not jargon go
+  in the script language: in particular, never say "spec" outside English; say the word for specification
+  (Spanish: "la especificación"; French: "la spécification"; Portuguese: "a especificação";
+  Italian: "la specifica"; German: "die Spezifikation").
+- List in "terms" every word in the turns that is pronounced in another language than the script's: product
+  and company names (Snowflake, Control-M, PostgreSQL) and the English jargon you kept. Each once, written
+  exactly as in the turns, with the language it is pronounced in ("en"). Natural voices then say them right.
 - Set "tone" in the output to "{tone_id}".
 
 ## Tone
