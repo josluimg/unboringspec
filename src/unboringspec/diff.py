@@ -12,6 +12,7 @@ import difflib
 import re
 from typing import Callable, Iterable, TypeVar
 
+from .i18n import STRINGS
 from .ir import ChangeItem, ChangeSet, FileDelta, SpecIR
 
 T = TypeVar("T")
@@ -159,8 +160,7 @@ def compare(before: SpecIR, after: SpecIR, baseline: str) -> ChangeSet:
         d_before = [d for d in d_before if d.id.startswith(("TC", "B"))]
         d_after = [d for d in d_after if d.id.startswith(("TC", "B"))]
         notes.append(
-            "The two versions were analysed differently (offline and by an agent), so only decisions "
-            "written in the documents are compared."
+            STRINGS["en"]["note_mixed"]
         )
     pairs, gone, new = _match(
         d_before, d_after, key=lambda d: _norm(d.title), text=lambda d: f"{d.title} {d.choice}", lines=lines

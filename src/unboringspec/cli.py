@@ -79,6 +79,10 @@ def _with_changes(ir: SpecIR, spec: Path, since: str | None = None, adapter: str
     baseline = baseline or previous
     if baseline is not None:
         ir.changes = compare(baseline[0], ir, baseline[1])
+        if since:
+            ir.changes.since_ref = baseline[1]
+        else:
+            ir.changes.since_render = history.previous_when
         console.print(f"Changes since {escape(ir.changes.baseline)}: {summarize(ir.changes)}")
     return _with_follow_up(ir, spec, history)
 
@@ -175,6 +179,7 @@ def render(
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the result in your browser."),
     since: Optional[str] = SINCE_OPT,
+    lang: Optional[str] = typer.Option(None, "--lang", help="Language of the page itself: en (default) or es."),
 ) -> None:
     """Agent mode, step 2: validate the agent's insights and build the review page."""
     ir = _load(spec, adapter)
@@ -192,7 +197,7 @@ def render(
     if dropped:
         console.print(f"[yellow]⚠ Dropped {dropped} item(s) whose citations point to lines that do not exist.[/]")
     ir = _with_changes(ir, spec, since, adapter)
-    _done(ir, write_html(ir, out or wd / "review.html"), open_browser)
+    _done(ir, write_html(ir, out or wd / "review.html", lang or "en"), open_browser)
 
 
 @app.command()
@@ -275,7 +280,9 @@ def review(
     model: str = typer.Option(
         os.environ.get("UNBORING_MODEL", DEFAULT_MODEL), "--model", "-m", help="Any LiteLLM model id."
     ),
-    lang: Optional[str] = typer.Option(None, "--lang", help="Output language (default: same as the spec)."),
+    lang: Optional[str] = typer.Option(
+        None, "--lang", help="Language of the analysis and of the page (en, es); default: the spec's for the analysis, en for the page."
+    ),
     adapter: Optional[str] = ADAPTER_OPT,
     open_browser: bool = typer.Option(False, "--open", help="Open the result in your browser."),
     since: Optional[str] = SINCE_OPT,
@@ -299,7 +306,7 @@ def review(
         if dropped:
             console.print(f"[yellow]⚠ Dropped {dropped} item(s) with invented citations.[/]")
     ir = _with_changes(ir, spec, since, adapter)
-    _done(ir, write_html(ir, out or _workdir(spec) / "review.html"), open_browser)
+    _done(ir, write_html(ir, out or _workdir(spec) / "review.html", lang or "en"), open_browser)
 
 
 # --- podcast ---------------------------------------------------------------------
@@ -437,7 +444,7 @@ def podcast_render(
     else:
         ir = heuristic_insights(ir)
     ir = _with_changes(ir, spec, adapter=adapter)
-    page = write_html(ir, wd / "review.html")
+    page = write_html(ir, wd / "review.html", parsed.language)  # the page speaks the episode's language
     console.print(f"[green]✓[/] {page}  (review page with player)")
     if open_browser:
         webbrowser.open(page.resolve().as_uri())

@@ -22,16 +22,26 @@ from .base import (
     ref,
 )
 
+# The template's headings and labels, in English and in Spanish (specs written in Spanish, #44).
 STORY_RE = re.compile(
-    r"^#{2,4}\s+User Story\s+(\d+)\s*[-–—:]\s*(.+?)(?:\s*\(Priority:\s*(P\d+)\))?\s*$", re.IGNORECASE
+    r"^#{2,4}\s+(?:User Story|Historia de usuario)\s+(\d+)\s*[-–—:]\s*(.+?)"
+    r"(?:\s*\((?:Priority|Prioridad):\s*(P\d+)\))?\s*$",
+    re.IGNORECASE,
 )
-REQ_RE = re.compile(r"^\s*[-*]\s+\*\*((?:FR|NFR|SC)-\d+)\*\*:?\s*(.+)$")
+REQ_RE = re.compile(r"^\s*[-*]\s+\*\*((?:FR|NFR|SC|RF|RNF|CE)-\d+)\*\*:?\s*(.+)$")
 TASK_RE = re.compile(r"^\s*[-*]\s+\[([ xX])\]\s+(T\d+)\s+(.*)$")
-INPUT_RE = re.compile(r'^\*\*Input\*\*:\s*(?:User description:\s*)?"?(.+?)"?\s*$', re.IGNORECASE)
-TITLE_RE = re.compile(r"^#\s+(?:Feature Specification:\s*)?(.+)$")
+INPUT_RE = re.compile(
+    r'^\*\*(?:Input|Entrada)\*\*:\s*(?:User description:\s*|Descripción del usuario:\s*)?"?(.+?)"?\s*$', re.IGNORECASE
+)
+TITLE_RE = re.compile(
+    r"^#\s+(?:Feature Specification:\s*|Especificación(?: de(?: la)? (?:funcionalidad|característica))?:\s*)?(.+)$",
+    re.IGNORECASE,
+)
 TECH_RE = re.compile(
     r"^\*\*(Language/Version|Primary Dependencies|Storage|Testing|Target Platform|Project Type|"
-    r"Performance Goals|Constraints|Scale/Scope)\*\*:\s*(.+)$"
+    r"Performance Goals|Constraints|Scale/Scope|"
+    r"Lenguaje/Versión|Dependencias principales|Almacenamiento|Pruebas|Plataforma objetivo|Tipo de proyecto|"
+    r"Objetivos de rendimiento|Restricciones|Escala/Alcance)\*\*:\s*(.+)$"
 )
 # Where spec-kit installs its commands for each agent ({name} = speckit-<cmd> or speckit.<cmd>).
 SPECKIT_INSTALL_PATHS = [
@@ -52,7 +62,13 @@ def _speckit_step(cmd: str, covers: str, files: list[str], optional: bool = Fals
 
 # Reading order a reviewer expects: the what before the how.
 DOC_ORDER = ("spec.md", "plan.md", "research.md", "data-model.md", "quickstart.md", "tasks.md")
-FIELD_RE = re.compile(r"^\s*[-*]?\s*\*\*(Decision|Rationale|Alternatives(?: considered)?)\*\*:?\s*(.*)$", re.IGNORECASE)
+FIELD_RE = re.compile(
+    r"^\s*[-*]?\s*\*\*(Decision|Decisión|Rationale|Justificación|Motivo|Alternatives(?: considered)?|"
+    r"Alternativas(?: consideradas)?)\*\*:?\s*(.*)$",
+    re.IGNORECASE,
+)
+FIELD_KEYS = {"decision": "decision", "decisión": "decision", "rationale": "rationale", "justificación": "rationale",
+              "motivo": "rationale"}
 
 
 class SpecKitAdapter(Adapter):
@@ -247,7 +263,7 @@ class SpecKitAdapter(Adapter):
             m = FIELD_RE.match(line)
             if not m:
                 continue
-            key, value = m.group(1).lower(), m.group(2).strip()
+            key, value = FIELD_KEYS.get(m.group(1).lower(), "alternatives"), m.group(2).strip()
             if key == "decision":
                 flush()
                 current = {"title": heading, "choice": value, "sources": [ref("research.md", i, line)]}

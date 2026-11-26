@@ -122,7 +122,9 @@ class FileDelta(BaseModel):
 
 
 class ChangeSet(BaseModel):
-    baseline: str  # human description of what we compare with
+    baseline: str  # human description of what we compare with (English)
+    since_render: str = ""  # when the previous render happened, if that is the baseline
+    since_ref: str = ""  # the git ref, if --since was used
     items: list[ChangeItem] = Field(default_factory=list)
     files: list[FileDelta] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
@@ -144,7 +146,9 @@ class FollowUp(BaseModel):
     same_version: bool = False
     items: list[FollowUpItem] = Field(default_factory=list)
     carried: dict[str, dict] = Field(default_factory=dict)  # key -> mark to pre-fill on the page
-    flags: dict[str, str] = Field(default_factory=dict)  # key -> message shown on the card
+    flags: dict[str, str] = Field(default_factory=dict)  # key -> message shown on the card (English)
+    flag_codes: dict[str, dict] = Field(default_factory=dict)  # key -> {"code", "note"}, for other languages
+    reviewed_at: str = ""
     notes: list[str] = Field(default_factory=list)
 
 

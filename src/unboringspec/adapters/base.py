@@ -108,6 +108,7 @@ FIELD_BULLET_RE = re.compile(r"^\s*[-*+]\s+`?\*{0,2}([A-Za-z_][\w ]{0,40}?)\*{0,
 TABLE_ROW_RE = re.compile(r"^\s*\|\s*`?([^|`]+?)`?\s*\|")
 NOT_ENTITIES = {
     "entities", "key entities", "overview", "relationships", "relationship", "validation rules", "validation",
+    "entidades", "entidades clave", "resumen", "relaciones", "reglas de validación", "validación", "estados", "notas",
     "state transitions", "states", "data model", "notes", "constraints", "indexes", "fields", "attributes",
 }
 
@@ -127,7 +128,7 @@ def key_entities(text: str, file: str) -> list[Entity]:
     out, inside = [], False
     for i, line in enumerate(text.splitlines(), start=1):
         if line.startswith("#"):
-            inside = "key entities" in line.lower()
+            inside = any(k in line.lower() for k in ("key entities", "entidades clave"))
             continue
         if inside and (m := ENTITY_BULLET_RE.match(line)):
             out.append(Entity(name=m.group(1).strip(), attributes=_attributes(m.group(2)), sources=[ref(file, i, line)]))

@@ -188,6 +188,15 @@ flowchart LR
 4. Add tests with a fake or mocked backend (see `FakeEngine` in `tests/test_podcast.py`), and a row to the
    voice tables in [docs/podcast.md](docs/podcast.md#voices).
 
+## Add a language to the review page
+
+The page's own words (headings, buttons, notices, the exported review's headings) live in
+`src/unboringspec/i18n.py`, one table per language; `render --lang <code>` picks one and anything missing
+falls back to English. To add a language, copy the `"es"` table, translate every value and keep the
+`{placeholders}`; `tests/test_i18n.py` checks that every language has the same keys and placeholders. For
+spec-kit specs written in that language, add the template's translated headings and labels to the regular
+expressions in `adapters/speckit.py`, with a translated example under `examples/`.
+
 ## Changing a contract
 
 There are two published contracts: `schemas/insights.v<N>.schema.json` (review analysis, model
