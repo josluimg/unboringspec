@@ -240,6 +240,9 @@ Work is planned as [GitHub issues](https://github.com/josluimg/unboringspec/issu
 - Include tests; `pytest` must pass.
 - Describe how you checked it (which spec, which agent, screenshots of the page if UI changed).
 - English for code, comments and docs. Example specs can be in any language.
+- The README exists in English and Spanish (`README.es.md`). Change both in the same commit: same sections,
+  links, commands and table rows. `tests/test_readmes.py` fails if they drift apart. Only the README is
+  translated; `docs/` and this guide stay in English.
 
 ## Reporting a bug
 
