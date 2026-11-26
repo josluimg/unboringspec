@@ -9,7 +9,9 @@ No API key is involved.
    `openspec/changes/<change>/` (OpenSpec, excluding `archive/`). If no language, use the language the user is writing to you in. If the user
    asks for a style ("make it formal", "roast it", "like football commentators", "con jerga, tipo illo"), map it
    to a preset from `unboring podcast tones`, or pass their own words as a custom tone.
-2. **Check the CLI** with `unboring version`. If the command is not found, tell the user to install it
+2. **Check the CLI** with `unboring version`. If the command is not found or is blocked (on Windows an
+   antivirus or company policy can block `unboring.exe`), try `python -m unboringspec version`; if that works,
+   use `python -m unboringspec` wherever these steps say `unboring`. If neither works, tell the user to install it
    with `uv tool install git+https://github.com/josluimg/unboringspec` and stop.
 3. **Check the voices** with `unboring podcast engines --lang <language>`. It is enough that one engine is
    ready (system voices are fine). If none is, show the user the fix it prints and stop. Never install

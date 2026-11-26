@@ -100,7 +100,7 @@ def test_init_installs_skills(in_tmp):
     assert "unboring prompt" in skill and "unboring render" in skill
     # Claude Code pre-approves only the unboring CLI; nothing broader.
     frontmatter = skill.split("---\n")[1]
-    assert "allowed-tools: Bash(unboring:*)\n" in frontmatter
+    assert "allowed-tools: Bash(unboring:*), Bash(python -m unboringspec:*)\n" in frontmatter
     assert frontmatter.count("allowed-tools") == 1
     # Other agents get the same instructions without Claude-specific fields.
     copilot = (in_tmp / ".github/skills/unboring-review/SKILL.md").read_text()
@@ -157,3 +157,25 @@ def test_format_drift_is_reported():
     ir = get_adapter(folder).load(folder)
     assert len(ir.warnings) == 2
     assert all("v1.4.4" in w for w in ir.warnings)
+
+
+def test_python_m_runs_the_cli():
+    """Fallback when Windows blocks the unboring.exe launcher: same CLI, same name in its help."""
+    import subprocess
+    import sys
+
+    from unboringspec import __version__
+
+    v = subprocess.run([sys.executable, "-m", "unboringspec", "version"], capture_output=True, text=True)
+    assert v.returncode == 0, v.stderr
+    assert v.stdout.strip() == __version__
+    h = subprocess.run([sys.executable, "-m", "unboringspec", "--help"], capture_output=True, text=True)
+    assert h.returncode == 0, h.stderr
+    assert "Usage: unboring " in h.stdout
+
+
+def test_skills_fall_back_to_python_m(in_tmp):
+    r = runner.invoke(app, ["init", "--ai", "claude", "--podcast"])
+    assert r.exit_code == 0, r.output
+    for skill in ("unboring-review", "unboring-podcast"):
+        assert "python -m unboringspec version" in (in_tmp / f".claude/skills/{skill}/SKILL.md").read_text()

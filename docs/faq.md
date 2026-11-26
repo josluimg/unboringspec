@@ -112,6 +112,21 @@ The podcast is optional: it needs nothing until you add it with `unboring init -
 
 `unboring podcast setup` checks all of this and prints the command for whatever is missing.
 
+### Windows blocks `unboring.exe`. What can I do?
+
+Installing the CLI creates a small launcher, `unboring.exe`, in the environment's `Scripts\` folder. Antivirus,
+SmartScreen or company policies (AppLocker, WDAC) often block executables in user folders, while Python itself is
+allowed. Run the same CLI through Python instead:
+
+```bash
+python -m unboringspec render specs/001-x
+```
+
+Every command and option is the same. It needs the package installed in that Python, for example with
+`pip install git+https://github.com/josluimg/unboringspec` inside your virtual environment: `uv tool` and pipx keep
+it in an isolated environment the plain `python` does not see. The agent skills fall back to `python -m unboringspec`
+on their own when `unboring` does not start.
+
 ### My project is pure Node / TypeScript. Do I need Python?
 
 Today you need `uv`, a single binary that brings its own Python; nothing Python lands in your repository or your

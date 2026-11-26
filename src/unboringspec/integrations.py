@@ -74,9 +74,10 @@ INTEGRATIONS: dict[str, Integration] = {
             "Claude Code",
             ".claude/skills/{skill}/SKILL.md",
             status="tested",
-            # Pre-approve only the unboring CLI while the skill runs; every other command
-            # still asks. Writing JSON files follows the user's normal edit permissions.
-            extra_frontmatter=("allowed-tools: Bash(unboring:*)",),
+            # Pre-approve only the unboring CLI while the skill runs (also as `python -m unboringspec`,
+            # the fallback when Windows blocks the launcher); every other command still asks.
+            # Writing JSON files follows the user's normal edit permissions.
+            extra_frontmatter=("allowed-tools: Bash(unboring:*), Bash(python -m unboringspec:*)",),
         ),
         Integration("copilot", "GitHub Copilot (VS Code)", ".github/skills/{skill}/SKILL.md"),
         Integration("codex", "OpenAI Codex", ".agents/skills/{skill}/SKILL.md"),
