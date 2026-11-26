@@ -4,6 +4,8 @@
 
 **Specs your brain actually wants to review.**
 
+▶️ **[See it live](https://unboringspec.vercel.app)**: three specs before and after, each with its podcast. Nothing to install.
+
 Spec-Driven Development moved the bottleneck: agents write the code, and you spend your day reading specs,
 plans, research notes and task lists. Walls of text, where the three decisions that really need you hide
 somewhere on page four.

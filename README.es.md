@@ -4,6 +4,8 @@
 
 **Specs que tu cerebro sí quiere revisar.**
 
+▶️ **[Míralo en directo](https://unboringspec.vercel.app)**: tres specs antes y después, cada una con su podcast. Sin instalar nada.
+
 El Spec-Driven Development ha movido el cuello de botella: los agentes escriben el código y tú te pasas el día
 leyendo specs, planes, notas de investigación y listas de tareas. Muros de texto donde las tres decisiones que de
 verdad te necesitan se esconden en algún punto de la página cuatro.
