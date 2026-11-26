@@ -15,9 +15,23 @@ from .history import documents_hash
 from .ir import Attention, SpecIR
 
 
-def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
-    """If a rendered podcast sits next to the page, embed a player and the transcript."""
-    from .podcast import parse_script, validate_script
+PODCAST_META = "podcast.meta.json"
+
+
+def write_podcast_meta(folder: Path, documents: dict[str, str], **extra) -> Path:
+    """Record which version of the spec an episode describes (#37)."""
+    from datetime import datetime, timezone
+
+    path = folder / PODCAST_META
+    data = {"version": documents_hash(documents), "recorded": datetime.now(timezone.utc).isoformat(timespec="seconds"), **extra}
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def find_podcast(folder: Path, ir: SpecIR) -> dict | None:
+    """If a rendered podcast sits next to the page, embed a player and the transcript, and say
+    whether the episode describes this version of the spec or an earlier one."""
+    from .podcast import TONES, parse_script, validate_script
 
     audio = next((folder / n for n in ("podcast.mp3", "podcast.wav") if (folder / n).exists()), None)
     script = folder / "podcast.json"
@@ -25,13 +39,32 @@ def find_podcast(folder: Path, docs: dict[str, str]) -> dict | None:
         return None
     try:
         parsed = parse_script(script.read_text(encoding="utf-8"))
-        turns, _ = validate_script(parsed, docs)
+        turns, _ = validate_script(parsed, ir.documents)
     except Exception:
         return None
-    from .podcast import TONES
+
+    version = None
+    meta = folder / PODCAST_META
+    if meta.is_file():
+        try:
+            version = json.loads(meta.read_text(encoding="utf-8")).get("version")
+        except (json.JSONDecodeError, OSError):
+            version = None
+    stale = version != documents_hash(ir.documents)  # episodes without a version are treated as stale
+    changes = None
+    if stale and version:
+        from .diff import compare
+        from .history import History
+
+        snapshot = History(folder).find(version)
+        if snapshot is not None:
+            changes = len(compare(History.load(snapshot), ir, "").items)
 
     tone = TONES[parsed.tone].label if parsed.tone in TONES else ("Custom tone" if parsed.tone else "")
-    return {"audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns}
+    return {
+        "audio": audio.name, "title": parsed.title, "tone": tone, "turns": turns,
+        "stale": stale, "known_version": version is not None, "changes": changes,
+    }
 
 
 def _apply_hint(ir: SpecIR) -> str:
@@ -116,5 +149,5 @@ def render_html(ir: SpecIR, podcast: dict | None = None) -> str:
 
 def write_html(ir: SpecIR, out: Path) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_html(ir, find_podcast(out.parent, ir.documents)), encoding="utf-8")
+    out.write_text(render_html(ir, find_podcast(out.parent, ir)), encoding="utf-8")
     return out
