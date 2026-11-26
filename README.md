@@ -77,7 +77,8 @@ The review opens in your browser; once the episode is recorded, it plays at the 
 
 ## What it supports
 
-**SDD frameworks** through adapters. Each one states the framework version it was tested with, and warns if a
+#### SDD frameworks
+Through adapters. Each one states the framework version it was tested with, and warns if a
 document no longer parses (a sign the template changed) instead of showing an empty review.
 
 | Framework | Status |
@@ -87,18 +88,21 @@ document no longer parses (a sign the template changed) instead of showing an em
 | Any folder of Markdown | ✅ generic adapter; the LLM does the analysis |
 | Kiro, BMAD | 🛣️ wanted: [add an adapter](CONTRIBUTING.md#add-an-sdd-framework-adapter) |
 
-**Coding agents** through [Agent Skills](https://agentskills.io): your agent does the analysis.
+#### Coding agents
+Through [Agent Skills](https://agentskills.io): your agent does the analysis.
 
 | Agent | Status |
 |---|---|
 | Claude Code | ✅ tested end to end |
-| GitHub Copilot (VS Code), OpenAI Codex, Cursor, Gemini CLI | 🧪 experimental: follows each agent's format, not yet reported in a full run |
+| GitHub Copilot (VS Code)| 🧪 experimental: follows each agent's format, not yet reported in a full run |
+| OpenAI Codex | 🧪 experimental: follows each agent's format, not yet reported in a full run |
+| Cursor | 🧪 experimental: follows each agent's format, not yet reported in a full run |
+| Gemini CLI | 🧪 experimental: follows each agent's format, not yet reported in a full run |
+| No Agent (CI) | 🧪 : any model [LiteLLM](https://docs.litellm.ai/docs/providers) supports, with your API key. See [In CI](docs/setup.md#in-ci). |
 
-**Without an agent** (CI): any model [LiteLLM](https://docs.litellm.ai/docs/providers) supports, with your API key.
-See [In CI](docs/setup.md#in-ci).
-
-**Podcast voices**, all generated locally: system voices on macOS, Windows and Linux, or natural voices with
-[Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) in 8 languages. See [Voices](docs/podcast.md#voices).
+#### Podcast voices
+- All generated locally: system voices on macOS, Windows and Linux,
+- natural voices with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) in 8 languages. See [Voices](docs/podcast.md#voices).
 
 ## How it works
 
