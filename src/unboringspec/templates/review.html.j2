@@ -244,11 +244,19 @@ details[open] > summary { margin-bottom: 8px; }
   {% if podcast %}
   <section class="listen" aria-label="Podcast">
     <p class="listen-title">🎧 Listen instead · {{ podcast.title }}{% if podcast.tone %} <span class="tag tag-routine">{{ podcast.tone }}</span>{% endif %}</p>
+    {% if podcast.stale %}
+    <p class="flag stale-episode">
+      {% if podcast.known_version %}This episode is about an earlier version of the spec{% if podcast.changes %} ({{ podcast.changes }} change{{ "s" if podcast.changes != 1 }} since){% endif %}.
+      {% else %}This episode may be about an earlier version of the spec: it was recorded before episodes carried their version.
+      {% endif %}Record a new one with <code>/unboring-podcast</code>.
+    </p>
+    {% endif %}
     <audio controls preload="metadata" src="{{ podcast.audio }}"></audio>
     <details>
       <summary>Transcript</summary>
       {% for t in podcast.turns %}
-      <p class="turn turn-{{ t.role }}"><strong>{{ t.name }}</strong> {{ t.text }} {{ chips(t.sources) }}</p>
+      {# A stale transcript cites lines of an older version: no links, they would point at the wrong text. #}
+      <p class="turn turn-{{ t.role }}"><strong>{{ t.name }}</strong> {{ t.text }} {% if not podcast.stale %}{{ chips(t.sources) }}{% endif %}</p>
       {% endfor %}
     </details>
   </section>

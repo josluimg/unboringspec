@@ -18,6 +18,8 @@ spec, validating citations, rendering the page). You do the analysis. No API key
    numbers and render again.
 6. **Answer briefly:** give the user the path to `review.html`, the one-liner, and the
    "you must decide" items as a short list. Do not paste the whole analysis: the page is the review.
+   If `render` warned that the podcast on the page is about an earlier version of the spec, say so and offer to
+   record a new episode (`/unboring-podcast`); do not record it unasked.
 
 ## When the user shares a review
 

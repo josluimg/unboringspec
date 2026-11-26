@@ -104,10 +104,19 @@ def _with_follow_up(ir: SpecIR, spec: Path, history) -> SpecIR:
 
 
 def _done(ir: SpecIR, target: Path, open_browser: bool) -> None:
+    from .render import find_podcast
+
     console.print(
         f"[green]✓[/] {target}  "
         f"({len(ir.questions)} open questions, {len(ir.decisions)} decisions, {len(ir.tasks)} tasks)"
     )
+    episode = find_podcast(target.parent, ir)
+    if episode and episode["stale"]:
+        since = f" ({episode['changes']} changes since)" if episode["changes"] else ""
+        console.print(
+            f"[yellow]⚠ The podcast on this page is about an earlier version of the spec{since}. "
+            f"Record a new one: /unboring-podcast {escape(ir.folder or '<folder>')}[/]"
+        )
     if open_browser:
         webbrowser.open(target.resolve().as_uri())
 
@@ -412,6 +421,9 @@ def podcast_render(
             seconds = sum(wav_seconds(p) for p in parts) + PAUSE_MS / 1000 * (len(parts) - 1)
 
     (wd / "podcast.md").write_text(transcript_markdown(parsed, turns), encoding="utf-8")
+    from .render import write_podcast_meta
+
+    write_podcast_meta(wd, ir.documents, engine=tts.name, tone=parsed.tone)
     console.print(f"[green]✓[/] {audio}  ({int(seconds // 60)}:{int(seconds % 60):02d} min)")
     console.print(f"[green]✓[/] {wd / 'podcast.md'}  (transcript)")
 

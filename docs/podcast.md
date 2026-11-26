@@ -41,6 +41,10 @@ agent writes                                                →  .unboring/001/p
 unboring podcast render specs/001                           →  podcast.mp3, podcast.md, player in review.html
 ```
 
+The episode stays on the review page across later renders. If the spec changes after it was recorded, the page
+says the episode is about an earlier version (and how many changes since), drops its links to spec lines, and
+`unboring render` prints the same notice: record a new one with `/unboring-podcast`.
+
 ## Tones
 
 Same facts, same citations, different show. Pick a preset with `--tone`, or ask your agent in your own words.
