@@ -4,10 +4,13 @@ A static site that shows unboringspec's output without installing anything: for 
 **Before** view (the spec as raw Markdown files, in an editor-like page) and an **After** view (the real
 `review.html`, with its diagrams and podcast). Nothing is generated in the browser; the pages are built here.
 
-| Demo | Spec | Podcast |
-|---|---|---|
-| `site/speckit/` | [spec-kit example](../examples/speckit/specs/001-photo-albums/) | Spanish, casual tone |
-| `site/openspec/` | [OpenSpec example](../examples/openspec/openspec/changes/add-invite-link-revocation/) | English, roast tone |
+| Demo | Spec | Language | Podcast |
+|---|---|---|---|
+| `site/speckit/` | [spec-kit example in Spanish](../examples/speckit-es/specs/001-albumes-compartidos/) | Spanish: spec, review page, podcast and the demo's own texts | casual tone |
+| `site/openspec/` | [OpenSpec example](../examples/openspec/openspec/changes/add-invite-link-revocation/) | English | roast tone |
+
+Every page has a light / dark switch. It starts from the system setting, remembers the reader's choice in
+the browser, and the review inside **After** follows it.
 
 ```
 demo/
@@ -32,7 +35,8 @@ demo/
 
 ## Rebuild
 
-After changing an example spec, the analysis (`insights.json`), a script (`podcast.json`) or the templates:
+After changing an example spec, the analysis (`insights.json`), a script (`podcast.json`) or the templates
+(the demo's own texts, in English and Spanish, are in `UI` in `build.py`):
 
 ```bash
 python demo/build.py            # re-render the pages, keep the existing audio

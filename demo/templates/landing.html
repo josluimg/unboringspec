@@ -5,38 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>unboringspec demo</title>
 <meta name="description" content="See a spec go from walls of Markdown to a visual review and a podcast.">
+__THEME_HEAD__
 <style>
 :root {
   --bg: #f6f5f2; --surface: #ffffff; --ink: #1b1b1f; --muted: #5d6068; --line: #e3e1db;
-  --accent: #5b51f0; --accent-soft: #eceaff;
+  --accent: #5b51f0; --accent-soft: #eceaff; --cta: #ff6b4a; --cta-ink: #1a0b06; --cta-text: #c2410c;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #101116; --surface: #1a1b21; --ink: #ececf1; --muted: #a0a2ad; --line: #2a2b33;
-    --accent: #8b84ff; --accent-soft: #24233f; }
+  :root:not([data-theme="light"]) { --bg: #101116; --surface: #1a1b21; --ink: #ececf1; --muted: #a0a2ad; --line: #2a2b33;
+    --accent: #8b84ff; --accent-soft: #24233f; --cta-text: #ff8a6b; color-scheme: dark; }
 }
+:root[data-theme="dark"] { --bg: #101116; --surface: #1a1b21; --ink: #ececf1; --muted: #a0a2ad; --line: #2a2b33;
+  --accent: #8b84ff; --accent-soft: #24233f; --cta-text: #ff8a6b; color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
-main { max-width: 960px; margin: 0 auto; padding: 56px 16px 64px; }
+main { max-width: 960px; margin: 0 auto; padding: 56px 16px 64px; position: relative; }
+.theme { position: absolute; top: 20px; right: 16px; display: inline-grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 999px; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--muted); padding: 0; }
+.theme:hover { color: var(--ink); border-color: var(--accent); }
+.theme:focus-visible, .card:focus-visible, .how a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme svg { width: 17px; height: 17px; }
+.theme .sun, :root[data-theme="dark"] .theme .moon { display: none; }
+:root[data-theme="dark"] .theme .sun { display: block; }
 .kicker { color: var(--accent); font-weight: 700; letter-spacing: .02em; margin: 0 0 8px; }
 h1 { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 16px; }
-.lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 0 36px; }
+.lead { font-size: 1.02rem; color: var(--muted); margin: 0 0 32px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .card { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line);
   border-radius: 16px; padding: 22px; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card:hover { border-color: var(--cta); transform: translateY(-2px); }
 .card .fw { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
 .card h2 { margin: 0; font-size: 1.3rem; letter-spacing: -0.01em; }
 .card p { margin: 0; color: var(--muted); }
 .pill { align-self: flex-start; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 12px; font-size: .85rem; font-weight: 600; }
-.card .go { margin-top: auto; font-weight: 700; color: var(--accent); }
-.how { margin-top: 40px; color: var(--muted); font-size: .95rem; }
-.how a { color: var(--accent); }
+.card .go { margin-top: auto; align-self: flex-start; font-weight: 700; background: var(--cta); color: var(--cta-ink);
+  border-radius: 999px; padding: 8px 18px; font-size: .95rem; }
+.how { margin-top: 36px; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+.how a { color: var(--cta-text); font-weight: 600; }
 footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
 footer a { color: inherit; }
 </style>
 </head>
 <body>
 <main>
+__THEME_BUTTON__
   <p class="kicker">unboringspec · live demo</p>
   <h1>Specs your brain actually wants to review.</h1>
   <p class="lead">Each demo starts with the spec as you get it: a pile of Markdown files. Flip to <strong>After</strong>

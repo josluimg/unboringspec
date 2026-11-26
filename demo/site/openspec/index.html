@@ -5,15 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpenSpec · Add invite link revocation · unboringspec demo</title>
 <meta name="description" content="Before: the spec as raw files. After: the same spec as an unboringspec review, with its podcast.">
+<script>
+(() => {
+  const KEY = "unboring-theme", root = document.documentElement, sys = matchMedia("(prefers-color-scheme: dark)");
+  let choice = null;
+  try { choice = localStorage.getItem(KEY); } catch (e) {}
+  const apply = () => { root.dataset.theme = choice || (sys.matches ? "dark" : "light"); };
+  apply();
+  sys.addEventListener("change", () => { if (!choice) apply(); });
+  window.unboringToggleTheme = () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    choice = next === (sys.matches ? "dark" : "light") ? null : next;  // back to the system's: follow it again
+    try { choice ? localStorage.setItem(KEY, choice) : localStorage.removeItem(KEY); } catch (e) {}
+    apply();
+  };
+})();
+</script>
 <style>
 :root {
-  --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6;
-  --accent: #7c74ff; --accent-ink: #ffffff;
-  --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
-  --ed-num: #565965; --ed-sel: #2b2e3b;
-  --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+  --accent: #5b51f0; --accent-ink: #ffffff;
+  --cta: #ff6b4a; --cta-ink: #1a0b06; --cta-shadow: 0 10px 30px rgba(255, 107, 74, .35);
+  --bar: #f3f2ef; --bar-line: #e1dfd9; --bar-ink: #1b1b1f; --bar-muted: #62646d; --strong: #000000;
+  --toggle-bg: #e8e6e1; --toggle-line: #d8d5ce; --toggle-ink: #55575f;
+  --ed-bg: #ffffff; --ed-side: #f7f6f3; --ed-ink: #24292f; --ed-muted: #6e7781; --ed-line: #e4e2dc;
+  --ed-num: #a6aab1; --ed-sel: #e7e5ff; --ed-hover: #efeee9;
+  --md-h: #0550ae; --md-b: #953800; --md-c: #116329; --md-m: #cf222e; --md-q: #6e7781;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  color-scheme: light;
+}
+/* Dark: the system setting by default, or the reader's choice (data-theme, set by the toggle). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #7c74ff; --cta-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6; --strong: #ffffff;
+    --toggle-bg: #1b1c23; --toggle-line: #2f3039; --toggle-ink: #b7b8c3;
+    --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+    --ed-num: #565965; --ed-sel: #2b2e3b; --ed-hover: #20222a;
+    --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #7c74ff; --cta-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6; --strong: #ffffff;
+  --toggle-bg: #1b1c23; --toggle-line: #2f3039; --toggle-ink: #b7b8c3;
+  --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+  --ed-num: #565965; --ed-sel: #2b2e3b; --ed-hover: #20222a;
+  --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bar); }
@@ -21,17 +61,23 @@ body { display: flex; flex-direction: column; font: 15px/1.5 var(--sans); color:
 
 header.bar { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 16px;
   border-bottom: 1px solid var(--bar-line); }
-.brand { font-weight: 700; color: #fff; text-decoration: none; letter-spacing: -0.01em; }
+.brand { font-weight: 700; color: var(--strong); text-decoration: none; letter-spacing: -0.01em; }
 .title { flex: 1; min-width: 0; color: var(--bar-muted); font-size: .92rem; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; }
 .title b { color: var(--bar-ink); font-weight: 600; }
-.toggle { display: inline-flex; background: #1b1c23; border: 1px solid #2f3039; border-radius: 999px; padding: 3px; }
-.toggle button { font: 600 .9rem var(--sans); border: 0; background: transparent; color: #b7b8c3; padding: 6px 16px;
+.toggle { display: inline-flex; background: var(--toggle-bg); border: 1px solid var(--toggle-line); border-radius: 999px; padding: 3px; }
+.toggle button { font: 600 .9rem var(--sans); border: 0; background: transparent; color: var(--toggle-ink); padding: 6px 16px;
   border-radius: 999px; cursor: pointer; }
 .toggle button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.toggle button:focus-visible, .cta:focus-visible, .file:focus-visible, .tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.toggle button:focus-visible, .cta:focus-visible, .file:focus-visible, .tab:focus-visible, .theme:focus-visible { outline: 2px solid var(--strong); outline-offset: 2px; }
+.theme { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
+  background: var(--toggle-bg); border: 1px solid var(--toggle-line); color: var(--toggle-ink); padding: 0; }
+.theme:hover { color: var(--strong); }
+.theme svg { width: 17px; height: 17px; }
+.theme .sun, :root[data-theme="dark"] .theme .moon { display: none; }
+:root[data-theme="dark"] .theme .sun { display: block; }
 .gh { color: var(--bar-muted); font-size: .85rem; text-decoration: none; }
-.gh:hover { color: #fff; }
+.gh:hover { color: var(--strong); }
 
 main { flex: 1; min-height: 0; position: relative; }
 .view { position: absolute; inset: 0; }
@@ -43,15 +89,15 @@ main { flex: 1; min-height: 0; position: relative; }
 .folder { padding: 6px 16px; color: var(--ed-muted); font: 600 .72rem var(--sans); text-transform: uppercase; letter-spacing: .08em; }
 .file { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ed-ink); cursor: pointer;
   font: 13px/1.4 var(--mono); padding: 5px 16px 5px 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file:hover { background: #20222a; }
-.file[aria-current="true"] { background: var(--ed-sel); color: #fff; }
+.file:hover { background: var(--ed-hover); }
+.file[aria-current="true"] { background: var(--ed-sel); color: var(--strong); }
 .stats { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--ed-line); color: var(--ed-muted); font-size: .8rem; line-height: 1.6; }
 .stats b { color: var(--ed-ink); }
 .pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .tabs { display: flex; overflow-x: auto; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); scrollbar-width: thin; }
 .tab { flex: none; font: 13px var(--mono); color: var(--ed-muted); background: transparent; border: 0; border-right: 1px solid var(--ed-line);
   padding: 9px 16px; cursor: pointer; }
-.tab[aria-selected="true"] { background: var(--ed-bg); color: #fff; box-shadow: inset 0 2px 0 var(--accent); }
+.tab[aria-selected="true"] { background: var(--ed-bg); color: var(--strong); box-shadow: inset 0 2px 0 var(--accent); }
 .picker { display: none; padding: 8px 12px; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); }
 .picker select { width: 100%; font: 14px var(--mono); color: var(--ed-ink); background: var(--ed-bg); border: 1px solid var(--ed-line);
   border-radius: 8px; padding: 8px 10px; }
@@ -66,12 +112,12 @@ main { flex: 1; min-height: 0; position: relative; }
 .md-q { color: var(--md-q); }
 
 .cta { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 8px;
-  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 13px 22px;
-  font: 700 15px var(--sans); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); cursor: pointer; }
-.cta:hover { filter: brightness(1.08); }
+  background: var(--cta); color: var(--cta-ink); border: 0; border-radius: 999px; padding: 13px 22px;
+  font: 700 15px var(--sans); box-shadow: var(--cta-shadow); cursor: pointer; }
+.cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
 
 /* After: the real review page. */
-iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--ed-bg); }
 
 @media (max-width: 760px) {
   header.bar { padding: 8px 12px; }
@@ -96,6 +142,7 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
     <button id="show-before" aria-pressed="true">Before</button>
     <button id="show-after" aria-pressed="false">After</button>
   </div>
+  <button class="theme" type="button" onclick="unboringToggleTheme()" aria-label="Switch between light and dark mode" title="Switch between light and dark mode"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   <a class="gh" id="gh" href="#">GitHub ↗</a>
 </header>
 
@@ -121,7 +168,7 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
   </section>
 </main>
 
-<script id="data" type="application/json">{"slug": "openspec", "framework": "OpenSpec", "feature": "Add invite link revocation", "files": {"openspec/changes/add-invite-link-revocation/proposal.md": "# Proposal\n\n## Why\n\nAlbum invite links never expire and cannot be revoked. A link forwarded to the wrong group chat exposes a family's photos and lets strangers upload, and the owner has no way to stop it.\n\n## What Changes\n\n- Owners can revoke an album's invite link; a new link is issued at once.\n- Invite links expire after a configurable period.\n- Owners can delete photos uploaded by any member.\n- **BREAKING**: permanent invite links are removed. Links created before this change expire 30 days after release.\n\n## Capabilities\n\n### New Capabilities\n- `notifications`: notify owners when a link is revoked or about to expire.\n\n### Modified Capabilities\n- `albums`: invite links become revocable and expiring; owners can moderate photos.\n\n## Impact\n\nAlbum API (`/albums/{id}/invite`), the join flow, the web join page, and the weekly digest job.\n", "openspec/changes/add-invite-link-revocation/design.md": "# Design\n\n## Context\n\nToday each album has one permanent invite token stored on the album row. Joining checks only that the token matches.\n\n## Goals / Non-Goals\n\n**Goals:**\n- Revoke a leaked link in one click.\n- Keep joining as easy as today for relatives.\n\n**Non-Goals:**\n- Per-person invitations.\n\n## Decisions\n\n### Rotate the token instead of keeping a denylist\n\nRevoking replaces the album's token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.\n\n### Store an expiry next to the token\n\nEach token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.\n\n### Owners moderate photos, members do not\n\nOnly the album owner can delete photos uploaded by others. Members can still delete their own.\n\n## Risks / Trade-offs\n\n- [Risk] Relatives with an old link are locked out after rotation → The join page explains the link expired and who to ask for a new one.\n- [Risk] Expiry silently breaks links shared in printed invitations → Owners get an email 3 days before a link expires.\n- [Trade-off] Rotation invalidates every outstanding link, including legitimate ones → Acceptable: rotation is a deliberate owner action.\n\n## Open Questions\n\n- What should the default link lifetime be: 7, 30 or 90 days?\n- Should members who joined through a revoked link stay in the album?\n", "openspec/changes/add-invite-link-revocation/specs/albums/spec.md": "# Spec Delta\n\n## ADDED Requirements\n\n### Requirement: Revoke invite link\nThe album owner SHALL be able to revoke the album's invite link, which issues a new link immediately.\n\n#### Scenario: Owner revokes a leaked link\n- **WHEN** the owner revokes the invite link\n- **THEN** the previous link SHALL stop working\n- **AND** a new link SHALL be shown to the owner\n\n### Requirement: Owner deletes any photo\nThe album owner SHALL be able to delete any photo in the album, whoever uploaded it.\n\n#### Scenario: Remove an unwanted upload\n- **WHEN** the owner deletes a photo uploaded by another member\n- **THEN** the photo SHALL disappear for every member\n\n## MODIFIED Requirements\n\n### Requirement: Join album via invite link\nAnyone with a valid, unexpired invite link SHALL be able to join the album as a member and upload photos.\n\n#### Scenario: Expired link\n- **WHEN** someone opens an expired link\n- **THEN** the join page SHALL explain that the link expired and who can issue a new one\n\n## REMOVED Requirements\n\n### Requirement: Permanent invite link\n**Reason**: Permanent links cannot be revoked and are the main privacy risk of the product.\n**Migration**: Existing links expire 30 days after release; owners can issue a new one at any time.\n\n## RENAMED Requirements\n\n- FROM: `### Requirement: Album invite`\n- TO: `### Requirement: Album invite link`\n", "openspec/changes/add-invite-link-revocation/specs/notifications/spec.md": "# Spec Delta\n\n## Purpose\nTell album owners about events on their invite links so a revoked or expiring link never surprises them.\n\n## ADDED Requirements\n\n### Requirement: Warn before a link expires\nThe system SHALL email the album owner 3 days before the invite link expires.\n\n#### Scenario: Link about to expire\n- **WHEN** an invite link expires in 3 days\n- **THEN** the owner SHALL receive an email with a button to extend it\n", "openspec/changes/add-invite-link-revocation/tasks.md": "# Tasks\n\n## 1. Data model\n\n- [x] 1.1 Add `expires_at` to the album invite token\n- [ ] 1.2 Migration: set existing tokens to expire 30 days after release\n\n## 2. API\n\n- [ ] 2.1 POST /albums/{id}/invite/rotate rotates the token\n- [ ] 2.2 Reject expired tokens on join with a dedicated error\n- [ ] 2.3 Allow owners to delete any photo\n\n## 3. Web\n\n- [ ] 3.1 Revoke button and confirmation on the album settings page\n- [ ] 3.2 Expired-link message on the join page\n\n## 4. Notifications\n\n- [ ] 4.1 Daily job that emails owners 3 days before expiry\n"}, "repo": "https://github.com/josluimg/unboringspec", "source": "https://github.com/josluimg/unboringspec/tree/main/examples/openspec/openspec/changes/add-invite-link-revocation"}</script>
+<script id="data" type="application/json">{"slug": "openspec", "framework": "OpenSpec", "feature": "Add invite link revocation", "files": {"openspec/changes/add-invite-link-revocation/proposal.md": "# Proposal\n\n## Why\n\nAlbum invite links never expire and cannot be revoked. A link forwarded to the wrong group chat exposes a family's photos and lets strangers upload, and the owner has no way to stop it.\n\n## What Changes\n\n- Owners can revoke an album's invite link; a new link is issued at once.\n- Invite links expire after a configurable period.\n- Owners can delete photos uploaded by any member.\n- **BREAKING**: permanent invite links are removed. Links created before this change expire 30 days after release.\n\n## Capabilities\n\n### New Capabilities\n- `notifications`: notify owners when a link is revoked or about to expire.\n\n### Modified Capabilities\n- `albums`: invite links become revocable and expiring; owners can moderate photos.\n\n## Impact\n\nAlbum API (`/albums/{id}/invite`), the join flow, the web join page, and the weekly digest job.\n", "openspec/changes/add-invite-link-revocation/design.md": "# Design\n\n## Context\n\nToday each album has one permanent invite token stored on the album row. Joining checks only that the token matches.\n\n## Goals / Non-Goals\n\n**Goals:**\n- Revoke a leaked link in one click.\n- Keep joining as easy as today for relatives.\n\n**Non-Goals:**\n- Per-person invitations.\n\n## Decisions\n\n### Rotate the token instead of keeping a denylist\n\nRevoking replaces the album's token with a new random one, so every old link stops working at once. A denylist was considered, but it grows forever and must be checked on every join.\n\n### Store an expiry next to the token\n\nEach token gets an `expires_at`. The default lifetime comes from configuration so it can change without a migration.\n\n### Owners moderate photos, members do not\n\nOnly the album owner can delete photos uploaded by others. Members can still delete their own.\n\n## Risks / Trade-offs\n\n- [Risk] Relatives with an old link are locked out after rotation → The join page explains the link expired and who to ask for a new one.\n- [Risk] Expiry silently breaks links shared in printed invitations → Owners get an email 3 days before a link expires.\n- [Trade-off] Rotation invalidates every outstanding link, including legitimate ones → Acceptable: rotation is a deliberate owner action.\n\n## Open Questions\n\n- What should the default link lifetime be: 7, 30 or 90 days?\n- Should members who joined through a revoked link stay in the album?\n", "openspec/changes/add-invite-link-revocation/specs/albums/spec.md": "# Spec Delta\n\n## ADDED Requirements\n\n### Requirement: Revoke invite link\nThe album owner SHALL be able to revoke the album's invite link, which issues a new link immediately.\n\n#### Scenario: Owner revokes a leaked link\n- **WHEN** the owner revokes the invite link\n- **THEN** the previous link SHALL stop working\n- **AND** a new link SHALL be shown to the owner\n\n### Requirement: Owner deletes any photo\nThe album owner SHALL be able to delete any photo in the album, whoever uploaded it.\n\n#### Scenario: Remove an unwanted upload\n- **WHEN** the owner deletes a photo uploaded by another member\n- **THEN** the photo SHALL disappear for every member\n\n## MODIFIED Requirements\n\n### Requirement: Join album via invite link\nAnyone with a valid, unexpired invite link SHALL be able to join the album as a member and upload photos.\n\n#### Scenario: Expired link\n- **WHEN** someone opens an expired link\n- **THEN** the join page SHALL explain that the link expired and who can issue a new one\n\n## REMOVED Requirements\n\n### Requirement: Permanent invite link\n**Reason**: Permanent links cannot be revoked and are the main privacy risk of the product.\n**Migration**: Existing links expire 30 days after release; owners can issue a new one at any time.\n\n## RENAMED Requirements\n\n- FROM: `### Requirement: Album invite`\n- TO: `### Requirement: Album invite link`\n", "openspec/changes/add-invite-link-revocation/specs/notifications/spec.md": "# Spec Delta\n\n## Purpose\nTell album owners about events on their invite links so a revoked or expiring link never surprises them.\n\n## ADDED Requirements\n\n### Requirement: Warn before a link expires\nThe system SHALL email the album owner 3 days before the invite link expires.\n\n#### Scenario: Link about to expire\n- **WHEN** an invite link expires in 3 days\n- **THEN** the owner SHALL receive an email with a button to extend it\n", "openspec/changes/add-invite-link-revocation/tasks.md": "# Tasks\n\n## 1. Data model\n\n- [x] 1.1 Add `expires_at` to the album invite token\n- [ ] 1.2 Migration: set existing tokens to expire 30 days after release\n\n## 2. API\n\n- [ ] 2.1 POST /albums/{id}/invite/rotate rotates the token\n- [ ] 2.2 Reject expired tokens on join with a dedicated error\n- [ ] 2.3 Allow owners to delete any photo\n\n## 3. Web\n\n- [ ] 3.1 Revoke button and confirmation on the album settings page\n- [ ] 3.2 Expired-link message on the join page\n\n## 4. Notifications\n\n- [ ] 4.1 Daily job that emails owners 3 days before expiry\n"}, "repo": "https://github.com/josluimg/unboringspec", "source": "https://github.com/josluimg/unboringspec/tree/main/examples/openspec/openspec/changes/add-invite-link-revocation", "lang": "en", "ui": {"stats": "<b>{files}<\/b> files · <b>{lines}<\/b> lines · <b>{words}<\/b> words<br>to read before you can approve anything."}}</script>
 <script>
 (() => {
   const data = JSON.parse(document.getElementById("data").textContent);
@@ -141,7 +188,7 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
   const lines = paths.reduce((n, p) => n + lineCount(data.files[p]), 0);
   const words = paths.reduce((n, p) => n + data.files[p].split(/\s+/).filter(Boolean).length, 0);
   document.getElementById("stats").innerHTML =
-    `<b>${paths.length}</b> files · <b>${lines}</b> lines · <b>${words.toLocaleString("en")}</b> words<br>to read before you can approve anything.`;
+    data.ui.stats.replace("{files}", paths.length).replace("{lines}", lines).replace("{words}", words.toLocaleString(data.lang));
 
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const paint = line => {
@@ -195,6 +242,14 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
   buttons.after.addEventListener("click", () => show("after"));
   document.getElementById("cta").addEventListener("click", () => show("after"));
   show(location.hash === "#after" ? "after" : "before", false);
+
+  // The review follows the demo's theme.
+  const syncTheme = () => {
+    const doc = frame.contentDocument;
+    if (doc && doc.documentElement) doc.documentElement.dataset.theme = document.documentElement.dataset.theme;
+  };
+  frame.addEventListener("load", syncTheme);
+  new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 })();
 </script>
 </body>

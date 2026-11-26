@@ -1,19 +1,44 @@
 <!doctype html>
-<html lang="en">
+<html lang="__LANG__">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__DEMO_TITLE__ · unboringspec demo</title>
-<meta name="description" content="Before: the spec as raw files. After: the same spec as an unboringspec review, with its podcast.">
+<meta name="description" content="__S_description__">
+__THEME_HEAD__
 <style>
 :root {
-  --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6;
-  --accent: #7c74ff; --accent-ink: #ffffff;
-  --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
-  --ed-num: #565965; --ed-sel: #2b2e3b;
-  --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+  --accent: #5b51f0; --accent-ink: #ffffff;
+  --cta: #ff6b4a; --cta-ink: #1a0b06; --cta-shadow: 0 10px 30px rgba(255, 107, 74, .35);
+  --bar: #f3f2ef; --bar-line: #e1dfd9; --bar-ink: #1b1b1f; --bar-muted: #62646d; --strong: #000000;
+  --toggle-bg: #e8e6e1; --toggle-line: #d8d5ce; --toggle-ink: #55575f;
+  --ed-bg: #ffffff; --ed-side: #f7f6f3; --ed-ink: #24292f; --ed-muted: #6e7781; --ed-line: #e4e2dc;
+  --ed-num: #a6aab1; --ed-sel: #e7e5ff; --ed-hover: #efeee9;
+  --md-h: #0550ae; --md-b: #953800; --md-c: #116329; --md-m: #cf222e; --md-q: #6e7781;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  color-scheme: light;
+}
+/* Dark: the system setting by default, or the reader's choice (data-theme, set by the toggle). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #7c74ff; --cta-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6; --strong: #ffffff;
+    --toggle-bg: #1b1c23; --toggle-line: #2f3039; --toggle-ink: #b7b8c3;
+    --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+    --ed-num: #565965; --ed-sel: #2b2e3b; --ed-hover: #20222a;
+    --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #7c74ff; --cta-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6; --strong: #ffffff;
+  --toggle-bg: #1b1c23; --toggle-line: #2f3039; --toggle-ink: #b7b8c3;
+  --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+  --ed-num: #565965; --ed-sel: #2b2e3b; --ed-hover: #20222a;
+  --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bar); }
@@ -21,17 +46,23 @@ body { display: flex; flex-direction: column; font: 15px/1.5 var(--sans); color:
 
 header.bar { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 16px;
   border-bottom: 1px solid var(--bar-line); }
-.brand { font-weight: 700; color: #fff; text-decoration: none; letter-spacing: -0.01em; }
+.brand { font-weight: 700; color: var(--strong); text-decoration: none; letter-spacing: -0.01em; }
 .title { flex: 1; min-width: 0; color: var(--bar-muted); font-size: .92rem; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; }
 .title b { color: var(--bar-ink); font-weight: 600; }
-.toggle { display: inline-flex; background: #1b1c23; border: 1px solid #2f3039; border-radius: 999px; padding: 3px; }
-.toggle button { font: 600 .9rem var(--sans); border: 0; background: transparent; color: #b7b8c3; padding: 6px 16px;
+.toggle { display: inline-flex; background: var(--toggle-bg); border: 1px solid var(--toggle-line); border-radius: 999px; padding: 3px; }
+.toggle button { font: 600 .9rem var(--sans); border: 0; background: transparent; color: var(--toggle-ink); padding: 6px 16px;
   border-radius: 999px; cursor: pointer; }
 .toggle button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.toggle button:focus-visible, .cta:focus-visible, .file:focus-visible, .tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.toggle button:focus-visible, .cta:focus-visible, .file:focus-visible, .tab:focus-visible, .theme:focus-visible { outline: 2px solid var(--strong); outline-offset: 2px; }
+.theme { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
+  background: var(--toggle-bg); border: 1px solid var(--toggle-line); color: var(--toggle-ink); padding: 0; }
+.theme:hover { color: var(--strong); }
+.theme svg { width: 17px; height: 17px; }
+.theme .sun, :root[data-theme="dark"] .theme .moon { display: none; }
+:root[data-theme="dark"] .theme .sun { display: block; }
 .gh { color: var(--bar-muted); font-size: .85rem; text-decoration: none; }
-.gh:hover { color: #fff; }
+.gh:hover { color: var(--strong); }
 
 main { flex: 1; min-height: 0; position: relative; }
 .view { position: absolute; inset: 0; }
@@ -43,15 +74,15 @@ main { flex: 1; min-height: 0; position: relative; }
 .folder { padding: 6px 16px; color: var(--ed-muted); font: 600 .72rem var(--sans); text-transform: uppercase; letter-spacing: .08em; }
 .file { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ed-ink); cursor: pointer;
   font: 13px/1.4 var(--mono); padding: 5px 16px 5px 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file:hover { background: #20222a; }
-.file[aria-current="true"] { background: var(--ed-sel); color: #fff; }
+.file:hover { background: var(--ed-hover); }
+.file[aria-current="true"] { background: var(--ed-sel); color: var(--strong); }
 .stats { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--ed-line); color: var(--ed-muted); font-size: .8rem; line-height: 1.6; }
 .stats b { color: var(--ed-ink); }
 .pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .tabs { display: flex; overflow-x: auto; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); scrollbar-width: thin; }
 .tab { flex: none; font: 13px var(--mono); color: var(--ed-muted); background: transparent; border: 0; border-right: 1px solid var(--ed-line);
   padding: 9px 16px; cursor: pointer; }
-.tab[aria-selected="true"] { background: var(--ed-bg); color: #fff; box-shadow: inset 0 2px 0 var(--accent); }
+.tab[aria-selected="true"] { background: var(--ed-bg); color: var(--strong); box-shadow: inset 0 2px 0 var(--accent); }
 .picker { display: none; padding: 8px 12px; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); }
 .picker select { width: 100%; font: 14px var(--mono); color: var(--ed-ink); background: var(--ed-bg); border: 1px solid var(--ed-line);
   border-radius: 8px; padding: 8px 10px; }
@@ -66,12 +97,12 @@ main { flex: 1; min-height: 0; position: relative; }
 .md-q { color: var(--md-q); }
 
 .cta { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 8px;
-  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 13px 22px;
-  font: 700 15px var(--sans); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); cursor: pointer; }
-.cta:hover { filter: brightness(1.08); }
+  background: var(--cta); color: var(--cta-ink); border: 0; border-radius: 999px; padding: 13px 22px;
+  font: 700 15px var(--sans); box-shadow: var(--cta-shadow); cursor: pointer; }
+.cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
 
 /* After: the real review page. */
-iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--ed-bg); }
 
 @media (max-width: 760px) {
   header.bar { padding: 8px 12px; }
@@ -92,32 +123,33 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
 <header class="bar">
   <a class="brand" href="../">unboringspec</a>
   <span class="title" id="title"></span>
-  <div class="toggle" role="group" aria-label="View">
-    <button id="show-before" aria-pressed="true">Before</button>
-    <button id="show-after" aria-pressed="false">After</button>
+  <div class="toggle" role="group" aria-label="__S_view__">
+    <button id="show-before" aria-pressed="true">__S_before__</button>
+    <button id="show-after" aria-pressed="false">__S_after__</button>
   </div>
+__THEME_BUTTON__
   <a class="gh" id="gh" href="#">GitHub ↗</a>
 </header>
 
 <main>
-  <section class="view" id="before" aria-label="Before: the spec as raw files">
+  <section class="view" id="before" aria-label="__S_before_label__">
     <div class="editor">
-      <nav class="side" aria-label="Files">
+      <nav class="side" aria-label="__S_files__">
         <div class="folder" id="folder"></div>
         <div id="tree"></div>
         <div class="stats" id="stats"></div>
       </nav>
       <div class="pane">
-        <div class="picker"><select id="pick" aria-label="File"></select></div>
+        <div class="picker"><select id="pick" aria-label="__S_file__"></select></div>
         <div class="tabs" id="tabs" role="tablist"></div>
         <div class="code" id="code" tabindex="0" aria-live="polite"></div>
       </div>
     </div>
-    <button class="cta" id="cta">Make it unboring →</button>
+    <button class="cta" id="cta">__S_cta__</button>
   </section>
 
-  <section class="view" id="after" aria-label="After: the unboringspec review" hidden>
-    <iframe id="review" title="unboringspec review, with its podcast"></iframe>
+  <section class="view" id="after" aria-label="__S_after_label__" hidden>
+    <iframe id="review" title="__S_frame__"></iframe>
   </section>
 </main>
 
@@ -141,7 +173,7 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
   const lines = paths.reduce((n, p) => n + lineCount(data.files[p]), 0);
   const words = paths.reduce((n, p) => n + data.files[p].split(/\s+/).filter(Boolean).length, 0);
   document.getElementById("stats").innerHTML =
-    `<b>${paths.length}</b> files · <b>${lines}</b> lines · <b>${words.toLocaleString("en")}</b> words<br>to read before you can approve anything.`;
+    data.ui.stats.replace("{files}", paths.length).replace("{lines}", lines).replace("{words}", words.toLocaleString(data.lang));
 
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const paint = line => {
@@ -195,6 +227,14 @@ iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff;
   buttons.after.addEventListener("click", () => show("after"));
   document.getElementById("cta").addEventListener("click", () => show("after"));
   show(location.hash === "#after" ? "after" : "before", false);
+
+  // The review follows the demo's theme.
+  const syncTheme = () => {
+    const doc = frame.contentDocument;
+    if (doc && doc.documentElement) doc.documentElement.dataset.theme = document.documentElement.dataset.theme;
+  };
+  frame.addEventListener("load", syncTheme);
+  new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 })();
 </script>
 </body>

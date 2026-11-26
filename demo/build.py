@@ -15,6 +15,7 @@ import argparse
 import json
 import sys
 import tempfile
+from html import escape
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -37,12 +38,69 @@ class Demo:
     spec: str  # folder, relative to the repository
     framework: str
     podcast_note: str  # shown on the landing page
+    lang: str  # the spec, the review page, the podcast and the demo's own texts
 
 
 DEMOS = [
-    Demo("speckit", "examples/speckit/specs/001-photo-albums", "spec-kit", "Podcast in Spanish · casual tone"),
-    Demo("openspec", "examples/openspec/openspec/changes/add-invite-link-revocation", "OpenSpec", "Podcast in English · roast tone"),
+    Demo("speckit", "examples/speckit-es/specs/001-albumes-compartidos", "spec-kit",
+         "All in Spanish · casual podcast", "es"),
+    Demo("openspec", "examples/openspec/openspec/changes/add-invite-link-revocation", "OpenSpec",
+         "Podcast in English · roast tone", "en"),
 ]
+
+# The demo page's own texts (the review page has its own, in unboringspec.i18n).
+UI = {
+    "en": {
+        "description": "Before: the spec as raw files. After: the same spec as an unboringspec review, with its podcast.",
+        "view": "View", "before": "Before", "after": "After",
+        "before_label": "Before: the spec as raw files", "after_label": "After: the unboringspec review",
+        "files": "Files", "file": "File", "cta": "Make it unboring →",
+        "frame": "unboringspec review, with its podcast",
+        "stats": "<b>{files}</b> files · <b>{lines}</b> lines · <b>{words}</b> words<br>to read before you can approve anything.",
+        "theme": "Switch between light and dark mode",
+    },
+    "es": {
+        "description": "Antes: la spec tal cual, en ficheros. Después: la misma spec como revisión de unboringspec, con su podcast.",
+        "view": "Vista", "before": "Antes", "after": "Después",
+        "before_label": "Antes: la spec tal cual, en ficheros", "after_label": "Después: la revisión de unboringspec",
+        "files": "Ficheros", "file": "Fichero", "cta": "Hazla unboring →",
+        "frame": "Revisión de unboringspec, con su podcast",
+        "stats": "<b>{files}</b> ficheros · <b>{lines}</b> líneas · <b>{words}</b> palabras<br>que leer antes de poder aprobar nada.",
+        "theme": "Cambiar entre modo claro y oscuro",
+    },
+}
+
+# Light or dark: the system setting until the reader picks one, remembered in this browser.
+# Runs in <head> so the page never flashes in the wrong theme.
+THEME_HEAD = """<script>
+(() => {
+  const KEY = "unboring-theme", root = document.documentElement, sys = matchMedia("(prefers-color-scheme: dark)");
+  let choice = null;
+  try { choice = localStorage.getItem(KEY); } catch (e) {}
+  const apply = () => { root.dataset.theme = choice || (sys.matches ? "dark" : "light"); };
+  apply();
+  sys.addEventListener("change", () => { if (!choice) apply(); });
+  window.unboringToggleTheme = () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    choice = next === (sys.matches ? "dark" : "light") ? null : next;  // back to the system's: follow it again
+    try { choice ? localStorage.setItem(KEY, choice) : localStorage.removeItem(KEY); } catch (e) {}
+    apply();
+  };
+})();
+</script>"""
+
+THEME_BUTTON = (
+    '  <button class="theme" type="button" onclick="unboringToggleTheme()" aria-label="{label}" title="{label}">'
+    '<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+    'stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+    '<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+    'aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4'
+    'M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>'
+)
+
+
+def theme(page: str, lang: str) -> str:
+    return page.replace("__THEME_HEAD__", THEME_HEAD).replace("__THEME_BUTTON__", THEME_BUTTON.format(label=UI[lang]["theme"]))
 
 
 def voice(folder: Path, script_path: Path, documents: dict[str, str], engine_name: str) -> str:
@@ -83,16 +141,19 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
     script = folder / "podcast.json"
     if record or not any((folder / n).exists() for n in ("podcast.mp3", "podcast.wav")):
         used = voice(folder, script, ir.documents, engine)
+        kept = {}
     else:
         meta = folder / "podcast.meta.json"
-        used = json.loads(meta.read_text()).get("engine", "kokoro") if meta.exists() else "kokoro"
+        old = json.loads(meta.read_text()) if meta.exists() else {}
+        used = old.get("engine", "kokoro")
+        kept = {"recorded": old["recorded"]} if "recorded" in old else {}  # the audio did not change
     tone = parse_script(script.read_text(encoding="utf-8")).tone
-    write_podcast_meta(folder, ir.documents, engine=used, tone=tone)
-    write_html(ir, folder / "review.html")
+    write_podcast_meta(folder, ir.documents, engine=used, tone=tone, **kept)
+    write_html(ir, folder / "review.html", demo.lang)
 
     # The "before": the raw documents as they sit in the repository, under their real paths.
-    prefix = demo.spec.split("/", 1)[1] if demo.spec.startswith("examples/") else demo.spec
-    prefix = prefix.split("/", 1)[1] if prefix.startswith(("speckit/", "openspec/")) else prefix
+    # examples/<example>/<path in that project>
+    prefix = demo.spec.split("/", 2)[2] if demo.spec.startswith("examples/") else demo.spec
     files = {f"{prefix}/{name}": text for name, text in ir.documents.items()}
     data = {
         "slug": demo.slug,
@@ -101,10 +162,16 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
         "files": files,
         "repo": REPO_URL,
         "source": f"{REPO_URL}/tree/main/{demo.spec}",
+        "lang": demo.lang,
+        "ui": {"stats": UI[demo.lang]["stats"]},
     }
     page = (TEMPLATES / "demo.html").read_text(encoding="utf-8")
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     page = page.replace("__DEMO_TITLE__", f"{demo.framework} · {ir.feature}").replace("__DEMO_DATA__", payload)
+    page = theme(page.replace("__LANG__", demo.lang), demo.lang)
+    for key, text in UI[demo.lang].items():
+        page = page.replace(f"__S_{key}__", escape(text))
+    assert "__" not in page.replace("__init__", ""), "placeholder left in demo.html"
     (folder / "index.html").write_text(page, encoding="utf-8")
     lines = sum(len(t.splitlines()) for t in ir.documents.values())
     print(f"✓ {demo.slug}: {len(files)} files, {lines} lines → review.html + index.html")
@@ -113,8 +180,6 @@ def build(demo: Demo, record: bool, engine: str) -> dict:
 
 
 def card_html(c: dict) -> str:
-    from html import escape
-
     return (
         f'    <a class="card" href="{c["slug"]}/">\n'
         f'      <span class="fw">{escape(c["framework"])}</span>\n'
@@ -135,6 +200,7 @@ def main() -> None:
     cards = [build(d, args.voice, args.engine) for d in DEMOS]
     landing = (TEMPLATES / "landing.html").read_text(encoding="utf-8")
     landing = landing.replace("__CARDS__", "\n".join(card_html(c) for c in cards)).replace("__REPO__", REPO_URL)
+    landing = theme(landing, "en")
     (SITE / "index.html").write_text(landing, encoding="utf-8")
     print("✓ landing: index.html")
 
