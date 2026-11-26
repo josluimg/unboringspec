@@ -56,7 +56,7 @@ apoya en ella.
 
 La revisión se abre en tu navegador; cuando el episodio está grabado, se reproduce arriba de esa misma página.
 
-- 📘 **[Guía de instalación y uso](docs/setup.md)**: formas de instalar, cada agente, el ciclo de revisión, CI y todos los comandos.
+- 📘 **[Guía de instalación y uso](docs/setup.md)**: formas de instalar, cada agente, el ciclo de revisión, CI, tus propios colores y fuentes, y todos los comandos.
 - 🎧 **[Guía del podcast](docs/podcast.md)**: tonos, estilos a medida y voces en macOS, Windows y Linux.
 - ❓ **[Preguntas frecuentes](docs/faq.md)**: cómo se generan las voces, qué consume tokens y qué no, y los requisitos.
 

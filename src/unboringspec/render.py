@@ -14,6 +14,7 @@ from .diff import _norm, areas, summarize
 from .history import documents_hash
 from .i18n import note, supported, table
 from .ir import Attention, SpecIR
+from .theme import Theme, default_tokens
 
 
 PODCAST_META = "podcast.meta.json"
@@ -101,7 +102,7 @@ def review_keys(ir: SpecIR) -> dict[str, str]:
     return keys
 
 
-def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en") -> str:
+def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en", theme: Theme | None = None) -> str:
     t = table(lang)
     env = Environment(loader=PackageLoader("unboringspec", "templates"), autoescape=True)
     tpl = env.get_template("review.html.j2")
@@ -158,10 +159,14 @@ def render_html(ir: SpecIR, podcast: dict | None = None, lang: str = "en") -> st
         diagrams=ir.diagrams + spec_diagrams(ir, t),
         change_areas=list(areas(ir.changes)) if ir.changes else [],
         change_summary=summarize(ir.changes) if ir.changes else "",
+        tokens_light=default_tokens(),
+        tokens_dark=default_tokens(dark=True),
+        theme_css=theme.css if theme else "",
+        theme_name=theme.path.name.replace("*/", "") if theme else "",
     )
 
 
-def write_html(ir: SpecIR, out: Path, lang: str = "en") -> Path:
+def write_html(ir: SpecIR, out: Path, lang: str = "en", theme: Theme | None = None) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render_html(ir, find_podcast(out.parent, ir), lang), encoding="utf-8")
+    out.write_text(render_html(ir, find_podcast(out.parent, ir), lang, theme), encoding="utf-8")
     return out

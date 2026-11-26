@@ -46,31 +46,16 @@ html:not(.js) .diagram-src[hidden] { display: block; font: .78rem/1.5 ui-monospa
 </style>
 <title>{{ ir.feature }} · unboringspec</title>
 <style>
-:root {
-  --bg: #f7f6f3; --surface: #ffffff; --ink: #1d1d1f; --muted: #5f6368; --line: #e4e2dc;
-  --accent: #4f46e5; --accent-soft: #eef0ff;
-  --decide: #b42318; --decide-soft: #fdecea; --review: #9a6700; --review-soft: #fff6db;
-  --routine: #3f6b4e; --routine-soft: #e8f3ec; --hl: #fff3b0;
-  --radius: 12px; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
+/* Default tokens (unboringspec.theme.TOKENS). A project's unboring.css overrides them. */
+:root { {{ tokens_light|safe }} }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131315; --surface: #1c1c1f; --ink: #ececef; --muted: #a0a0a8; --line: #2e2e33;
-    --accent: #8b87ff; --accent-soft: #24234a;
-    --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14;
-    --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #4a4220;
-  }
+  :root:not([data-theme="light"]) { {{ tokens_dark|safe }} }
 }
 /* A page that embeds the review (like the demo) can force a theme with data-theme on <html>. */
-:root[data-theme="dark"] {
-  --bg: #131315; --surface: #1c1c1f; --ink: #ececef; --muted: #a0a0a8; --line: #2e2e33;
-  --accent: #8b87ff; --accent-soft: #24234a;
-  --decide: #ff8a80; --decide-soft: #3a1f1d; --review: #f5c451; --review-soft: #352c14;
-  --routine: #8fd0a6; --routine-soft: #1b2e22; --hl: #4a4220;
-}
+:root[data-theme="dark"] { {{ tokens_dark|safe }} }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink);
-  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  font: 16px/1.6 var(--font); }
 main { max-width: 860px; margin: 0 auto; padding: 32px 16px 120px; }
 h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
 h2 { font-size: 1.15rem; margin: 48px 0 12px; letter-spacing: -0.01em; }
@@ -157,7 +142,7 @@ details[open] > summary { margin-bottom: 8px; }
 .progress { font-size: .9rem; color: var(--muted); }
 .bar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .secondary { font: inherit; font-weight: 600; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
-.primary { font: inherit; font-weight: 600; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.primary { font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100%); background: var(--surface); border-left: 1px solid var(--line);
   transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column; z-index: 10; }
 .drawer.open { transform: none; }
@@ -168,6 +153,12 @@ details[open] > summary { margin-bottom: 8px; }
 .drawer .ln.hl { background: var(--hl); }
 .x { font-size: 1.2rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
 </style>
+{%- if theme_css %}
+<style id="unboring-theme">
+/* {{ theme_name }} */
+{{ theme_css|safe }}
+</style>
+{%- endif %}
 </head>
 <body>
 <main>
@@ -456,8 +447,22 @@ details[open] > summary { margin-bottom: 8px; }
     const forced = document.documentElement.dataset.theme;
     return forced ? forced === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   };
+  // With a project theme, diagrams take their colours and font from the page's tokens.
+  const themed = !!document.getElementById("unboring-theme");
+  const token = name => getComputedStyle(document.documentElement).getPropertyValue("--" + name).trim();
+  const themeVariables = () => ({
+    darkMode: isDark(), fontFamily: token("font"), background: token("surface"),
+    primaryColor: token("accent-soft"), primaryBorderColor: token("accent"), primaryTextColor: token("ink"),
+    secondaryColor: token("bg"), tertiaryColor: token("surface"), lineColor: token("muted"), textColor: token("ink"),
+    mainBkg: token("accent-soft"), nodeBorder: token("accent"), clusterBkg: token("bg"), clusterBorder: token("line"),
+    edgeLabelBackground: token("surface"), actorBkg: token("accent-soft"), actorBorder: token("accent"),
+    actorTextColor: token("ink"), signalColor: token("ink"), signalTextColor: token("ink"), noteBkgColor: token("review-soft"),
+    noteTextColor: token("ink"), noteBorderColor: token("review"),
+    attributeBackgroundColorOdd: token("surface"), attributeBackgroundColorEven: token("bg"),
+  });
   const setup = mermaid => mermaid.initialize({
-    startOnLoad: false, securityLevel: "strict", theme: isDark() ? "dark" : "default",
+    startOnLoad: false, securityLevel: "strict",
+    ...(themed ? { theme: "base", themeVariables: themeVariables() } : { theme: isDark() ? "dark" : "default" }),
     flowchart: { subGraphTitleMargin: { top: 6, bottom: 10 } },
   });
   const loadMermaid = () => mermaidReady || (mermaidReady = import(MERMAID).then(m => {

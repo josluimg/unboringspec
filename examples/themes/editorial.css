@@ -1,0 +1,39 @@
+/* Example theme for unboringspec: "editorial".
+ * Copy it to your project as unboring.css, or try it once with:
+ *   unboring review specs/001-my-feature --offline --theme examples/themes/editorial.css
+ */
+
+:root {
+  --bg: #fbf8f1;
+  --surface: #fffdf8;
+  --ink: #1f2421;
+  --muted: #5b625d;
+  --line: #e6dfcf;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3f2ef;
+  --decide: #a4262c;
+  --decide-soft: #f8e7e4;
+  --hl: #fdeeb5;
+  --font: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1514;
+    --surface: #172120;
+    --ink: #e7efe9;
+    --muted: #9fb0aa;
+    --line: #26332f;
+    --accent: #5eead4;
+    --accent-ink: #04201c;
+    --accent-soft: #11302c;
+    --hl: #3d3a1a;
+  }
+}
+
+/* Beyond tokens, any CSS works. */
+h1 { font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-variant: small-caps; letter-spacing: .04em; font-size: 1.25rem; }
