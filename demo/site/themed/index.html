@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spec-kit · custom theme · Shared Photo Albums · unboringspec demo</title>
+<meta name="description" content="Before: the spec as raw files. After: the same spec as an unboringspec review, with its podcast.">
+<script>
+(() => {
+  const KEY = "unboring-theme", root = document.documentElement, sys = matchMedia("(prefers-color-scheme: dark)");
+  let choice = null;
+  try { choice = localStorage.getItem(KEY); } catch (e) {}
+  const apply = () => { root.dataset.theme = choice || (sys.matches ? "dark" : "light"); };
+  apply();
+  sys.addEventListener("change", () => { if (!choice) apply(); });
+  window.unboringToggleTheme = () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    choice = next === (sys.matches ? "dark" : "light") ? null : next;  // back to the system's: follow it again
+    try { choice ? localStorage.setItem(KEY, choice) : localStorage.removeItem(KEY); } catch (e) {}
+    apply();
+  };
+})();
+</script>
+<style>
+:root {
+  --accent: #5b51f0; --accent-ink: #ffffff;
+  --cta: #ff6b4a; --cta-ink: #1a0b06; --cta-shadow: 0 10px 30px rgba(255, 107, 74, .35);
+  --bar: #f3f2ef; --bar-line: #e1dfd9; --bar-ink: #1b1b1f; --bar-muted: #62646d; --strong: #000000;
+  --toggle-bg: #e8e6e1; --toggle-line: #d8d5ce; --toggle-ink: #55575f;
+  --ed-bg: #ffffff; --ed-side: #f7f6f3; --ed-ink: #24292f; --ed-muted: #6e7781; --ed-line: #e4e2dc;
+  --ed-num: #a6aab1; --ed-sel: #e7e5ff; --ed-hover: #efeee9;
+  --md-h: #0550ae; --md-b: #953800; --md-c: #116329; --md-m: #cf222e; --md-q: #6e7781;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  color-scheme: light;
+}
+/* Dark: the system setting by default, or the reader's choice (data-theme, set by the toggle). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #7c74ff; --cta-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6; --strong: #ffffff;
+    --toggle-bg: #1b1c23; --toggle-line: #2f3039; --toggle-ink: #b7b8c3;
+    --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+    --ed-num: #565965; --ed-sel: #2b2e3b; --ed-hover: #20222a;
+    --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #7c74ff; --cta-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  --bar: #101116; --bar-line: #24252c; --bar-ink: #ececf1; --bar-muted: #9a9ba6; --strong: #ffffff;
+  --toggle-bg: #1b1c23; --toggle-line: #2f3039; --toggle-ink: #b7b8c3;
+  --ed-bg: #1c1d22; --ed-side: #16171b; --ed-ink: #d6d6dc; --ed-muted: #7d808b; --ed-line: #2a2b31;
+  --ed-num: #565965; --ed-sel: #2b2e3b; --ed-hover: #20222a;
+  --md-h: #82aaff; --md-b: #ffcb6b; --md-c: #c3e88d; --md-m: #ff7a93; --md-q: #9aa0b0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bar); }
+body { display: flex; flex-direction: column; font: 15px/1.5 var(--sans); color: var(--bar-ink); }
+
+header.bar { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 16px;
+  border-bottom: 1px solid var(--bar-line); }
+.brand { font-weight: 700; color: var(--strong); text-decoration: none; letter-spacing: -0.01em; }
+.title { flex: 1; min-width: 0; color: var(--bar-muted); font-size: .92rem; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; }
+.title b { color: var(--bar-ink); font-weight: 600; }
+.toggle { display: inline-flex; background: var(--toggle-bg); border: 1px solid var(--toggle-line); border-radius: 999px; padding: 3px; }
+.toggle button { font: 600 .9rem var(--sans); border: 0; background: transparent; color: var(--toggle-ink); padding: 6px 16px;
+  border-radius: 999px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.toggle button:focus-visible, .cta:focus-visible, .file:focus-visible, .tab:focus-visible, .theme:focus-visible { outline: 2px solid var(--strong); outline-offset: 2px; }
+.theme { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
+  background: var(--toggle-bg); border: 1px solid var(--toggle-line); color: var(--toggle-ink); padding: 0; }
+.theme:hover { color: var(--strong); }
+.theme svg { width: 17px; height: 17px; }
+.theme .sun, :root[data-theme="dark"] .theme .moon { display: none; }
+:root[data-theme="dark"] .theme .sun { display: block; }
+.gh { color: var(--bar-muted); font-size: .85rem; text-decoration: none; }
+.gh:hover { color: var(--strong); }
+
+main { flex: 1; min-height: 0; position: relative; }
+.view { position: absolute; inset: 0; }
+.view[hidden] { display: none; }
+
+/* Before: the spec as it really is, a pile of Markdown files. */
+.editor { display: grid; grid-template-columns: 250px minmax(0, 1fr); height: 100%; background: var(--ed-bg); color: var(--ed-ink); }
+.side { background: var(--ed-side); border-right: 1px solid var(--ed-line); overflow: auto; padding: 10px 0; display: flex; flex-direction: column; }
+.folder { padding: 6px 16px; color: var(--ed-muted); font: 600 .72rem var(--sans); text-transform: uppercase; letter-spacing: .08em; }
+.file { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--ed-ink); cursor: pointer;
+  font: 13px/1.4 var(--mono); padding: 5px 16px 5px 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file:hover { background: var(--ed-hover); }
+.file[aria-current="true"] { background: var(--ed-sel); color: var(--strong); }
+.stats { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--ed-line); color: var(--ed-muted); font-size: .8rem; line-height: 1.6; }
+.stats b { color: var(--ed-ink); }
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.tabs { display: flex; overflow-x: auto; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); scrollbar-width: thin; }
+.tab { flex: none; font: 13px var(--mono); color: var(--ed-muted); background: transparent; border: 0; border-right: 1px solid var(--ed-line);
+  padding: 9px 16px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ed-bg); color: var(--strong); box-shadow: inset 0 2px 0 var(--accent); }
+.picker { display: none; padding: 8px 12px; background: var(--ed-side); border-bottom: 1px solid var(--ed-line); }
+.picker select { width: 100%; font: 14px var(--mono); color: var(--ed-ink); background: var(--ed-bg); border: 1px solid var(--ed-line);
+  border-radius: 8px; padding: 8px 10px; }
+.code { flex: 1; min-height: 0; overflow: auto; font: 13px/1.65 var(--mono); padding: 10px 0 96px; }
+.ln { display: flex; }
+.ln .n { flex: 0 0 3.6em; text-align: right; padding-right: 1.3em; color: var(--ed-num); user-select: none; }
+.ln .t { white-space: pre; padding-right: 32px; }
+.md-h { color: var(--md-h); font-weight: 600; }
+.md-b { color: var(--md-b); }
+.md-c { color: var(--md-c); }
+.md-m { color: var(--md-m); }
+.md-q { color: var(--md-q); }
+
+.cta { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--cta); color: var(--cta-ink); border: 0; border-radius: 999px; padding: 13px 22px;
+  font: 700 15px var(--sans); box-shadow: var(--cta-shadow); cursor: pointer; }
+.cta:hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+/* After: the real review page. */
+iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--ed-bg); }
+
+@media (max-width: 760px) {
+  header.bar { padding: 8px 12px; }
+  .title { order: 3; flex-basis: 100%; font-size: .85rem; }
+  .toggle { margin-left: auto; }
+  .gh { display: none; }
+  .editor { grid-template-columns: minmax(0, 1fr); }
+  .side, .tabs { display: none; }
+  .picker { display: block; }
+  .code { font-size: 12.5px; }
+  .ln .n { flex-basis: 2.8em; padding-right: .8em; }
+  .ln .t { white-space: pre-wrap; overflow-wrap: anywhere; padding-right: 12px; }
+  .cta { left: 12px; right: 12px; bottom: 16px; justify-content: center; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="../">unboringspec</a>
+  <span class="title" id="title"></span>
+  <div class="toggle" role="group" aria-label="View">
+    <button id="show-before" aria-pressed="true">Before</button>
+    <button id="show-after" aria-pressed="false">After</button>
+  </div>
+  <button class="theme" type="button" onclick="unboringToggleTheme()" aria-label="Switch between light and dark mode" title="Switch between light and dark mode"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  <a class="gh" id="gh" href="#">GitHub ↗</a>
+</header>
+
+<main>
+  <section class="view" id="before" aria-label="Before: the spec as raw files">
+    <div class="editor">
+      <nav class="side" aria-label="Files">
+        <div class="folder" id="folder"></div>
+        <div id="tree"></div>
+        <div class="stats" id="stats"></div>
+      </nav>
+      <div class="pane">
+        <div class="picker"><select id="pick" aria-label="File"></select></div>
+        <div class="tabs" id="tabs" role="tablist"></div>
+        <div class="code" id="code" tabindex="0" aria-live="polite"></div>
+      </div>
+    </div>
+    <button class="cta" id="cta">Make it unboring →</button>
+  </section>
+
+  <section class="view" id="after" aria-label="After: the unboringspec review" hidden>
+    <iframe id="review" title="unboringspec review, with its podcast"></iframe>
+  </section>
+</main>
+
+<script id="data" type="application/json">{"slug": "themed", "framework": "spec-kit · custom theme", "feature": "Shared Photo Albums", "files": {"specs/001-photo-albums/spec.md": "# Feature Specification: Shared Photo Albums\n\n**Feature Branch**: `001-photo-albums`\n**Created**: 2026-11-20\n**Status**: Draft\n**Input**: User description: \"Let families create shared photo albums, invite relatives by link, and get a weekly digest of new photos.\"\n\n## User Scenarios & Testing *(mandatory)*\n\n### User Story 1 - Create an album and upload photos (Priority: P1)\n\nA user creates an album, gives it a name and uploads photos from their phone or desktop.\n\n**Why this priority**: Without albums and uploads there is no product.\n\n**Independent Test**: Create an album, upload 10 photos, see them in a grid sorted by date taken.\n\n**Acceptance Scenarios**:\n\n1. **Given** a signed-in user, **When** they create an album named \"Summer 2026\", **Then** it appears in their album list.\n2. **Given** an album, **When** the user uploads 10 JPEG photos, **Then** all 10 appear sorted by EXIF date.\n\n---\n\n### User Story 2 - Invite relatives by link (Priority: P1)\n\nThe album owner shares an invite link. Anyone with the link can view and add photos.\n\n**Why this priority**: Sharing is the core value proposition.\n\n**Independent Test**: Open the invite link in a private window, join, upload a photo.\n\n---\n\n### User Story 3 - Weekly digest email (Priority: P2)\n\nMembers receive a weekly email with thumbnails of new photos in albums they belong to.\n\n**Why this priority**: Drives re-engagement but the product works without it.\n\n---\n\n### Edge Cases\n\n- What happens when an invite link is leaked publicly? [NEEDS CLARIFICATION: should links expire or be revocable?]\n- How are duplicate uploads of the same photo handled?\n- What happens to photos when a member leaves the album? [NEEDS CLARIFICATION: do their photos stay or get removed?]\n\n## Requirements *(mandatory)*\n\n### Functional Requirements\n\n- **FR-001**: System MUST allow signed-in users to create albums with a name of up to 80 characters.\n- **FR-002**: System MUST accept JPEG, PNG and HEIC uploads up to 25 MB each.\n- **FR-003**: System MUST generate a unique invite link per album.\n- **FR-004**: Anyone with an invite link MUST be able to view and upload photos to that album.\n- **FR-005**: System MUST send a weekly digest email every Monday at 08:00 in the member's timezone.\n- **FR-006**: System MUST strip GPS location from EXIF metadata before photos are visible to other members.\n- **FR-007**: System MUST retain original files for [NEEDS CLARIFICATION: retention period not specified].\n\n### Key Entities\n\n- **Album**: name, owner, invite token, created at.\n- **Photo**: file, album, uploader, taken at, uploaded at.\n- **Membership**: user, album, role (owner, member), joined at.\n\n## Success Criteria *(mandatory)*\n\n- **SC-001**: 80% of new albums receive at least one invited member within 7 days.\n- **SC-002**: Upload of 10 photos completes in under 30 seconds on a 20 Mbps connection.\n", "specs/001-photo-albums/plan.md": "# Implementation Plan: Shared Photo Albums\n\n**Branch**: `001-photo-albums` | **Date**: 2026-11-21 | **Spec**: [spec.md](./spec.md)\n\n## Summary\n\nWeb app with a REST API. Photos go straight from the browser to object storage with presigned URLs;\na background worker builds thumbnails, strips GPS data and sends the weekly digest.\n\n## Technical Context\n\n**Language/Version**: Python 3.12 (API, worker), TypeScript 5 (web)\n**Primary Dependencies**: FastAPI, SQLAlchemy, Celery, React 19\n**Storage**: PostgreSQL 16 for metadata, S3-compatible object storage for files\n**Testing**: pytest, Playwright\n**Target Platform**: Linux containers on Kubernetes\n**Project Type**: web\n**Performance Goals**: 10 photo uploads in under 30 s on 20 Mbps\n**Constraints**: [NEEDS CLARIFICATION: monthly storage budget per family]\n**Scale/Scope**: 5k families in the first year\n\n## Constitution Check\n\n- Library-first: thumbnail and EXIF handling live in `photos_core`, independent from the API. PASS\n- Test-first: contract tests before endpoints. PASS\n\n## Project Structure\n\n```text\nbackend/\n  src/api/  src/worker/  src/photos_core/\n  tests/contract/  tests/integration/\nfrontend/\n  src/pages/  src/components/\n```\n", "specs/001-photo-albums/research.md": "# Research: Shared Photo Albums\n\n## Upload path\n\n- **Decision**: Browser uploads directly to object storage with presigned URLs.\n- **Rationale**: Keeps 25 MB files off the API servers and meets the 30 s upload goal.\n- **Alternatives considered**: Upload through the API; tus resumable uploads\n\n## Invite model\n\n- **Decision**: One permanent invite token per album, anyone with the link gets member rights.\n- **Rationale**: Lowest friction for non-technical relatives.\n- **Alternatives considered**: Per-person email invites; expiring links; view-only links plus upload approval\n\n## HEIC support\n\n- **Decision**: Convert HEIC to JPEG in the worker and keep the original.\n- **Rationale**: Most browsers cannot render HEIC.\n- **Alternatives considered**: Reject HEIC; convert in the browser\n\n## Digest delivery\n\n- **Decision**: Celery beat job every hour that sends digests to members whose local time is Monday 08:00.\n- **Rationale**: Respects timezones without one job per user.\n- **Alternatives considered**: One scheduled job per user; send everyone at 08:00 UTC\n", "specs/001-photo-albums/tasks.md": "# Tasks: Shared Photo Albums\n\n## Phase 1: Setup\n\n- [x] T001 Create backend and frontend project structure per plan.md\n- [x] T002 [P] Configure ruff, mypy and eslint\n- [ ] T003 [P] Provision PostgreSQL and object storage in docker-compose\n\n## Phase 2: Foundational\n\n- [ ] T004 Create Album, Photo and Membership models in backend/src/api/models.py\n- [ ] T005 [P] Implement EXIF reader and GPS stripping in backend/src/photos_core/exif.py\n- [ ] T006 [P] Implement thumbnail generation in backend/src/photos_core/thumbs.py\n\n## Phase 3: User Story 1 - Create an album and upload photos (P1)\n\n- [ ] T007 [US1] Contract test POST /albums in backend/tests/contract/test_albums.py\n- [ ] T008 [US1] Implement POST /albums and GET /albums\n- [ ] T009 [P] [US1] Implement presigned upload URL endpoint\n- [ ] T010 [US1] Worker job: thumbnail, HEIC conversion, GPS stripping on upload\n- [ ] T011 [P] [US1] Album grid page sorted by date taken in frontend/src/pages/Album.tsx\n\n## Phase 4: User Story 2 - Invite relatives by link (P1)\n\n- [ ] T012 [US2] Generate invite token on album creation\n- [ ] T013 [US2] Join album via invite link endpoint\n- [ ] T014 [P] [US2] Join page in frontend/src/pages/Join.tsx\n\n## Phase 5: User Story 3 - Weekly digest email (P2)\n\n- [ ] T015 [US3] Hourly Celery beat job selecting members at Monday 08:00 local time\n- [ ] T016 [P] [US3] Digest email template with thumbnails\n\n## Phase 6: Polish\n\n- [ ] T017 [P] Playwright end-to-end test for create, invite, upload\n- [ ] T018 Load test 10 parallel uploads on a throttled 20 Mbps connection\n"}, "repo": "https://github.com/josluimg/unboringspec", "source": "https://github.com/josluimg/unboringspec/tree/main/examples/speckit/specs/001-photo-albums", "lang": "en", "ui": {"stats": "<b>{files}<\/b> files · <b>{lines}<\/b> lines · <b>{words}<\/b> words<br>to read before you can approve anything."}}</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("data").textContent);
+  const paths = Object.keys(data.files);
+  const folder = paths[0].split("/").slice(0, -1).join("/");
+  const short = p => p.slice(folder.length + 1);
+
+  document.getElementById("title").innerHTML = "";
+  const t = document.getElementById("title");
+  const b = document.createElement("b"); b.textContent = data.feature;
+  t.append(data.framework + " · ", b);
+  document.getElementById("gh").href = data.source;
+  document.getElementById("folder").textContent = folder;
+
+  // Numbers that make the point: this is a lot to read.
+  const lineCount = text => text.replace(/\n$/, "").split("\n").length;  // same count as the build script
+  const lines = paths.reduce((n, p) => n + lineCount(data.files[p]), 0);
+  const words = paths.reduce((n, p) => n + data.files[p].split(/\s+/).filter(Boolean).length, 0);
+  document.getElementById("stats").innerHTML =
+    data.ui.stats.replace("{files}", paths.length).replace("{lines}", lines).replace("{words}", words.toLocaleString(data.lang));
+
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const paint = line => {
+    let h = esc(line);
+    if (/^#{1,6}\s/.test(line)) return `<span class="md-h">${h}</span>`;
+    if (/^\s*>/.test(line)) return `<span class="md-q">${h}</span>`;
+    h = h.replace(/\[NEEDS CLARIFICATION[^\]]*\]/g, m => `<span class="md-m">${m}</span>`);
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<span class="md-b">**$1**</span>');
+    h = h.replace(/`([^`]+)`/g, '<span class="md-c">`$1`</span>');
+    return h;
+  };
+
+  const tree = document.getElementById("tree"), tabs = document.getElementById("tabs");
+  const pick = document.getElementById("pick"), code = document.getElementById("code");
+  const open = path => {
+    code.innerHTML = data.files[path].replace(/\n$/, "").split("\n")
+      .map((l, i) => `<div class="ln"><span class="n">${i + 1}</span><span class="t">${paint(l) || " "}</span></div>`).join("");
+    code.scrollTop = 0;
+    tree.querySelectorAll(".file").forEach(f => f.setAttribute("aria-current", String(f.dataset.path === path)));
+    tabs.querySelectorAll(".tab").forEach(f => f.setAttribute("aria-selected", String(f.dataset.path === path)));
+    pick.value = path;
+  };
+  paths.forEach(p => {
+    const f = document.createElement("button");
+    f.className = "file"; f.dataset.path = p; f.textContent = short(p); f.title = p;
+    f.addEventListener("click", () => open(p));
+    tree.appendChild(f);
+    const tab = document.createElement("button");
+    tab.className = "tab"; tab.setAttribute("role", "tab"); tab.dataset.path = p; tab.textContent = short(p).split("/").pop();
+    tab.addEventListener("click", () => open(p));
+    tabs.appendChild(tab);
+    const o = document.createElement("option"); o.value = p; o.textContent = short(p);
+    pick.appendChild(o);
+  });
+  pick.addEventListener("change", () => open(pick.value));
+  open(paths[0]);
+
+  // Before / After
+  const views = { before: document.getElementById("before"), after: document.getElementById("after") };
+  const buttons = { before: document.getElementById("show-before"), after: document.getElementById("show-after") };
+  const frame = document.getElementById("review");
+  const show = (which, push = true) => {
+    for (const k of ["before", "after"]) {
+      views[k].hidden = k !== which;
+      buttons[k].setAttribute("aria-pressed", String(k === which));
+    }
+    if (which === "after" && !frame.getAttribute("src")) frame.src = "review.html";  // load it only when asked
+    if (push) history.replaceState(null, "", "#" + which);
+  };
+  buttons.before.addEventListener("click", () => show("before"));
+  buttons.after.addEventListener("click", () => show("after"));
+  document.getElementById("cta").addEventListener("click", () => show("after"));
+  show(location.hash === "#after" ? "after" : "before", false);
+
+  // The review follows the demo's theme.
+  const syncTheme = () => {
+    const doc = frame.contentDocument;
+    if (doc && doc.documentElement) doc.documentElement.dataset.theme = document.documentElement.dataset.theme;
+  };
+  frame.addEventListener("load", syncTheme);
+  new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>
+</body>
+</html>

@@ -54,6 +54,8 @@ h1 { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.1; letter-spacing: -0.0
 .card h2 { margin: 0; font-size: 1.3rem; letter-spacing: -0.01em; }
 .card p { margin: 0; color: var(--muted); }
 .pill { align-self: flex-start; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 12px; font-size: .85rem; font-weight: 600; }
+.card .themed { font-size: .92rem; }
+.card code { font-size: .85em; background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 6px; }
 .card .go { margin-top: auto; align-self: flex-start; font-weight: 700; background: var(--cta); color: var(--cta-ink);
   border-radius: 999px; padding: 8px 18px; font-size: .95rem; }
 .how { margin-top: 36px; color: var(--muted); font-size: .82rem; line-height: 1.55; }
@@ -85,6 +87,15 @@ footer a { color: inherit; }
       <p>Album owners can revoke and expire invite links and remove any photo, replacing today&#x27;s permanent links.</p>
       <span class="pill">🎧 Podcast in English · roast tone</span>
       <p>5 files, 135 lines of Markdown → one review page.</p>
+      <span class="go">Open the demo →</span>
+    </a>
+    <a class="card" href="themed/">
+      <span class="fw">spec-kit · custom theme</span>
+      <h2>Shared Photo Albums</h2>
+      <p>Families share photo albums through an invite link and get a weekly email digest of new photos.</p>
+      <span class="pill">🎧 Podcast in English · sports tone</span>
+      <p class="themed">🎨 Same page, your look: this review uses <code>brutalist.css</code>, one CSS file in the project.</p>
+      <p>4 files, 167 lines of Markdown → one review page.</p>
       <span class="go">Open the demo →</span>
     </a>
   </div>
