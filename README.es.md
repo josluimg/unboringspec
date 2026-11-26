@@ -106,12 +106,16 @@ con [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) en 8 idiomas. Consulta [
 
 ## Cómo funciona
 
-```
-carpeta de la spec ──adapter──▶ modelo común ──▶ prompt ──▶ tu agente (o un modelo por API) ──▶ JSON ──▶ página de revisión
-(spec-kit, OpenSpec...)  (cada elemento con fichero:línea)                                (contrato)  (+ podcast)
-
-página de revisión ──tu revisión──▶ unboring feedback ──▶ comandos de tu framework ──▶ siguiente render:
-                                                          (/speckit-clarify, /opsx:update…)  Qué ha cambiado + Tu última revisión
+```mermaid
+flowchart LR
+    spec["carpeta de la spec<br>(spec-kit, OpenSpec…)"] -- adapter --> model["modelo común<br>(cada elemento con fichero:línea)"]
+    model --> prompt[prompt]
+    prompt --> agent["tu agente<br>(o un modelo por API)"]
+    agent --> json["JSON<br>(contrato)"]
+    json --> page["página de revisión<br>(+ podcast)"]
+    page -- tu revisión --> feedback[unboring feedback]
+    feedback --> commands["comandos de tu framework<br>(/speckit-clarify, /opsx:update…)"]
+    commands -- "siguiente render:<br>Qué ha cambiado + Tu última revisión" --> spec
 ```
 
 La CLI hace el trabajo determinista: leer la spec, validar las citas, generar la página y comparar versiones. Tu
@@ -121,8 +125,6 @@ propios comandos del framework, nunca editando la spec a sus espaldas.
 Sea cual sea el framework o el modelo, la respuesta sigue un contrato publicado y versionado:
 [`insights.v1`](schemas/insights.v1.schema.json) para la revisión y [`podcast.v1`](schemas/podcast.v1.schema.json)
 para el guion del podcast, con [ejemplos](schemas/examples/). Los cambios incompatibles llevan un fichero de versión nuevo.
-
-El flujo completo, paso a paso, está en el diagrama de [CONTRIBUTING.md](CONTRIBUTING.md#how-it-works).
 
 ## Contribuir
 

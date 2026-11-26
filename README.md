@@ -102,12 +102,16 @@ See [In CI](docs/setup.md#in-ci).
 
 ## How it works
 
-```
-spec folder ──adapter──▶ common model ──▶ prompt ──▶ your agent (or an API model) ──▶ JSON ──▶ review page
-(spec-kit, OpenSpec...)  (every item has file:line)                                  (contract)  (+ podcast)
-
-review page ──your review──▶ unboring feedback ──▶ framework's own commands ──▶ next render:
-                                                   (/speckit-clarify, /opsx:update…)  What changed + Your last review
+```mermaid
+flowchart LR
+    spec["spec folder<br>(spec-kit, OpenSpec…)"] -- adapter --> model["common model<br>(every item has file:line)"]
+    model --> prompt[prompt]
+    prompt --> agent["your agent<br>(or an API model)"]
+    agent --> json["JSON<br>(contract)"]
+    json --> page["review page<br>(+ podcast)"]
+    page -- your review --> feedback[unboring feedback]
+    feedback --> commands["framework's own commands<br>(/speckit-clarify, /opsx:update…)"]
+    commands -- "next render:<br>What changed + Your last review" --> spec
 ```
 
 The CLI does the deterministic work: parsing the spec, validating citations, rendering, comparing versions.
@@ -117,8 +121,6 @@ applied through the framework's own commands, never by editing the spec behind i
 Whatever the framework or the model, the answer follows a published, versioned contract:
 [`insights.v1`](schemas/insights.v1.schema.json) for the review and [`podcast.v1`](schemas/podcast.v1.schema.json)
 for the podcast script, with [examples](schemas/examples/). Breaking changes get a new version file.
-
-The full flow, step by step, is diagrammed in [CONTRIBUTING.md](CONTRIBUTING.md#how-it-works).
 
 ## Contributing
 
