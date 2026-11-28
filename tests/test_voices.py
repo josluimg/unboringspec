@@ -22,8 +22,55 @@ def test_pick_two_prefers_female_guide_and_male_skeptic():
     assert tts._pick_two([("M1", "male"), ("F1", "female"), ("M2", "male")]) == {"guide": "F1", "skeptic": "M1"}
 
 
-def test_pick_two_with_one_voice_reuses_it():
-    assert tts._pick_two([("Helena", "female")]) == {"guide": "Helena", "skeptic": "Helena"}
+def test_pick_two_with_one_voice_pitches_the_skeptic_down():
+    """Windows often has only Helena in Spanish: the skeptic is Helena, lower (#66)."""
+    assert tts._pick_two([("Microsoft Helena Desktop", "female")]) == {
+        "guide": "Microsoft Helena Desktop",
+        "skeptic": "Microsoft Helena Desktop@-3",
+    }
+
+
+def test_split_shift():
+    assert tts.split_shift("Microsoft Helena Desktop@-3") == ("Microsoft Helena Desktop", -3.0)
+    assert tts.split_shift("Mónica") == ("Mónica", 0.0)
+    assert tts.split_shift("Helena@-40") == ("Helena", -6.0)  # capped
+
+
+def capture_powershell(monkeypatch):
+    scripts = []
+    monkeypatch.setattr(tts, "_powershell", lambda script: scripts.append(script) or subprocess.CompletedProcess([], 0, "", ""))
+    return scripts
+
+
+def test_sapi_lowers_the_pitch_with_ffmpeg(tmp_path, monkeypatch):
+    scripts = capture_powershell(monkeypatch)
+    shifted = []
+    monkeypatch.setattr(tts.shutil, "which", lambda name: "ffmpeg" if name == "ffmpeg" else None)
+    monkeypatch.setattr(tts, "shift_pitch", lambda path, semitones: shifted.append(semitones))
+    tts.SapiEngine().synth("Hola", "Microsoft Helena Desktop@-3", "es", 1.2, tmp_path / "a.wav")
+    assert "SelectVoice('Microsoft Helena Desktop')" in scripts[0] and "$s.Speak($t)" in scripts[0]
+    assert shifted == [-3.0]
+
+
+def test_sapi_lowers_the_pitch_through_ssml_without_ffmpeg(tmp_path, monkeypatch):
+    scripts = capture_powershell(monkeypatch)
+    monkeypatch.setattr(tts.shutil, "which", lambda name: None)
+    tts.SapiEngine().synth("<b>Hola</b> & adiós", "Microsoft Helena Desktop@-3", "es", 1.2, tmp_path / "a.wav")
+    script = scripts[0]
+    assert "SpeakSsml" in script and "<prosody pitch='low'>" in script
+    assert "SecurityElement]::Escape($t)" in script  # the turn's text is escaped inside the SSML
+    tts.SapiEngine().synth("Hola", "Microsoft Helena Desktop", "es", 1.2, tmp_path / "b.wav")
+    assert "SpeakSsml" not in scripts[1]  # the guide keeps her own voice
+
+
+def test_espeak_uses_its_own_pitch_without_ffmpeg(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(tts.subprocess, "run", lambda args, **kw: calls.append(args))
+    monkeypatch.setattr(tts, "normalize_wav", lambda path: None)
+    monkeypatch.setattr(tts.shutil, "which", lambda name: "/usr/bin/espeak-ng" if name.startswith("espeak") else None)
+    tts.EspeakEngine().synth("Hola", "es@-3", "es", 1.2, tmp_path / "a.wav")
+    args = calls[0]
+    assert args[args.index("-v") + 1] == "es" and args[args.index("-p") + 1] == "35"
 
 
 def test_pick_two_without_gender_uses_two_different_voices():
@@ -33,10 +80,51 @@ def test_pick_two_without_gender_uses_two_different_voices():
 # --- engine selection per OS -------------------------------------------------------
 
 
-@pytest.mark.parametrize("platform,expected", [("darwin", "say"), ("win32", "sapi"), ("linux", "espeak")])
-def test_system_engine_per_os(monkeypatch, platform, expected):
+def available(monkeypatch, *names):
+    for name, cls in tts.ENGINES.items():
+        ok = name in names
+
+        def check(self, ok=ok, name=name):
+            if not ok:
+                raise tts.EngineUnavailable(f"{name} not here")
+
+        monkeypatch.setattr(cls, "check", check)
+
+
+@pytest.mark.parametrize("platform,ready,expected", [
+    ("darwin", ["say"], "say"),
+    ("win32", ["windows", "sapi"], "windows"),  # modern voices first (#66)
+    ("win32", ["sapi"], "sapi"),  # WinRT not reachable: System.Speech
+    ("linux", ["espeak"], "espeak"),
+    ("linux", [], "espeak"),  # nothing ready: the preferred one, so its error is the one shown
+])
+def test_system_engine_per_os(monkeypatch, platform, ready, expected):
     monkeypatch.setattr(sys, "platform", platform)
+    available(monkeypatch, *ready)
     assert tts.system_engine_name() == expected
+
+
+WINRT_LIST = "Microsoft Helena|es-ES|Female\nMicrosoft Laura|es-ES|Female\nMicrosoft Pablo|es-ES|Male\nMicrosoft Zira|en-US|Female\n"
+
+
+def test_windows_engine_pairs_a_woman_and_a_man(monkeypatch):
+    monkeypatch.setattr(tts.WindowsEngine, "_voices_cache", None)
+    monkeypatch.setattr(tts, "_powershell", lambda script: subprocess.CompletedProcess([], 0, WINRT_LIST, ""))
+    assert tts.WindowsEngine().voices("es") == {"guide": "Microsoft Helena", "skeptic": "Microsoft Pablo"}
+    with pytest.raises(tts.EngineUnavailable):
+        tts.WindowsEngine().voices("de")
+    monkeypatch.setattr(tts.WindowsEngine, "_voices_cache", None)
+
+
+def test_windows_engine_synth_script(tmp_path, monkeypatch):
+    scripts = capture_powershell(monkeypatch)
+    monkeypatch.setattr(tts, "normalize_wav", lambda path: None)
+    tts.WindowsEngine().synth("Hola", "Microsoft Pablo@-3", "es", 1.2, tmp_path / "a.wav")
+    script = scripts[0]
+    assert "$_.DisplayName -eq 'Microsoft Pablo'" in script
+    assert "SynthesizeTextToStreamAsync" in script and "DataReader" in script
+    assert "SpeakingRate = 1.20" in script and "AudioPitch = 0.841" in script  # 2^(-3/12): its own pitch, no ffmpeg
+    assert f"WriteAllBytes('{tmp_path / 'a.wav'}'" in script
 
 
 def test_auto_falls_back_to_system_with_reasons(monkeypatch):

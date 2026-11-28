@@ -98,7 +98,7 @@ Mediante [Agent Skills](https://agentskills.io): tu agente hace el análisis.
 | Agente | Estado |
 |---|---|
 | Claude Code | ✅ probado de principio a fin |
-| GitHub Copilot (VS Code)| 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
+| GitHub Copilot (VS Code)| ✅ probado de principio a fin (Windows) |
 | OpenAI Codex | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
 | Cursor | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |
 | Gemini CLI | 🧪 experimental: sigue el formato de cada agente, pero aún nadie ha reportado una prueba completa |

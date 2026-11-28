@@ -79,7 +79,7 @@ INTEGRATIONS: dict[str, Integration] = {
             # Writing JSON files follows the user's normal edit permissions.
             extra_frontmatter=("allowed-tools: Bash(unboring:*), Bash(python -m unboringspec:*)",),
         ),
-        Integration("copilot", "GitHub Copilot (VS Code)", ".github/skills/{skill}/SKILL.md"),
+        Integration("copilot", "GitHub Copilot (VS Code)", ".github/skills/{skill}/SKILL.md", status="tested"),
         Integration("codex", "OpenAI Codex", ".agents/skills/{skill}/SKILL.md"),
         Integration("cursor", "Cursor", ".cursor/skills/{skill}/SKILL.md"),
         Integration("gemini", "Gemini CLI", ".gemini/commands/unboring.{short}.toml", kind="gemini-toml"),

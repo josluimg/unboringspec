@@ -388,7 +388,7 @@ def podcast_prompt(
 def podcast_render(
     spec: Path = SPEC_ARG,
     script: Optional[Path] = typer.Option(None, "--script", help="Script JSON. Default: .unboring/<feature>/podcast.json"),
-    engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto (Kokoro if ready, else system), system, kokoro, say, sapi or espeak."),
+    engine: str = typer.Option(os.environ.get("UNBORING_TTS", "auto"), "--engine", "-e", help="auto (Kokoro if ready, else system), system, kokoro, say, windows, sapi or espeak."),
     voice_guide: Optional[str] = typer.Option(None, "--voice-guide", help="Pin the guide's voice. With Kokoro also a blend (ef_dora*0.6+em_alex*0.4) and a pitch shift (@-2)."),
     voice_skeptic: Optional[str] = typer.Option(None, "--voice-skeptic", help="Pin the skeptic's voice (same syntax). Default: a pair picked at random from the language's cast."),
     speed: Optional[float] = typer.Option(

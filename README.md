@@ -94,7 +94,7 @@ Through [Agent Skills](https://agentskills.io): your agent does the analysis.
 | Agent | Status |
 |---|---|
 | Claude Code | ✅ tested end to end |
-| GitHub Copilot (VS Code)| 🧪 experimental: follows each agent's format, not yet reported in a full run |
+| GitHub Copilot (VS Code)| ✅ tested end to end (Windows) |
 | OpenAI Codex | 🧪 experimental: follows each agent's format, not yet reported in a full run |
 | Cursor | 🧪 experimental: follows each agent's format, not yet reported in a full run |
 | Gemini CLI | 🧪 experimental: follows each agent's format, not yet reported in a full run |

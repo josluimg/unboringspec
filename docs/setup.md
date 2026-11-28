@@ -143,7 +143,7 @@ with the context of your repository. A diagram of the whole flow is in [CONTRIBU
 | Agent | `--ai` | Installs to | Status |
 |---|---|---|---|
 | Claude Code | `claude` | `.claude/skills/<skill>/SKILL.md` | ✅ tested end to end |
-| GitHub Copilot (VS Code) | `copilot` | `.github/skills/<skill>/SKILL.md` | 🧪 experimental |
+| GitHub Copilot (VS Code) | `copilot` | `.github/skills/<skill>/SKILL.md` | ✅ tested end to end (Windows) |
 | OpenAI Codex | `codex` | `.agents/skills/<skill>/SKILL.md` | 🧪 experimental |
 | Cursor | `cursor` | `.cursor/skills/<skill>/SKILL.md` | 🧪 experimental |
 | Gemini CLI | `gemini` | `.gemini/commands/unboring.<skill>.toml` | 🧪 experimental |
