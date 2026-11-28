@@ -80,10 +80,51 @@ def test_pick_two_without_gender_uses_two_different_voices():
 # --- engine selection per OS -------------------------------------------------------
 
 
-@pytest.mark.parametrize("platform,expected", [("darwin", "say"), ("win32", "sapi"), ("linux", "espeak")])
-def test_system_engine_per_os(monkeypatch, platform, expected):
+def available(monkeypatch, *names):
+    for name, cls in tts.ENGINES.items():
+        ok = name in names
+
+        def check(self, ok=ok, name=name):
+            if not ok:
+                raise tts.EngineUnavailable(f"{name} not here")
+
+        monkeypatch.setattr(cls, "check", check)
+
+
+@pytest.mark.parametrize("platform,ready,expected", [
+    ("darwin", ["say"], "say"),
+    ("win32", ["windows", "sapi"], "windows"),  # modern voices first (#66)
+    ("win32", ["sapi"], "sapi"),  # WinRT not reachable: System.Speech
+    ("linux", ["espeak"], "espeak"),
+    ("linux", [], "espeak"),  # nothing ready: the preferred one, so its error is the one shown
+])
+def test_system_engine_per_os(monkeypatch, platform, ready, expected):
     monkeypatch.setattr(sys, "platform", platform)
+    available(monkeypatch, *ready)
     assert tts.system_engine_name() == expected
+
+
+WINRT_LIST = "Microsoft Helena|es-ES|Female\nMicrosoft Laura|es-ES|Female\nMicrosoft Pablo|es-ES|Male\nMicrosoft Zira|en-US|Female\n"
+
+
+def test_windows_engine_pairs_a_woman_and_a_man(monkeypatch):
+    monkeypatch.setattr(tts.WindowsEngine, "_voices_cache", None)
+    monkeypatch.setattr(tts, "_powershell", lambda script: subprocess.CompletedProcess([], 0, WINRT_LIST, ""))
+    assert tts.WindowsEngine().voices("es") == {"guide": "Microsoft Helena", "skeptic": "Microsoft Pablo"}
+    with pytest.raises(tts.EngineUnavailable):
+        tts.WindowsEngine().voices("de")
+    monkeypatch.setattr(tts.WindowsEngine, "_voices_cache", None)
+
+
+def test_windows_engine_synth_script(tmp_path, monkeypatch):
+    scripts = capture_powershell(monkeypatch)
+    monkeypatch.setattr(tts, "normalize_wav", lambda path: None)
+    tts.WindowsEngine().synth("Hola", "Microsoft Pablo@-3", "es", 1.2, tmp_path / "a.wav")
+    script = scripts[0]
+    assert "$_.DisplayName -eq 'Microsoft Pablo'" in script
+    assert "SynthesizeTextToStreamAsync" in script and "DataReader" in script
+    assert "SpeakingRate = 1.20" in script and "AudioPitch = 0.841" in script  # 2^(-3/12): its own pitch, no ffmpeg
+    assert f"WriteAllBytes('{tmp_path / 'a.wav'}'" in script
 
 
 def test_auto_falls_back_to_system_with_reasons(monkeypatch):

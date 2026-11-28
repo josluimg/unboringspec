@@ -107,14 +107,14 @@ done. From then on `--engine auto` (the default) uses Kokoro, and the system voi
 | OS | Engine | What you need |
 |---|---|---|
 | macOS | `say` | Nothing. More voices: System Settings › Accessibility › Spoken Content › System voice › Manage Voices |
-| Windows | `sapi` | Nothing. More languages: Settings › Time & language › Speech › Manage voices › Add voices |
+| Windows | `windows` 🧪, `sapi` | Nothing. `windows` reaches the modern voices too (Spanish: Pablo, Laura, Helena); `sapi`, the classic ones only, is the fallback. More languages: Settings › Time & language › Speech › Manage voices › Add voices |
 | Linux | `espeak` 🧪 | `sudo apt install espeak-ng` (Fedora: `dnf`, Arch: `pacman`) |
 
 The guide gets a female voice and the skeptic a male one when the OS has both, so they are easy to tell apart.
-When the language has a single voice (Windows often has only *Microsoft Helena Desktop* in Spanish), the skeptic
+When the language has a single voice (with `sapi`, Windows often shows only *Microsoft Helena Desktop* in Spanish), the skeptic
 uses that voice three semitones lower. With ffmpeg the shift keeps the voice natural; without it, Windows lowers
 the pitch through SSML and espeak-ng uses its own pitch setting. For two real voices, add Kokoro.
-🧪 Linux voices are tested with mocks only so far; reports are welcome.
+🧪 The `windows` engine and Linux voices are tested with mocks only so far; reports are welcome.
 
 ### Kokoro, by platform
 
@@ -191,7 +191,7 @@ pace. The choice is remembered in that browser. Without JavaScript, the browser'
 
 | Option | Meaning |
 |---|---|
-| `--engine` | `auto` (default: Kokoro if ready, else system), `system`, `kokoro`, `say`, `sapi`, `espeak` |
+| `--engine` | `auto` (default: Kokoro if ready, else system), `system`, `kokoro`, `say`, `windows`, `sapi`, `espeak` |
 | `--voice-guide`, `--voice-skeptic` | Pin a host's voice: a name from `unboring podcast engines` or, with Kokoro, a blend and pitch (see [A cast of voices](#a-cast-of-voices)). Default: a pair picked at random from the cast |
 | `--speed` | 0.5 to 2.0. Default: 1.2 times the tone's own pace (see [Pace and the player](#pace-and-the-player)) |
 

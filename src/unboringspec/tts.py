@@ -465,6 +465,87 @@ def _powershell(script: str) -> subprocess.CompletedProcess:
     )
 
 
+# Windows' modern speech API (WinRT) reaches the OneCore voices (Spanish: Pablo, Laura, Helena),
+# which System.Speech below does not see (#66). It runs in Windows PowerShell 5.1, which can load
+# WinRT types; AsTask turns its async operations into tasks PowerShell can wait on.
+WINRT_PRELUDE = (
+    "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
+    "$null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType = WindowsRuntime]; "
+    "$null = [Windows.Storage.Streams.DataReader, Windows.Storage.Streams, ContentType = WindowsRuntime]; "
+    "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { "
+    "$_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and "
+    "$_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]; "
+    "function Await($op, [Type]$type) { $t = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); "
+    "$t.Wait(-1) | Out-Null; $t.Result }; "
+)
+
+
+class WindowsEngine(Engine):
+    name = "windows"
+    description = "Windows voices, modern and classic (WinRT)"
+    _voices_cache: list[tuple[str, str, str]] | None = None
+
+    def check(self) -> None:
+        if sys.platform != "win32" or not shutil.which("powershell"):
+            raise EngineUnavailable("Windows voices only exist on Windows.")
+        try:
+            self._installed()
+        except (subprocess.CalledProcessError, OSError) as e:
+            raise EngineUnavailable("Windows' modern voices are not reachable from PowerShell.", "--engine sapi") from e
+
+    def _installed(self) -> list[tuple[str, str, str]]:
+        if WindowsEngine._voices_cache is None:
+            script = WINRT_PRELUDE + (
+                "[Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices | ForEach-Object { "
+                "'{0}|{1}|{2}' -f $_.DisplayName, $_.Language, $_.Gender }"
+            )
+            rows = []
+            for line in _powershell(script).stdout.splitlines():
+                parts = line.strip().split("|")
+                if len(parts) == 3 and parts[0]:
+                    rows.append((parts[0], parts[1], parts[2].lower()))
+            WindowsEngine._voices_cache = rows
+        return WindowsEngine._voices_cache
+
+    def voices(self, lang: str) -> dict[Role, str]:
+        lang = _lang(lang)
+        installed = [(n, g) for n, culture, g in self._installed() if culture.lower().startswith(lang)]
+        if not installed:
+            raise EngineUnavailable(
+                f"Windows has no '{lang}' voice installed.",
+                "Settings > Time & language > Speech > Manage voices > Add voices",
+            )
+        return _pick_two(installed)
+
+    def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
+        voice, shift = split_shift(voice)
+        rate = max(0.5, min(6.0, speed))
+        pitch = max(0.0, min(2.0, 2 ** (shift / 12)))  # WinRT's own pitch: 1 is the voice's natural pitch
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8", delete=False) as f:
+            f.write(text)
+            text_file = f.name
+        try:
+            script = WINRT_PRELUDE + (
+                "$s = New-Object Windows.Media.SpeechSynthesis.SpeechSynthesizer; "
+                "$v = [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices | "
+                f"Where-Object {{ $_.DisplayName -eq {_ps_literal(voice)} }} | Select-Object -First 1; "
+                "if (-not $v) { throw 'voice not found' }; $s.Voice = $v; "
+                # SpeakingRate and AudioPitch exist from Windows 10 1803; older builds keep the defaults.
+                f"try {{ $s.Options.SpeakingRate = {rate:.2f} }} catch {{}}; "
+                f"try {{ $s.Options.AudioPitch = {pitch:.3f} }} catch {{}}; "
+                f"$t = [IO.File]::ReadAllText({_ps_literal(text_file)}, [Text.Encoding]::UTF8); "
+                "$stream = Await ($s.SynthesizeTextToStreamAsync($t)) ([Windows.Media.SpeechSynthesis.SpeechSynthesisStream]); "
+                "$reader = New-Object Windows.Storage.Streams.DataReader($stream.GetInputStreamAt(0)); "
+                "$n = Await ($reader.LoadAsync([uint32]$stream.Size)) ([uint32]); "
+                "$bytes = New-Object byte[] $n; $reader.ReadBytes($bytes); "
+                f"[IO.File]::WriteAllBytes({_ps_literal(str(out))}, $bytes)"
+            )
+            _powershell(script)
+        finally:
+            os.unlink(text_file)
+        normalize_wav(out)  # WinRT writes its own sample rate (often 16 or 22 kHz)
+
+
 class SapiEngine(Engine):
     name = "sapi"
     description = "Windows system voices (SAPI)"
@@ -571,12 +652,24 @@ class EspeakEngine(Engine):
 
 # --- registry and selection ------------------------------------------------------
 
-ENGINES: dict[str, type[Engine]] = {"kokoro": KokoroEngine, "say": SayEngine, "sapi": SapiEngine, "espeak": EspeakEngine}
-SYSTEM_ENGINE = {"darwin": "say", "win32": "sapi"}
+ENGINES: dict[str, type[Engine]] = {
+    "kokoro": KokoroEngine, "say": SayEngine, "windows": WindowsEngine, "sapi": SapiEngine, "espeak": EspeakEngine,
+}
+# On Windows the modern voices come first; System.Speech (sapi) is the fallback when WinRT is not
+# reachable (an old Windows, or PowerShell without WinRT).
+SYSTEM_ENGINES = {"darwin": ("say",), "win32": ("windows", "sapi")}
 
 
 def system_engine_name() -> str:
-    return SYSTEM_ENGINE.get(sys.platform, "espeak")
+    """This OS's system engine: the first one that works here, else the preferred one."""
+    candidates = SYSTEM_ENGINES.get(sys.platform, ("espeak",))
+    for name in candidates:
+        try:
+            ENGINES[name]().check()
+            return name
+        except EngineUnavailable:
+            continue
+    return candidates[0]
 
 
 def pick_engine(name: str = "auto") -> Engine:
