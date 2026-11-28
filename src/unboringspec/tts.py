@@ -159,15 +159,29 @@ class Engine(ABC):
         that language (#57); engines that cannot switch language mid-sentence ignore them."""
 
 
+# With a single voice for the language (Windows often has only "Microsoft Helena Desktop" in
+# Spanish), the skeptic gets the same voice this many semitones lower, so the hosts differ (#66).
+SAME_VOICE_SHIFT = -3
+
+
+def split_shift(voice: str) -> tuple[str, float]:
+    """'Microsoft Helena Desktop@-3' -> ('Microsoft Helena Desktop', -3.0): a system voice and a pitch shift."""
+    m = re.fullmatch(r"(.*?)\s*@\s*([+-]?\d+(?:\.\d+)?)", voice or "")
+    if not m or not m.group(1):
+        return voice, 0.0
+    return m.group(1), max(-MAX_SHIFT, min(MAX_SHIFT, float(m.group(2))))
+
+
 def _pick_two(candidates: list[tuple[str, str]]) -> dict[Role, str]:
     """candidates: (voice, gender) with gender in {"female", "male", ""}. Guide prefers a female
-    voice and the skeptic a male one, so the two hosts are easy to tell apart."""
+    voice and the skeptic a male one, so the two hosts are easy to tell apart. With one voice,
+    the skeptic is that voice pitched down."""
     female = [v for v, g in candidates if g == "female"]
     male = [v for v, g in candidates if g == "male"]
     names = [v for v, _ in candidates]
     guide = (female or names)[0]
-    skeptic = next((v for v in male if v != guide), None) or next((v for v in names if v != guide), guide)
-    return {"guide": guide, "skeptic": skeptic}
+    skeptic = next((v for v in male if v != guide), None) or next((v for v in names if v != guide), None)
+    return {"guide": guide, "skeptic": skeptic or f"{guide}@{SAME_VOICE_SHIFT}"}
 
 
 # --- Kokoro (ONNX) ---------------------------------------------------------------
@@ -422,12 +436,15 @@ class SayEngine(Engine):
         return _pick_two([(v, SAY_GENDER.get(v, "")) for v in ranked])
 
     def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
+        voice, shift = split_shift(voice)
         subprocess.run(
             ["say", "-v", voice, "-r", str(int(180 * speed)), "-o", str(out), "--file-format=WAVE",
              f"--data-format=LEI16@{SAMPLE_RATE}", text],
             check=True,
             capture_output=True,
         )
+        if shift and shutil.which("ffmpeg"):
+            shift_pitch(out, shift)
 
 
 # --- Windows: SAPI through PowerShell ----------------------------------------------
@@ -482,6 +499,8 @@ class SapiEngine(Engine):
         return _pick_two(installed)
 
     def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
+        voice, shift = split_shift(voice)
+        post = bool(shift) and bool(shutil.which("ffmpeg"))
         rate = max(-10, min(10, round((speed - 1.0) * 10)))
         with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8", delete=False) as f:
             f.write(text)
@@ -495,12 +514,21 @@ class SapiEngine(Engine):
                 f"{SAMPLE_RATE}, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, "
                 "[System.Speech.AudioFormat.AudioChannel]::Mono); "
                 f"$s.SetOutputToWaveFile({_ps_literal(str(out))}, $fmt); "
-                f"$s.Speak([IO.File]::ReadAllText({_ps_literal(text_file)}, [Text.Encoding]::UTF8)); "
-                "$s.Dispose()"
+                f"$t = [IO.File]::ReadAllText({_ps_literal(text_file)}, [Text.Encoding]::UTF8); "
+                + (
+                    # No ffmpeg: SAPI lowers the pitch itself, through SSML.
+                    "$x = [Security.SecurityElement]::Escape($t); "
+                    "$s.SpeakSsml(\"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' "
+                    "xml:lang='$($s.Voice.Culture.Name)'><prosody pitch='low'>$x</prosody></speak>\"); "
+                    if shift and not post else "$s.Speak($t); "
+                )
+                + "$s.Dispose()"
             )
             _powershell(script)
         finally:
             os.unlink(text_file)
+        if post:
+            shift_pitch(out, shift)
 
 
 # --- Linux: espeak-ng ------------------------------------------------------------
@@ -525,14 +553,20 @@ class EspeakEngine(Engine):
         return {"guide": f"{lang}+f3", "skeptic": f"{lang}+m3"}
 
     def synth(self, text: str, voice: str, lang: str, speed: float, out: Path, terms: Terms = ()) -> None:
+        voice, shift = split_shift(voice)
+        post = bool(shift) and bool(shutil.which("ffmpeg"))
+        # Without ffmpeg, espeak's own pitch (0-99, 50 by default) stands in for the shift.
+        pitch = ["-p", str(max(0, min(99, round(50 + 5 * shift))))] if shift and not post else []
         subprocess.run(
-            [self._binary(), "-v", voice, "-s", str(int(165 * speed)), "-w", str(out), "--stdin"],
+            [self._binary(), "-v", voice, "-s", str(int(165 * speed)), *pitch, "-w", str(out), "--stdin"],
             input=text,
             text=True,
             check=True,
             capture_output=True,
         )
         normalize_wav(out)  # espeak writes 22.05 kHz
+        if post:
+            shift_pitch(out, shift)
 
 
 # --- registry and selection ------------------------------------------------------

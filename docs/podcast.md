@@ -107,11 +107,14 @@ done. From then on `--engine auto` (the default) uses Kokoro, and the system voi
 | OS | Engine | What you need |
 |---|---|---|
 | macOS | `say` | Nothing. More voices: System Settings › Accessibility › Spoken Content › System voice › Manage Voices |
-| Windows | `sapi` 🧪 | Nothing. More languages: Settings › Time & language › Speech › Manage voices › Add voices |
+| Windows | `sapi` | Nothing. More languages: Settings › Time & language › Speech › Manage voices › Add voices |
 | Linux | `espeak` 🧪 | `sudo apt install espeak-ng` (Fedora: `dnf`, Arch: `pacman`) |
 
 The guide gets a female voice and the skeptic a male one when the OS has both, so they are easy to tell apart.
-🧪 Windows and Linux voices are tested with mocks only so far; reports are welcome.
+When the language has a single voice (Windows often has only *Microsoft Helena Desktop* in Spanish), the skeptic
+uses that voice three semitones lower. With ffmpeg the shift keeps the voice natural; without it, Windows lowers
+the pitch through SSML and espeak-ng uses its own pitch setting. For two real voices, add Kokoro.
+🧪 Linux voices are tested with mocks only so far; reports are welcome.
 
 ### Kokoro, by platform
 
